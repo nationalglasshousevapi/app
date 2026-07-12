@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-[#f6f8f7] text-slate-900 antialiased;
+  font-size: 17px;
+}
+
+.card {
+  @apply bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(15,23,42,0.04)];
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 min-h-[48px];
+}
+.btn-primary {
+  @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700 hover:shadow-md focus:ring-brand-500;
+}
+.btn-secondary {
+  @apply btn bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 focus:ring-slate-400;
+}
+.btn-accent {
+  @apply btn bg-secondary-500 text-white shadow-sm hover:bg-secondary-600 hover:shadow-md focus:ring-secondary-400;
+}
+.btn-danger {
+  @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+}
+
+.input {
+  @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base text-slate-800 placeholder:text-slate-400 transition focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 min-h-[48px];
+}
+
+.label {
+  @apply block text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 mb-1.5;
+}
+
+.page-title {
+  @apply text-2xl font-bold tracking-tight text-slate-900;
+}
+
+.page-subtitle {
+  @apply mt-1 text-sm text-slate-500;
+}
+
+.table-row {
+  @apply border-b border-slate-100 transition-colors hover:bg-brand-50/40;
+}
+
+@media (max-width: 767px) {
+  body {
+    font-size: 16px;
+  }
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
