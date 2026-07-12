@@ -29,6 +29,7 @@ export default function Sidebar() {
           width={100}
           height={30}
           className="object-contain"
+          unoptimized
         />
       </div>
       <nav className="flex-1 p-4 pt-2 space-y-1">

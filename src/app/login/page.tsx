@@ -39,6 +39,7 @@ export default function LoginPage() {
           width={180}
           height={54}
           className="object-contain mb-3"
+          unoptimized
         />
         <h1 className="text-xl font-semibold">National Glass House</h1>
         <p className="text-sm text-gray-500">Sign in to manage invoices</p>
