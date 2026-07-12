@@ -3,50 +3,61 @@
 @tailwind utilities;
 
 body {
-  @apply bg-[#f6f8f7] text-slate-900 antialiased;
+  @apply bg-frost text-ink antialiased;
   font-size: 17px;
 }
 
+/* ── Bevelled corner card ── */
 .card {
-  @apply bg-white rounded-2xl border border-slate-200/80 shadow-[0_2px_10px_rgba(15,23,42,0.04)];
+  @apply bg-white border border-slate-200/80;
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
 }
 
+/* ── Buttons ── */
 .btn {
   @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 min-h-[48px];
 }
+
 .btn-primary {
   @apply btn bg-brand-600 text-white shadow-sm hover:bg-brand-700 hover:shadow-md focus:ring-brand-500;
 }
+
 .btn-secondary {
-  @apply btn bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 focus:ring-slate-400;
-}
-.btn-accent {
-  @apply btn bg-secondary-500 text-white shadow-sm hover:bg-secondary-600 hover:shadow-md focus:ring-secondary-400;
-}
-.btn-danger {
-  @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+  @apply btn bg-white text-ink border border-slate-200 hover:bg-slate-50 focus:ring-slate-400;
 }
 
+.btn-accent {
+  @apply btn bg-brass-500 text-white shadow-sm hover:bg-brass-600 hover:shadow-md focus:ring-brass-400;
+}
+
+.btn-danger {
+  @apply btn bg-signal-rust text-white hover:opacity-90 focus:ring-signal-rust;
+}
+
+/* ── Form elements ── */
 .input {
-  @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base text-slate-800 placeholder:text-slate-400 transition focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 min-h-[48px];
+  @apply w-full rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base text-ink placeholder:text-slate-400 transition focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 min-h-[48px];
 }
 
 .label {
   @apply block text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 mb-1.5;
 }
 
+/* ── Typography helpers ── */
 .page-title {
-  @apply text-2xl font-bold tracking-tight text-slate-900;
+  @apply font-display text-2xl font-bold tracking-tight text-ink;
 }
 
 .page-subtitle {
   @apply mt-1 text-sm text-slate-500;
 }
 
+/* ── Tables ── */
 .table-row {
   @apply border-b border-slate-100 transition-colors hover:bg-brand-50/40;
 }
 
+/* ── Responsive ── */
 @media (max-width: 767px) {
   body {
     font-size: 16px;

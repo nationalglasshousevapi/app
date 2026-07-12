@@ -1,21 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" fill="none">
-  <!-- Glass icon -->
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#046380"/>
-      <stop offset="100%" stop-color="#0891b2"/>
-    </linearGradient>
-  </defs>
-  <!-- Window/glass pane icon -->
-  <rect x="12" y="12" width="72" height="72" rx="8" stroke="url(#g)" stroke-width="5" fill="rgba(4,99,128,0.06)"/>
-  <line x1="48" y1="12" x2="48" y2="84" stroke="url(#g)" stroke-width="3.5" stroke-linecap="round"/>
-  <line x1="12" y1="48" x2="84" y2="48" stroke="url(#g)" stroke-width="3.5" stroke-linecap="round"/>
-  <!-- Reflection highlight -->
-  <line x1="20" y1="20" x2="36" y2="36" stroke="rgba(4,99,128,0.2)" stroke-width="3" stroke-linecap="round"/>
-  <!-- Company name -->
-  <text x="108" y="50" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="28" font-weight="700" fill="#046380" letter-spacing="-0.5">National Glass House</text>
-  <!-- Tagline -->
-  <text x="108" y="76" font-family="'Helvetica Neue',Helvetica,Arial,sans-serif" font-size="13" fill="#64748b" letter-spacing="0.3">Invoicing &amp; Document Management</text>
-  <!-- Bottom bar -->
-  <rect x="108" y="88" width="40" height="3" rx="1.5" fill="#046380" opacity="0.3"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 580">
+  <!-- Background -->
+  <rect x="0" y="0" width="1800" height="580" fill="#155d70"/>
+
+  <!-- House roof outline -->
+  <polyline points="700,235 900,45 1000,140 1000,90 1075,165 1075,235"
+            fill="none" stroke="#ffffff" stroke-width="22"
+            stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Door / window rectangle under the roof peak -->
+  <rect x="862" y="165" width="76" height="130" fill="#ffffff"/>
+
+  <!-- Left double horizontal line -->
+  <rect x="40" y="230" width="620" height="14" fill="#ffffff"/>
+  <rect x="40" y="262" width="620" height="14" fill="#ffffff"/>
+
+  <!-- Right double horizontal line -->
+  <rect x="1120" y="230" width="640" height="14" fill="#ffffff"/>
+  <rect x="1120" y="262" width="640" height="14" fill="#ffffff"/>
+
+  <!-- Wordmark -->
+  <text x="900" y="470"
+        text-anchor="middle"
+        font-family="'Arial Black', 'Helvetica Neue', Arial, sans-serif"
+        font-weight="900"
+        font-style="italic"
+        font-size="150"
+        fill="#ffffff"
+        letter-spacing="-2">national glass house</text>
 </svg>

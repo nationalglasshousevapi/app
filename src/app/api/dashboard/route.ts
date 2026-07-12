@@ -51,7 +51,8 @@ export async function GET() {
     countsByType[d.doc_type] = (countsByType[d.doc_type] ?? 0) + 1;
   }
 
-  const thisMonth = new Date().toISOString().slice(0, 7);
+  const now = new Date();
+  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   const thisMonthRevenue = monthly.get(thisMonth) ?? 0;
 
   return NextResponse.json({

@@ -1,8 +1,28 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import { Space_Grotesk, Inter, IBM_Plex_Mono } from "next/font/google";
 import { isAuthenticated } from "@/lib/auth";
 import Sidebar from "@/components/Sidebar";
 import MobileBottomNav from "@/components/MobileBottomNav";
+
+const fontDisplay = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const fontBody = Inter({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const fontMono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "National Glass House",
@@ -17,8 +37,11 @@ export default async function RootLayout({
   const authed = await isAuthenticated();
 
   return (
-    <html lang="en">
-      <body>
+    <html
+      lang="en"
+      className={`${fontDisplay.variable} ${fontBody.variable} ${fontMono.variable}`}
+    >
+      <body className="font-body">
         {authed ? (
           <div className="min-h-screen md:flex">
             <Sidebar />

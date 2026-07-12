@@ -10,9 +10,9 @@ export const revalidate = 0;
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-slate-100 text-slate-600",
-  sent: "bg-secondary-50 text-secondary-700",
-  paid: "bg-tertiary-50 text-tertiary-700",
-  cancelled: "bg-red-50 text-red-600",
+  sent: "bg-brass-50 text-brass-700",
+  paid: "bg-emerald-50 text-signal-green",
+  cancelled: "bg-red-50 text-signal-rust",
 };
 
 export default async function DocumentsPage({
@@ -150,7 +150,7 @@ export default async function DocumentsPage({
           <tbody>
             {(documents ?? []).map((doc) => (
               <tr key={doc.id} className="table-row">
-                <td className="p-4 font-semibold text-slate-800">{doc.doc_number}</td>
+                <td className="p-4 font-semibold text-ink font-mono">{doc.doc_number}</td>
                 <td className="p-4"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{docTypeLabel(doc.doc_type)}</span></td>
                 <td className="p-4 text-slate-500">{doc.doc_date}</td>
                 <td className="p-4 font-medium">

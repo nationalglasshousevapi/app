@@ -24,7 +24,7 @@ export default function TopCustomersChart({
         layout="vertical"
         margin={{ top: 4, right: 24, left: 0, bottom: 0 }}
       >
-        <CartesianGrid horizontal={false} strokeDasharray="3 3" stroke="#e7eceb" />
+        <CartesianGrid horizontal={false} strokeDasharray="2 2" stroke="#e2e8f0" strokeWidth={0.5} />
         <XAxis type="number" fontSize={11} axisLine={false} tickLine={false} tick={{ fill: "#64748b" }} />
         <YAxis
           type="category"
@@ -37,8 +37,9 @@ export default function TopCustomersChart({
         />
         <Tooltip
           formatter={(value: number) => `Rs. ${value.toLocaleString("en-IN")}`}
+          contentStyle={{ borderRadius: 4, border: "1px solid #e2e8f0", fontSize: 13 }}
         />
-        <Bar dataKey="total" fill="#ca8a04" radius={[0, 4, 4, 0]} maxBarSize={28} />
+        <Bar dataKey="total" fill="#B8863B" radius={[0, 3, 3, 0]} maxBarSize={24} />
       </BarChart>
     </ResponsiveContainer>
   );

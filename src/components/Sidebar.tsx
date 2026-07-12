@@ -21,14 +21,14 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="hidden md:flex md:w-64 shrink-0 border-r border-slate-200 bg-white md:min-h-screen md:flex-col">
+    <aside className="hidden md:flex md:w-64 shrink-0 bg-brand-600 md:min-h-screen md:flex-col">
       <div className="px-4 py-3.5 md:p-6 flex items-center gap-3">
         <Image
           src="/logo.png"
           alt="National Glass House Logo"
           width={100}
           height={30}
-          className="object-contain"
+          className="object-contain brightness-0 invert"
           unoptimized
         />
       </div>
@@ -41,8 +41,8 @@ export default function Sidebar() {
               href={item.href}
               className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition ${
                 active
-                  ? "bg-brand-50 text-brand-700 border-l-[3px] border-brand-600 rounded-l-none"
-                  : "text-slate-500 hover:text-slate-700 hover:bg-slate-100"
+                  ? "bg-white/15 text-white"
+                  : "text-white/65 hover:text-white hover:bg-white/10"
               }`}
             >
               <span className="text-base w-4 text-center" aria-hidden>{item.icon}</span>
@@ -51,14 +51,14 @@ export default function Sidebar() {
           );
         })}
       </nav>
-      <div className="p-4 border-t border-slate-100 space-y-2">
+      <div className="p-4 border-t border-white/15 space-y-2">
         <Link
           href="/documents/new"
-          className="flex items-center justify-center gap-2 rounded-xl bg-secondary-500 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-secondary-600 transition"
+          className="flex items-center justify-center gap-2 rounded-xl bg-brass-500 text-white px-5 py-3 text-sm font-semibold shadow-sm hover:bg-brass-600 transition"
         >
           <span className="text-lg leading-none">+</span> New document
         </Link>
-        <button onClick={logout} className="btn-secondary w-full">
+        <button onClick={logout} className="flex items-center justify-center gap-2 rounded-xl border border-white/25 text-white/75 px-5 py-3 text-sm font-semibold hover:bg-white/10 hover:text-white transition w-full">
           Sign out
         </button>
       </div>

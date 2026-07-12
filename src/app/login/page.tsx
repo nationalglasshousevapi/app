@@ -31,7 +31,7 @@ export default function LoginPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card p-8 w-full max-w-sm space-y-4">
+    <form onSubmit={handleSubmit} className="card p-8 w-full max-w-sm space-y-6">
       <div className="flex flex-col items-center text-center">
         <Image
           src="/logo.png"
@@ -41,8 +41,8 @@ export default function LoginPage() {
           className="object-contain mb-3"
           unoptimized
         />
-        <h1 className="text-xl font-semibold">National Glass House</h1>
-        <p className="text-sm text-gray-500">Sign in to manage invoices</p>
+        <h1 className="font-display text-xl font-bold text-ink">National Glass House</h1>
+        <p className="text-sm text-slate-500 font-body mt-1">Sign in to manage invoices</p>
       </div>
       <div>
         <label className="label">Password</label>
@@ -55,9 +55,9 @@ export default function LoginPage() {
           required
         />
       </div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-signal-rust">{error}</p>}
       <button type="submit" disabled={loading} className="btn-primary w-full">
-        {loading ? "Signing in…" : "Sign in"}
+        {loading ? "Signing in\u2026" : "Sign in"}
       </button>
     </form>
   );
