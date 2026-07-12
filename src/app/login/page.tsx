@@ -36,8 +36,8 @@ export default function LoginPage() {
         <Image
           src="/logo.png"
           alt="National Glass House Logo"
-          width={64}
-          height={64}
+          width={180}
+          height={54}
           className="object-contain mb-3"
         />
         <h1 className="text-xl font-semibold">National Glass House</h1>

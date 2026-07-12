@@ -26,14 +26,10 @@ export default function Sidebar() {
         <Image
           src="/logo.png"
           alt="National Glass House Logo"
-          width={36}
-          height={36}
-          className="object-contain rounded-lg"
+          width={100}
+          height={30}
+          className="object-contain"
         />
-        <div>
-          <div className="font-bold text-slate-900 leading-tight">National Glass House</div>
-          <div className="text-xs text-slate-500">Business workspace</div>
-        </div>
       </div>
       <nav className="flex-1 p-4 pt-2 space-y-1">
         {NAV.map((item) => {

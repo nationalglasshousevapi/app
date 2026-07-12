@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 async function companyLogo() {
   try {
-    const logo = await readFile(path.join(process.cwd(), "public", "NGH-logo.png"));
+    const logo = await readFile(path.join(process.cwd(), "public", "logo.png"));
     return `data:image/png;base64,${logo.toString("base64")}`;
   } catch {
     // A missing logo must never prevent a customer from opening an invoice.
