@@ -3,11 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { PersonIcon, DashboardIcon, DocumentIcon } from "./icons";
+import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon } from "./icons";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/documents", label: "All documents", icon: "document" },
+  { href: "/accounts", label: "Accounts", icon: "account" },
   { href: "/customers", label: "Customers", icon: "person" },
 ];
 
@@ -93,6 +94,8 @@ export default function Sidebar() {
                   <PersonIcon className="w-4 h-4" />
                 ) : item.icon === "dashboard" ? (
                   <DashboardIcon className="w-4 h-4" />
+                ) : item.icon === "account" ? (
+                  <AccountIcon className="w-4 h-4" />
                 ) : (
                   <DocumentIcon className="w-4 h-4" />
                 )}

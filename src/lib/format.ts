@@ -17,3 +17,12 @@ export function formatMonthKey(month: string) {
   const label = date.toLocaleDateString("en-IN", { month: "long", year: "2-digit" });
   return label.replace(" ", " '");
 }
+
+export function formatDateShort(date: Date | string) {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(d);
+}

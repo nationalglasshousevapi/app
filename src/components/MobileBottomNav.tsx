@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PersonIcon, DashboardIcon, DocumentIcon } from "./icons";
+import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon } from "./icons";
 
 const TABS = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/documents", label: "Documents", icon: "document" },
+  { href: "/accounts", label: "Accounts", icon: "account" },
   { href: "/customers", label: "Customers", icon: "person" },
 ];
 
@@ -40,6 +41,8 @@ export default function MobileBottomNav() {
                   <PersonIcon className="w-5 h-5" />
                 ) : tab.icon === "dashboard" ? (
                   <DashboardIcon className="w-5 h-5" />
+                ) : tab.icon === "account" ? (
+                  <AccountIcon className="w-5 h-5" />
                 ) : (
                   <DocumentIcon className="w-5 h-5" />
                 )}

@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
       contact_number: body.contact_number ?? null,
       email: body.email ?? null,
       gst: body.gst ?? null,
+      opening_balance: body.opening_balance ?? 0,
     })
     .select()
     .single();

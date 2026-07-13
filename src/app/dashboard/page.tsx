@@ -4,6 +4,7 @@ import RevenueChart from "@/components/RevenueChart";
 import DocumentTypeChart from "@/components/DocumentTypeChart";
 import TopCustomersChart from "@/components/TopCustomersChart";
 import DocumentActions from "@/components/DocumentActions";
+import GstExport from "@/components/GstExport";
 import { docTypeLabel } from "@/lib/docTypes";
 import { inr, formatDateLong, formatMonthKey } from "@/lib/format";
 import Link from "next/link";
@@ -46,11 +47,18 @@ async function getDashboardData() {
     .order("created_at", { ascending: false })
     .limit(5);
 
+  const { data: receivableData } = await sb
+    .from("customer_ledger_view")
+    .select("balance_due");
+
+  const totalReceivable = (receivableData ?? []).reduce((s, r) => s + Number(r.balance_due), 0);
+
   return {
     totalRevenue: s?.totalRevenue ?? 0,
     thisMonthRevenue: s?.thisMonthRevenue ?? 0,
     invoiceCount: s?.invoiceCount ?? 0,
     customerCount: s?.customerCount ?? 0,
+    totalReceivable,
     monthlySeries,
     topCustomers,
     documentTypeData,
@@ -75,11 +83,12 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard label="Revenue" value={inr(d.totalRevenue)} sub="All time" accent="teal" href="/documents?type=invoice" />
         <StatCard label="This month" value={inr(d.thisMonthRevenue)} sub="Invoice total" accent="brass" href="/documents?type=invoice" />
         <StatCard label="Invoices" value={String(d.invoiceCount)} sub="Created" accent="pane" href="/documents?type=invoice" />
         <StatCard label="Customers" value={String(d.customerCount)} sub="Saved" accent="blue" href="/customers" />
+        <StatCard label="Receivable" value={inr(d.totalReceivable)} sub="Outstanding" accent="brass" href="/accounts" />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
@@ -208,6 +217,8 @@ export default async function DashboardPage() {
           )}
         </div>
       </div>
+
+      <GstExport />
     </div>
   );
 }

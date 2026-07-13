@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { inr } from "@/lib/format";
 
 type Customer = {
   id: string;
@@ -20,11 +21,13 @@ const EMPTY = {
   contact_number: "",
   email: "",
   gst: "",
+  opening_balance: "",
 };
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [invoiceCounts, setInvoiceCounts] = useState<Record<string, number>>({});
+  const [balanceData, setBalanceData] = useState<Record<string, number>>({});
   const [q, setQ] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY);
@@ -32,14 +35,21 @@ export default function CustomersPage() {
 
   async function load(query = "") {
     setLoading(true);
-    const [custRes, statsRes] = await Promise.all([
+    const [custRes, statsRes, ledgerRes] = await Promise.all([
       fetch(`/api/customers${query ? `?q=${encodeURIComponent(query)}` : ""}`),
       fetch("/api/customers/stats"),
+      fetch("/api/accounts/balances"),
     ]);
     const custJson = await custRes.json();
     const statsJson = await statsRes.json();
+    const ledgerJson = await ledgerRes.json();
     setCustomers(custJson.customers ?? []);
     setInvoiceCounts(statsJson.counts ?? {});
+    const bal: Record<string, number> = {};
+    for (const c of ledgerJson.balances ?? []) {
+      bal[c.customer_id] = Number(c.balance_due);
+    }
+    setBalanceData(bal);
     setLoading(false);
   }
 
@@ -58,7 +68,7 @@ export default function CustomersPage() {
     await fetch("/api/customers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, opening_balance: form.opening_balance ? parseFloat(form.opening_balance) : 0 }),
     });
     setForm(EMPTY);
     setShowForm(false);
@@ -139,6 +149,17 @@ export default function CustomersPage() {
               onChange={(e) => setForm({ ...form, email: e.target.value })}
             />
           </div>
+          <div>
+            <label className="label">Opening Balance <span className="text-slate-400 font-normal">(optional)</span></label>
+            <input
+              className="input"
+              type="number"
+              step="0.01"
+              value={form.opening_balance}
+              onChange={(e) => setForm({ ...form, opening_balance: e.target.value })}
+              placeholder="0"
+            />
+          </div>
           <div className="md:col-span-2">
             <button type="submit" className="btn-primary">
               Save customer
@@ -163,6 +184,7 @@ export default function CustomersPage() {
               <th className="p-4">Phone</th>
               <th className="p-4">GST</th>
               <th className="p-4 text-center">Invoices</th>
+              <th className="p-4 text-right">Balance</th>
               <th className="p-3"></th>
             </tr>
           </thead>
@@ -179,6 +201,11 @@ export default function CustomersPage() {
                 <td className="p-4 text-slate-500">{c.gst || "—"}</td>
                 <td className="p-4 text-center">
                   <span className="font-semibold text-slate-700">{invoiceCounts[c.id] ?? 0}</span>
+                </td>
+                <td className="p-4 text-right font-mono">
+                  <Link href={`/accounts/${c.id}`} className="text-brand-600 hover:underline">
+                    {inr(balanceData[c.id] ?? 0)}
+                  </Link>
                 </td>
                 <td className="p-4 text-right">
                   <button

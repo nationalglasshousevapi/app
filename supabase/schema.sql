@@ -124,6 +124,54 @@ drop trigger if exists trg_documents_updated on documents;
 create trigger trg_documents_updated before update on documents
   for each row execute function set_updated_at();
 
+-- ========== Customer Accounts / Payments ==========
+
+alter table customers add column if not exists opening_balance numeric(12,2) not null default 0;
+
+create table if not exists payments (
+  id uuid primary key default gen_random_uuid(),
+  customer_id uuid not null references customers(id) on delete cascade,
+  payment_date date not null default current_date,
+  amount numeric(12,2) not null check (amount > 0),
+  payment_mode text not null default 'cash' check (payment_mode in (
+    'cash', 'bank_transfer', 'upi', 'cheque', 'adjustment'
+  )),
+  reference_number text,
+  document_id uuid references documents(id) on delete set null,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_payments_customer on payments (customer_id);
+create index if not exists idx_payments_date on payments (payment_date);
+
+drop trigger if exists trg_payments_updated on payments;
+create trigger trg_payments_updated before update on payments
+  for each row execute function set_updated_at();
+
+-- Ledger view: opening balance + invoiced - paid = balance due
+create or replace view customer_ledger_view as
+select
+  c.id as customer_id,
+  c.name as customer_name,
+  c.opening_balance,
+  coalesce(inv.total_invoiced, 0) as total_invoiced,
+  coalesce(pay.total_paid, 0) as total_paid,
+  (c.opening_balance + coalesce(inv.total_invoiced, 0) - coalesce(pay.total_paid, 0)) as balance_due
+from customers c
+left join (
+  select customer_id, sum(total_amount) as total_invoiced
+  from documents
+  where doc_type = 'invoice' and status != 'cancelled'
+  group by customer_id
+) inv on inv.customer_id = c.id
+left join (
+  select customer_id, sum(amount) as total_paid
+  from payments
+  group by customer_id
+) pay on pay.customer_id = c.id;
+
 -- ========== Dashboard aggregation ==========
 -- Returns all dashboard data in a single query for efficiency.
 create or replace function get_dashboard_stats()
@@ -183,3 +231,4 @@ alter table customers enable row level security;
 alter table documents enable row level security;
 alter table document_items enable row level security;
 alter table counters enable row level security;
+alter table payments enable row level security;
