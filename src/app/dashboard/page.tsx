@@ -5,64 +5,38 @@ import DocumentTypeChart from "@/components/DocumentTypeChart";
 import TopCustomersChart from "@/components/TopCustomersChart";
 import DocumentActions from "@/components/DocumentActions";
 import { docTypeLabel } from "@/lib/docTypes";
-import { inr, formatDateLong } from "@/lib/format";
+import { inr, formatDateLong, formatMonthKey } from "@/lib/format";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+interface DashboardStats {
+  totalRevenue: number;
+  thisMonthRevenue: number;
+  invoiceCount: number;
+  customerCount: number;
+  monthlySeries: { month: string; total: number }[] | null;
+  topCustomers: { id: string | null; name: string; total: number; count: number }[] | null;
+  documentTypeData: { type: string; count: number }[] | null;
+}
+
 async function getDashboardData() {
   const sb = supabaseServer();
 
-  const { data: invoices } = await sb
-    .from("documents")
-    .select("id, doc_date, doc_number, total_amount, customer_id, bill_to_name, bill_to_contact_number")
-    .eq("doc_type", "invoice");
+  const { data: stats } = await sb.rpc("get_dashboard_stats");
+  const s = stats as unknown as DashboardStats | null;
 
-  const monthly = new Map<string, number>();
-  const byCustomer = new Map<string, { id: string | null; name: string; total: number; count: number }>();
-  let totalRevenue = 0;
+  const monthlySeries = (s?.monthlySeries ?? [])
+    .slice()
+    .sort((a, b) => a.month.localeCompare(b.month))
+    .map(({ month, total }) => ({ month: formatMonthKey(month), total }));
 
-  for (const inv of invoices ?? []) {
-    const month = String(inv.doc_date).slice(0, 7);
-    monthly.set(month, (monthly.get(month) ?? 0) + Number(inv.total_amount));
-    totalRevenue += Number(inv.total_amount);
+  const topCustomers = s?.topCustomers ?? [];
+  const docTypeCounts = s?.documentTypeData ?? [];
 
-    const key = inv.customer_id ?? inv.bill_to_name ?? "unknown";
-    const existing = byCustomer.get(key) ?? {
-      id: inv.customer_id,
-      name: inv.bill_to_name ?? "Unknown",
-      total: 0,
-      count: 0,
-    };
-    existing.total += Number(inv.total_amount);
-    existing.count += 1;
-    byCustomer.set(key, existing);
-  }
-
-  const monthlySeries = Array.from(monthly.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .slice(-12)
-    .map(([month, total]) => ({ month, total }));
-
-  const topCustomers = Array.from(byCustomer.entries())
-    .sort(([, a], [, b]) => b.total - a.total)
-    .slice(0, 8)
-    .map(([, value]) => value);
-
-  const { count: customerCount } = await sb
-    .from("customers")
-    .select("*", { count: "exact", head: true });
-
-  const { data: allDocs } = await sb.from("documents").select("doc_type, total_amount");
-
-  const countsByType: Record<string, number> = {};
-  for (const d of allDocs ?? []) {
-    countsByType[d.doc_type] = (countsByType[d.doc_type] ?? 0) + 1;
-  }
-
-  const documentTypeData = Object.entries(countsByType)
-    .sort(([, a], [, b]) => b - a)
-    .map(([type, count]) => ({ name: docTypeLabel(type), value: count, type }));
+  const documentTypeData = docTypeCounts
+    .sort((a, b) => b.count - a.count)
+    .map(({ type, count }) => ({ name: docTypeLabel(type), value: count, type }));
 
   const { data: recentInvoices } = await sb
     .from("documents")
@@ -72,14 +46,11 @@ async function getDashboardData() {
     .order("created_at", { ascending: false })
     .limit(5);
 
-  const now = new Date();
-  const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
   return {
-    totalRevenue,
-    thisMonthRevenue: monthly.get(thisMonth) ?? 0,
-    invoiceCount: invoices?.length ?? 0,
-    customerCount: customerCount ?? 0,
+    totalRevenue: s?.totalRevenue ?? 0,
+    thisMonthRevenue: s?.thisMonthRevenue ?? 0,
+    invoiceCount: s?.invoiceCount ?? 0,
+    customerCount: s?.customerCount ?? 0,
     monthlySeries,
     topCustomers,
     documentTypeData,

@@ -8,9 +8,13 @@ const config: Config = {
         brand: {
           50: "#eaf0f1",
           100: "#c7d7db",
+          200: "#a3bec6",
+          300: "#7fa6b1",
+          400: "#6d99a7",
           500: "#5B93A3",
           600: "#0F3A44",
           700: "#0c2e36",
+          800: "#091f25",
           900: "#081e23",
         },
         brass: {
@@ -22,7 +26,7 @@ const config: Config = {
           700: "#6e5023",
           900: "#4a3517",
         },
-        frost: "#F6F8F8",
+        frost: "#F4F7F8",
         ink: "#1C2A2D",
         signal: {
           green: "#3F7D5C",

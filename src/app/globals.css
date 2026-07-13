@@ -9,8 +9,19 @@ body {
 
 /* ── Bevelled corner card ── */
 .card {
-  @apply bg-white border border-slate-200/80;
-  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+  @apply bg-white border border-slate-200/80 relative;
+}
+
+.card::after {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  width: 10px;
+  height: 10px;
+  background: #f4f7f8;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+  pointer-events: none;
 }
 
 /* ── Buttons ── */
@@ -45,7 +56,7 @@ body {
 
 /* ── Typography helpers ── */
 .page-title {
-  @apply font-display text-2xl font-bold tracking-tight text-ink;
+  @apply font-display text-3xl font-bold tracking-tight text-ink;
 }
 
 .page-subtitle {

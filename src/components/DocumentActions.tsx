@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { docTypeLabel } from "@/lib/docTypes";
 import { documentShareMessage, whatsAppShareUrl } from "@/lib/whatsapp";
 import { useState } from "react";
+import ConfirmModal from "./ConfirmModal";
 
 function Icon({ type, className = "" }: { type: string; className?: string }) {
   const cls = `inline-block align-middle ${className}`;
@@ -47,11 +48,15 @@ export default function DocumentActions({
   const pathname = usePathname();
   const [duplicating, setDuplicating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [emailing, setEmailing] = useState(false);
 
+  function handleDeleteClick() {
+    setConfirmDelete(true);
+  }
+
   async function deleteDoc() {
-    if (deleting) return;
-    if (!confirm(`Delete ${docNumber}? This cannot be undone.`)) return;
+    setConfirmDelete(false);
     setDeleting(true);
     try {
       const res = await fetch(`/api/documents/${id}`, { method: "DELETE" });
@@ -134,54 +139,74 @@ export default function DocumentActions({
 
   if (compact) {
     return (
-      <div className="inline-flex items-center gap-1">
-        <Link href={`/documents/${id}`} title="Edit" className={btn("", "", "text-brand-600 hover:bg-brand-50")}>
-          <Icon type="edit" />
-        </Link>
-        <a href={`/api/documents/${id}/pdf`} target="_blank" title="View PDF" className={btn("", "", "text-brand-600 hover:bg-brand-50")}>
-          <Icon type="pdf" />
-        </a>
-        <button onClick={sendEmail} disabled={emailing} title="Email to customer" className={btn("", "", "text-blue-600 hover:bg-blue-50")}>
-          {emailing ? <span className="text-xs">…</span> : <Icon type="email" />}
-        </button>
-        <a href={whatsappHref} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp" className={btn("", "", "text-emerald-600 hover:bg-emerald-50")}>
-          <Icon type="whatsapp" />
-        </a>
-        <button onClick={duplicate} disabled={duplicating} title="Duplicate" className={btn("", "", "text-slate-500 hover:bg-slate-100")}>
-          {duplicating ? <span className="text-xs">…</span> : <Icon type="copy" />}
-        </button>
-        <button onClick={deleteDoc} disabled={deleting} title="Delete" className={btn("", "", "text-red-500 hover:bg-red-50")}>
-          {deleting ? <span className="text-xs">…</span> : <Icon type="delete" />}
-        </button>
-      </div>
+      <>
+        <div className="inline-flex items-center gap-1">
+          <Link href={`/documents/${id}`} title="Edit" className={btn("", "", "text-brand-600 hover:bg-brand-50")}>
+            <Icon type="edit" />
+          </Link>
+          <a href={`/api/documents/${id}/pdf`} target="_blank" title="View PDF" className={btn("", "", "text-brand-600 hover:bg-brand-50")}>
+            <Icon type="pdf" />
+          </a>
+          <button onClick={sendEmail} disabled={emailing} title="Email to customer" className={btn("", "", "text-blue-600 hover:bg-blue-50")}>
+            {emailing ? <span className="text-xs">…</span> : <Icon type="email" />}
+          </button>
+          <a href={whatsappHref} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp" className={btn("", "", "text-emerald-600 hover:bg-emerald-50")}>
+            <Icon type="whatsapp" />
+          </a>
+          <button onClick={duplicate} disabled={duplicating} title="Duplicate" className={btn("", "", "text-slate-500 hover:bg-slate-100")}>
+            {duplicating ? <span className="text-xs">…</span> : <Icon type="copy" />}
+          </button>
+          <button onClick={handleDeleteClick} disabled={deleting} title="Delete" className={btn("", "", "text-red-500 hover:bg-red-50")}>
+            {deleting ? <span className="text-xs">…</span> : <Icon type="delete" />}
+          </button>
+        </div>
+        <ConfirmModal
+          open={confirmDelete}
+          title="Delete document"
+          message={`Delete ${docNumber}? This cannot be undone.`}
+          busy={deleting}
+          onConfirm={deleteDoc}
+          onCancel={() => setConfirmDelete(false)}
+        />
+      </>
     );
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
-      <Link href={`/documents/${id}`} title="Edit" className={btn("edit", "Edit", "btn-secondary flex-1 text-sm")}>
-        <Icon type="edit" className="mr-1" /> Edit
-      </Link>
-      <div className="flex flex-1 gap-2">
-        <a href={`/api/documents/${id}/pdf`} target="_blank" title="Open PDF" className={btn("pdf", "PDF", "btn-secondary flex-1 text-sm")}>
-          <Icon type="pdf" className="mr-1" /> PDF
+    <>
+      <div className="flex flex-wrap gap-2">
+        <Link href={`/documents/${id}`} title="Edit" className={btn("edit", "Edit", "btn-secondary flex-1 text-sm")}>
+          <Icon type="edit" className="mr-1" /> Edit
+        </Link>
+        <div className="flex flex-1 gap-2">
+          <a href={`/api/documents/${id}/pdf`} target="_blank" title="Open PDF" className={btn("pdf", "PDF", "btn-secondary flex-1 text-sm")}>
+            <Icon type="pdf" className="mr-1" /> PDF
+          </a>
+          <a href={`/api/documents/${id}/pdf`} download={`${docNumber}.pdf`} title="Download PDF" className={btn("pdf", "", "btn-secondary flex-1 text-sm")}>
+            <Icon type="pdf" />
+          </a>
+        </div>
+        <button onClick={sendEmail} disabled={emailing} title="Email to customer" className={btn("email", "Email", "btn-secondary flex-1 text-sm text-blue-600 border-blue-200")}>
+          {emailing ? <span className="text-xs">…</span> : <><Icon type="email" className="mr-1" /> Email</>}
+        </button>
+        <a href={whatsappHref} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp" className={btn("whatsapp", "WhatsApp", "btn-secondary flex-1 text-sm text-emerald-700 border-emerald-200")}>
+          <Icon type="whatsapp" className="mr-1" /> WhatsApp
         </a>
-        <a href={`/api/documents/${id}/pdf`} download={`${docNumber}.pdf`} title="Download PDF" className={btn("pdf", "", "btn-secondary flex-1 text-sm")}>
-          <Icon type="pdf" />
-        </a>
+        <button onClick={duplicate} disabled={duplicating} title="Duplicate" className={btn("copy", "Copy", "btn-secondary flex-1 text-sm")}>
+          {duplicating ? <span className="text-xs">…</span> : <><Icon type="copy" className="mr-1" /> Copy</>}
+        </button>
+        <button onClick={handleDeleteClick} disabled={deleting} title="Delete" className={btn("delete", "Delete", "btn-secondary flex-1 text-sm text-red-600 border-red-200")}>
+          {deleting ? <span className="text-xs">…</span> : <><Icon type="delete" className="mr-1" /> Delete</>}
+        </button>
       </div>
-      <button onClick={sendEmail} disabled={emailing} title="Email to customer" className={btn("email", "Email", "btn-secondary flex-1 text-sm text-blue-600 border-blue-200")}>
-        {emailing ? <span className="text-xs">…</span> : <><Icon type="email" className="mr-1" /> Email</>}
-      </button>
-      <a href={whatsappHref} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp" className={btn("whatsapp", "WhatsApp", "btn-secondary flex-1 text-sm text-emerald-700 border-emerald-200")}>
-        <Icon type="whatsapp" className="mr-1" /> WhatsApp
-      </a>
-      <button onClick={duplicate} disabled={duplicating} title="Duplicate" className={btn("copy", "Copy", "btn-secondary flex-1 text-sm")}>
-        {duplicating ? <span className="text-xs">…</span> : <><Icon type="copy" className="mr-1" /> Copy</>}
-      </button>
-      <button onClick={deleteDoc} disabled={deleting} title="Delete" className={btn("delete", "Delete", "btn-secondary flex-1 text-sm text-red-600 border-red-200")}>
-        {deleting ? <span className="text-xs">…</span> : <><Icon type="delete" className="mr-1" /> Delete</>}
-      </button>
-    </div>
+      <ConfirmModal
+        open={confirmDelete}
+        title="Delete document"
+        message={`Delete ${docNumber}? This cannot be undone.`}
+        busy={deleting}
+        onConfirm={deleteDoc}
+        onCancel={() => setConfirmDelete(false)}
+      />
+    </>
   );
 }

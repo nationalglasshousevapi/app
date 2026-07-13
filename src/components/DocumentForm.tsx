@@ -95,6 +95,7 @@ export default function DocumentForm({
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [company, setCompany] = useState<CompanyDetails | null>(null);
   const [companyLoading, setCompanyLoading] = useState(false);
+  const [customerPickerKey, setCustomerPickerKey] = useState(0);
   const router = useRouter();
 
   const isDirty = useMemo(() => {
@@ -399,7 +400,35 @@ export default function DocumentForm({
             <p className="text-xs text-slate-500">Search saved customers, or enter details below.</p>
           </div>
         </div>
-        <CustomerPicker onSelect={selectCustomer} initialName={value.bill_to_name} />
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <CustomerPicker key={customerPickerKey} onSelect={selectCustomer} initialName={value.bill_to_name} />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              patch({
+                customer_id: null,
+                bill_to_name: "",
+                bill_to_address: "",
+                bill_to_contact_person: "",
+                bill_to_contact_number: "",
+                bill_to_email: "",
+                bill_to_gst: "",
+                ship_to_name: "",
+                ship_to_address: "",
+                ship_to_contact_person: "",
+                ship_to_contact_number: "",
+              });
+              setSameAsBilling(true);
+              setCustomerPickerKey((k) => k + 1);
+            }}
+            className="btn-secondary px-3 py-3.5 shrink-0 text-sm"
+            title="Clear customer"
+          >
+            Clear
+          </button>
+        </div>
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label className="label">Name <span className="text-red-500">*</span></label>
@@ -456,7 +485,11 @@ export default function DocumentForm({
           Ship to same as billing
         </label>
 
-        {!sameAsBilling && (
+        <div
+          className={`overflow-hidden transition-all duration-200 ease-in-out ${
+            !sameAsBilling ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
           <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
             <div>
               <label className="label">Ship To Name</label>
@@ -475,10 +508,10 @@ export default function DocumentForm({
               />
             </div>
           </div>
-        )}
+        </div>
       </div>
 
-      <div className="card p-5 md:p-6 space-y-4">
+      <div className="card p-4 md:p-6 space-y-4">
         <div className="flex items-center gap-3">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">3</span>
           <div>
@@ -573,35 +606,31 @@ export default function DocumentForm({
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        <button type="submit" disabled={saving} className="btn-primary">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+        <button type="submit" disabled={saving} className="btn-primary w-full sm:w-auto">
           {saving ? "Saving…" : value.id ? "Save changes" : `Save ${docTypeLabel(value.doc_type)}`}
         </button>
-        <button
-          type="button"
-          onClick={previewPdf}
-          disabled={companyLoading || !value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)}
-          className="btn-secondary"
-          title={(!value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)) ? "Fill required fields first" : "Preview as PDF"}
-        >
-          {companyLoading ? "Loading…" : "Preview PDF"}
-        </button>
-        {value.id && (
-          isDirty ? (
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            type="button"
+            onClick={previewPdf}
+            disabled={companyLoading || !value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)}
+            className="btn-secondary"
+            title={(!value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)) ? "Fill required fields first" : "Preview as PDF"}
+          >
+            {companyLoading ? "Loading…" : "Preview PDF"}
+          </button>
+          {value.id && (
             <a href={`/api/documents/${value.id}/pdf`} target="_blank" className="btn-secondary">
               View PDF
             </a>
-          ) : (
-            <a href={`/api/documents/${value.id}/pdf`} target="_blank" className="btn-secondary">
-              View PDF
-            </a>
-          )
-        )}
-        {value.id && isDirty && (
-          <span className="text-xs text-amber-600 font-medium">
-            Save changes to update PDF
-          </span>
-        )}
+          )}
+          {value.id && isDirty && (
+            <span className="text-xs text-amber-600 font-medium">
+              Save changes to update PDF
+            </span>
+          )}
+        </div>
       </div>
       {saveError ? (
         <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

@@ -124,6 +124,57 @@ drop trigger if exists trg_documents_updated on documents;
 create trigger trg_documents_updated before update on documents
   for each row execute function set_updated_at();
 
+-- ========== Dashboard aggregation ==========
+-- Returns all dashboard data in a single query for efficiency.
+create or replace function get_dashboard_stats()
+returns jsonb as $$
+declare
+  this_month text := to_char(now(), 'YYYY-MM');
+begin
+  return jsonb_build_object(
+    'totalRevenue', (select coalesce(sum(total_amount), 0) from documents where doc_type = 'invoice'),
+    'thisMonthRevenue', (select coalesce(sum(total_amount), 0) from documents where doc_type = 'invoice' and to_char(doc_date, 'YYYY-MM') = this_month),
+    'invoiceCount', (select count(*) from documents where doc_type = 'invoice'),
+    'customerCount', (select count(*) from customers),
+    'monthlySeries', (
+      select jsonb_agg(jsonb_build_object('month', to_char(doc_date, 'YYYY-MM'), 'total', total) order by month)
+      from (
+        select sum(total_amount) as total
+        from documents
+        where doc_type = 'invoice'
+        group by date_trunc('month', doc_date)
+        order by date_trunc('month', doc_date) desc
+        limit 12
+      ) sub
+    ),
+    'topCustomers', (
+      select jsonb_agg(jsonb_build_object(
+        'id', customer_id,
+        'name', bill_to_name,
+        'total', total,
+        'count', count
+      ) order by total desc)
+      from (
+        select customer_id, bill_to_name, sum(total_amount) as total, count(*) as count
+        from documents
+        where doc_type = 'invoice'
+        group by customer_id, bill_to_name
+        order by total desc
+        limit 8
+      ) sub
+    ),
+    'documentTypeData', (
+      select jsonb_agg(jsonb_build_object('type', doc_type, 'count', count) order by count desc)
+      from (
+        select doc_type, count(*) as count
+        from documents
+        group by doc_type
+      ) sub
+    )
+  );
+end;
+$$ language plpgsql stable;
+
 -- ========== Row Level Security ==========
 -- The app talks to Supabase using the service-role key from server-side API routes only,
 -- which bypasses RLS. Enabling RLS here just makes sure the anon/public key (if ever used

@@ -10,3 +10,10 @@ export function formatDateLong(date = new Date()) {
     year: "numeric",
   }).format(date);
 }
+
+export function formatMonthKey(month: string) {
+  const [y, m] = month.split("-");
+  const date = new Date(Number(y), Number(m) - 1);
+  const label = date.toLocaleDateString("en-IN", { month: "long", year: "2-digit" });
+  return label.replace(" ", " '");
+}

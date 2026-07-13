@@ -9,6 +9,8 @@ import BatchDownloadPanel from "@/components/BatchDownloadPanel";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+const PAGE_SIZE = 50;
+
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-slate-100 text-slate-600",
   sent: "bg-brass-50 text-brass-700",
@@ -32,15 +34,42 @@ function getDateRange(year: string, months?: string): { from?: string; to?: stri
 export default async function DocumentsPage({
   searchParams,
 }: {
-  searchParams: { type?: string; customer_id?: string; q?: string; year?: string; months?: string };
+  searchParams: { type?: string; customer_id?: string; q?: string; year?: string; months?: string; page?: string };
 }) {
   const sb = supabaseServer();
+
+  const currentPage = Math.max(1, Number(searchParams.page) || 1);
+  const from = (currentPage - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  // Count first so we know total pages
+  let countQuery = sb
+    .from("documents")
+    .select("*", { count: "exact", head: true });
+
+  if (searchParams.type) countQuery = countQuery.eq("doc_type", searchParams.type);
+  if (searchParams.customer_id) countQuery = countQuery.eq("customer_id", searchParams.customer_id);
+  if (searchParams.q?.trim()) {
+    const term = `%${searchParams.q.trim()}%`;
+    countQuery = countQuery.or(`doc_number.ilike.${term},bill_to_name.ilike.${term}`);
+  }
+  if (searchParams.year) {
+    const { from: fromDate, to: toDate } = getDateRange(searchParams.year, searchParams.months);
+    if (fromDate && toDate) {
+      countQuery = countQuery.gte("doc_date", fromDate).lte("doc_date", toDate);
+    }
+  }
+
+  const { count: totalCount } = await countQuery;
+  const totalPages = Math.ceil((totalCount ?? 0) / PAGE_SIZE);
+
+  // Fetch current page
   let query = sb
     .from("documents")
     .select("id, doc_type, doc_number, doc_date, bill_to_name, bill_to_contact_number, total_amount, status, customer_id")
     .order("doc_date", { ascending: false })
     .order("created_at", { ascending: false })
-    .limit(200);
+    .range(from, to);
 
   if (searchParams.type) query = query.eq("doc_type", searchParams.type);
   if (searchParams.customer_id) query = query.eq("customer_id", searchParams.customer_id);
@@ -49,9 +78,9 @@ export default async function DocumentsPage({
     query = query.or(`doc_number.ilike.${term},bill_to_name.ilike.${term}`);
   }
   if (searchParams.year) {
-    const { from, to } = getDateRange(searchParams.year, searchParams.months);
-    if (from && to) {
-      query = query.gte("doc_date", from).lte("doc_date", to);
+    const { from: fromDate, to: toDate } = getDateRange(searchParams.year, searchParams.months);
+    if (fromDate && toDate) {
+      query = query.gte("doc_date", fromDate).lte("doc_date", toDate);
     }
   }
 
@@ -86,7 +115,7 @@ export default async function DocumentsPage({
         <div>
           <h1 className="page-title">Documents</h1>
           <p className="page-subtitle">
-            {filterLabel || `${documents?.length ?? 0} documents shown`}
+            {filterLabel || `${(documents ?? []).length} of ${totalCount ?? 0} documents`}
           </p>
         </div>
         <Link href="/documents/new" className="btn-primary w-full sm:w-auto">
@@ -153,19 +182,44 @@ export default async function DocumentsPage({
         {!documents?.length && (
           <div className="card p-6 text-center text-gray-400">No documents found</div>
         )}
+        {(documents?.length ?? 0) > 0 && (
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-xs text-slate-500">
+              Page {currentPage} of {totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              {currentPage > 1 && (
+                <Link
+                  href={`/documents?${new URLSearchParams({ ...searchParams as Record<string, string>, page: String(currentPage - 1) }).toString()}`}
+                  className="btn-secondary text-xs px-3 py-2 min-h-[40px]"
+                >
+                  ← Previous
+                </Link>
+              )}
+              {currentPage < totalPages && (
+                <Link
+                  href={`/documents?${new URLSearchParams({ ...searchParams as Record<string, string>, page: String(currentPage + 1) }).toString()}`}
+                  className="btn-secondary text-xs px-3 py-2 min-h-[40px]"
+                >
+                  Next →
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="card overflow-x-auto hidden md:block">
         <table className="w-full text-sm">
           <thead className="bg-slate-50/80">
             <tr className="text-left text-xs font-semibold text-slate-500 border-b border-slate-100">
-              <th className="p-4">Number</th>
-              <th className="p-4">Type</th>
-              <th className="p-4">Date</th>
-              <th className="p-4">Customer</th>
-              <th className="p-4">Status</th>
-              <th className="p-4 text-right">Amount</th>
-              <th className="p-3"></th>
+              <th scope="col" className="p-4">Number</th>
+              <th scope="col" className="p-4">Type</th>
+              <th scope="col" className="p-4">Date</th>
+              <th scope="col" className="p-4">Customer</th>
+              <th scope="col" className="p-4">Status</th>
+              <th scope="col" className="p-4 text-right">Amount</th>
+              <th scope="col" className="p-3"><span className="sr-only">Actions</span></th>
             </tr>
           </thead>
           <tbody>
@@ -206,13 +260,39 @@ export default async function DocumentsPage({
             ))}
             {!documents?.length && (
               <tr>
-                <td colSpan={7} className="p-6 text-center text-gray-400">
-                  No documents found
+                <td colSpan={7} className="p-8 text-center">
+                  <p className="text-slate-500 font-medium">No documents yet</p>
+                  <p className="text-slate-400 text-sm mt-1">Create your first invoice, quotation, or estimate to get started.</p>
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+        {(documents?.length ?? 0) > 0 && (
+          <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
+            <p className="text-xs text-slate-500">
+              Page {currentPage} of {totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              {currentPage > 1 && (
+                <Link
+                  href={`/documents?${new URLSearchParams({ ...searchParams as Record<string, string>, page: String(currentPage - 1) }).toString()}`}
+                  className="btn-secondary text-xs px-3 py-2 min-h-[40px]"
+                >
+                  ← Previous
+                </Link>
+              )}
+              {currentPage < totalPages && (
+                <Link
+                  href={`/documents?${new URLSearchParams({ ...searchParams as Record<string, string>, page: String(currentPage + 1) }).toString()}`}
+                  className="btn-secondary text-xs px-3 py-2 min-h-[40px]"
+                >
+                  Next →
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

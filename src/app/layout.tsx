@@ -19,7 +19,7 @@ const fontBody = Inter({
 
 const fontMono = IBM_Plex_Mono({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "600"],
   variable: "--font-mono",
   display: "swap",
 });

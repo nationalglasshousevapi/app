@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { PersonIcon, DashboardIcon, DocumentIcon } from "./icons";
 
 const TABS = [
-  { href: "/dashboard", label: "Dashboard", icon: "▦" },
-  { href: "/documents", label: "Documents", icon: "▤" },
-  { href: "/customers", label: "Customers", icon: "♙" },
+  { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
+  { href: "/documents", label: "Documents", icon: "document" },
+  { href: "/customers", label: "Customers", icon: "person" },
 ];
 
 export default function MobileBottomNav() {
@@ -34,7 +35,15 @@ export default function MobileBottomNav() {
                   : "text-slate-400 hover:text-slate-600"
               }`}
             >
-              <span className="text-xl leading-none" aria-hidden>{tab.icon}</span>
+              <span className="w-5 h-5 flex items-center justify-center" aria-hidden>
+                {tab.icon === "person" ? (
+                  <PersonIcon className="w-5 h-5" />
+                ) : tab.icon === "dashboard" ? (
+                  <DashboardIcon className="w-5 h-5" />
+                ) : (
+                  <DocumentIcon className="w-5 h-5" />
+                )}
+              </span>
               <span className={`text-[10px] font-semibold leading-tight ${active ? "text-brand-600" : "text-slate-400"}`}>
                 {tab.label}
               </span>
