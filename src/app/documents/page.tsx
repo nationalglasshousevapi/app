@@ -4,6 +4,7 @@ import { docTypeLabel } from "@/lib/docTypes";
 import { inr } from "@/lib/format";
 import DocumentSearch from "@/components/DocumentSearch";
 import DocumentActions from "@/components/DocumentActions";
+import BatchDownloadPanel from "@/components/BatchDownloadPanel";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -15,10 +16,23 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: "bg-red-50 text-signal-rust",
 };
 
+function getDateRange(year: string, months?: string): { from?: string; to?: string } {
+  const y = parseInt(year, 10);
+  if (!months) return { from: `${y}-01-01`, to: `${y}-12-31` };
+  const list = months.split(",").map(Number).filter((m) => m >= 1 && m <= 12);
+  if (list.length === 0) return { from: `${y}-01-01`, to: `${y}-12-31` };
+  const minMonth = Math.min(...list);
+  const maxMonth = Math.max(...list);
+  const from = `${y}-${String(minMonth).padStart(2, "0")}-01`;
+  const lastDay = new Date(y, maxMonth, 0).getDate();
+  const to = `${y}-${String(maxMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+  return { from, to };
+}
+
 export default async function DocumentsPage({
   searchParams,
 }: {
-  searchParams: { type?: string; customer_id?: string; q?: string };
+  searchParams: { type?: string; customer_id?: string; q?: string; year?: string; months?: string };
 }) {
   const sb = supabaseServer();
   let query = sb
@@ -33,6 +47,12 @@ export default async function DocumentsPage({
   if (searchParams.q?.trim()) {
     const term = `%${searchParams.q.trim()}%`;
     query = query.or(`doc_number.ilike.${term},bill_to_name.ilike.${term}`);
+  }
+  if (searchParams.year) {
+    const { from, to } = getDateRange(searchParams.year, searchParams.months);
+    if (from && to) {
+      query = query.gte("doc_date", from).lte("doc_date", to);
+    }
   }
 
   const { data: documents } = await query;
@@ -74,6 +94,7 @@ export default async function DocumentsPage({
         </Link>
       </div>
 
+      <BatchDownloadPanel />
       <DocumentSearch initialQuery={searchParams.q ?? ""} />
 
       <div className="card p-3 flex flex-wrap gap-2">

@@ -2,9 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { DOC_TYPES, DocType } from "@/lib/docTypes";
+import { pdf } from "@react-pdf/renderer";
+import { DOC_TYPES, docTypeLabel, DocType } from "@/lib/docTypes";
 import CustomerPicker from "./CustomerPicker";
 import LineItemsEditor, { EMPTY_ITEM, LineItem } from "./LineItemsEditor";
+import PdfDocument from "./PdfDocument";
+import type { CompanyDetails } from "@/lib/company";
 
 type Customer = {
   id: string;
@@ -89,6 +92,9 @@ export default function DocumentForm({
   });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [company, setCompany] = useState<CompanyDetails | null>(null);
+  const [companyLoading, setCompanyLoading] = useState(false);
   const router = useRouter();
 
   const isDirty = useMemo(() => {
@@ -193,16 +199,115 @@ export default function DocumentForm({
     return { subtotal, cgst, sgst, igst, total };
   }, [value.items, value.tax_type, value.tax_rate, value.round_off]);
 
+  function validate(): Record<string, string> {
+    const errors: Record<string, string> = {};
+    if (!value.bill_to_name.trim()) {
+      errors.bill_to_name = "Customer name is required.";
+    }
+    value.items.forEach((item, idx) => {
+      if (!item.description.trim()) {
+        errors[`items.${idx}.description`] = "Description is required.";
+      }
+      if (!item.qty || item.qty <= 0) {
+        errors[`items.${idx}.qty`] = "Quantity must be greater than 0.";
+      }
+      if (item.rate < 0) {
+        errors[`items.${idx}.rate`] = "Rate cannot be negative.";
+      }
+    });
+    return errors;
+  }
+
+  function clearFieldError(key: string) {
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
+
+  async function previewPdf() {
+    if (companyLoading) return;
+    setCompanyLoading(true);
+    let c = company;
+    if (!c) {
+      try {
+        const res = await fetch("/api/company");
+        c = await res.json();
+        setCompany(c);
+      } catch {
+        alert("Could not load company details for preview.");
+        setCompanyLoading(false);
+        return;
+      }
+    }
+    setCompanyLoading(false);
+    if (!c) return;
+
+    const subtotal = value.items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
+    let cgst = 0, sgst = 0, igst = 0;
+    if (value.tax_type === "cgst_sgst") {
+      cgst = Math.round(((subtotal * value.tax_rate) / 2) * 100) / 100;
+      sgst = cgst;
+    } else if (value.tax_type === "igst") {
+      igst = Math.round(subtotal * value.tax_rate * 100) / 100;
+    }
+    const total = Math.round((subtotal + cgst + sgst + igst + (value.round_off || 0)) * 100) / 100;
+
+    const pdfDoc = pdf(
+      <PdfDocument
+        docType={value.doc_type}
+        docNumber="PREVIEW"
+        docDate={value.doc_date}
+        orderNumber={value.order_number || null}
+        orderDate={value.order_date || null}
+        company={c}
+        billTo={{
+          name: value.bill_to_name,
+          address: value.bill_to_address || null,
+          contactPerson: value.bill_to_contact_person || null,
+          contactNumber: value.bill_to_contact_number || null,
+          email: value.bill_to_email || null,
+          gst: value.bill_to_gst || null,
+        }}
+        shipTo={{
+          name: value.ship_to_name || null,
+          address: value.ship_to_address || null,
+          contactPerson: value.ship_to_contact_person || null,
+          contactNumber: value.ship_to_contact_number || null,
+        }}
+        items={value.items.map((it) => ({
+          description: it.description,
+          size: it.size || null,
+          hsn_code: it.hsn_code || null,
+          qty: it.qty || 0,
+          unit: it.unit || null,
+          rate: it.rate || 0,
+          total: Math.round((it.qty || 0) * (it.rate || 0) * 100) / 100,
+        }))}
+        subtotal={subtotal}
+        taxType={value.tax_type}
+        taxRate={value.tax_rate}
+        cgstAmount={cgst}
+        sgstAmount={sgst}
+        igstAmount={igst}
+        roundOff={value.round_off || 0}
+        totalAmount={total}
+        remarks={value.remarks || null}
+      />
+    );
+    const blob = await pdfDoc.toBlob();
+    window.open(URL.createObjectURL(blob), "_blank");
+  }
+
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaveError("");
-    if (!value.bill_to_name.trim()) {
-      setSaveError("Please enter the customer name before saving.");
-      return;
-    }
-    const incompleteItem = value.items.find((item) => !item.description.trim() || item.qty <= 0 || item.rate < 0);
-    if (incompleteItem) {
-      setSaveError("Each line item needs a description, quantity greater than zero, and a valid rate.");
+    setFieldErrors({});
+
+    const errors = validate();
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
     setSaving(true);
@@ -258,7 +363,7 @@ export default function DocumentForm({
           {value.id && <p className="text-xs text-gray-400 mt-1">Type can't be changed after creation</p>}
         </div>
         <div>
-          <label className="label">Date</label>
+          <label className="label">Date <span className="text-red-500">*</span></label>
           <input
             type="date"
             className="input"
@@ -297,13 +402,16 @@ export default function DocumentForm({
         <CustomerPicker onSelect={selectCustomer} initialName={value.bill_to_name} />
         <div className="grid md:grid-cols-2 gap-4">
           <div>
-            <label className="label">Name</label>
+            <label className="label">Name <span className="text-red-500">*</span></label>
             <input
-              className="input"
+              className={`input ${fieldErrors.bill_to_name ? "border-red-400 focus:ring-red-400/30" : ""}`}
               value={value.bill_to_name}
-              onChange={(e) => patch({ bill_to_name: e.target.value })}
+              onChange={(e) => { patch({ bill_to_name: e.target.value }); clearFieldError("bill_to_name"); }}
               required
             />
+            {fieldErrors.bill_to_name && (
+              <p className="text-xs text-red-500 mt-1">{fieldErrors.bill_to_name}</p>
+            )}
           </div>
           <div>
             <label className="label">GST</label>
@@ -467,18 +575,22 @@ export default function DocumentForm({
 
       <div className="flex items-center gap-3">
         <button type="submit" disabled={saving} className="btn-primary">
-          {saving ? "Saving…" : value.id ? "Save changes" : "Create document"}
+          {saving ? "Saving…" : value.id ? "Save changes" : `Save ${docTypeLabel(value.doc_type)}`}
+        </button>
+        <button
+          type="button"
+          onClick={previewPdf}
+          disabled={companyLoading || !value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)}
+          className="btn-secondary"
+          title={(!value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)) ? "Fill required fields first" : "Preview as PDF"}
+        >
+          {companyLoading ? "Loading…" : "Preview PDF"}
         </button>
         {value.id && (
           isDirty ? (
-            <button
-              type="button"
-              onClick={() => alert("Please save your changes before viewing the PDF.")}
-              className="btn-secondary opacity-60 cursor-not-allowed"
-              title="You have unsaved changes. Save changes to view the updated PDF."
-            >
+            <a href={`/api/documents/${value.id}/pdf`} target="_blank" className="btn-secondary">
               View PDF
-            </button>
+            </a>
           ) : (
             <a href={`/api/documents/${value.id}/pdf`} target="_blank" className="btn-secondary">
               View PDF

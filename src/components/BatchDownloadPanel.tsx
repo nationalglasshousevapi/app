@@ -1,0 +1,203 @@
+"use client";
+
+import { useSearchParams, useRouter } from "next/navigation";
+import { useState, useCallback } from "react";
+
+const MONTHS = [
+  { n: 1, label: "Jan" },
+  { n: 2, label: "Feb" },
+  { n: 3, label: "Mar" },
+  { n: 4, label: "Apr" },
+  { n: 5, label: "May" },
+  { n: 6, label: "Jun" },
+  { n: 7, label: "Jul" },
+  { n: 8, label: "Aug" },
+  { n: 9, label: "Sep" },
+  { n: 10, label: "Oct" },
+  { n: 11, label: "Nov" },
+  { n: 12, label: "Dec" },
+];
+
+export default function BatchDownloadPanel() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const curYear = new Date().getFullYear();
+  const years = Array.from({ length: 5 }, (_, i) => curYear - i);
+
+  const initialYear = searchParams.get("year") || "";
+  const initialMonths = searchParams.get("months")?.split(",").map(Number).filter(Boolean) || [];
+  const initialType = searchParams.get("type") || "";
+
+  const [selectedYear, setSelectedYear] = useState(initialYear);
+  const [selectedMonths, setSelectedMonths] = useState<number[]>(initialMonths);
+  const [selectedType, setSelectedType] = useState(initialType);
+  const [downloading, setDownloading] = useState(false);
+
+  const toggleMonth = useCallback((m: number) => {
+    setSelectedMonths((prev) =>
+      prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m].sort((a, b) => a - b)
+    );
+  }, []);
+
+  const selectAll = useCallback(() => {
+    setSelectedMonths(MONTHS.map((m) => m.n));
+  }, []);
+
+  const clearAll = useCallback(() => {
+    setSelectedMonths([]);
+  }, []);
+
+  const applyFilter = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (selectedYear) {
+      params.set("year", selectedYear);
+    } else {
+      params.delete("year");
+    }
+    if (selectedMonths.length > 0) {
+      params.set("months", selectedMonths.join(","));
+    } else {
+      params.delete("months");
+    }
+    router.push(`/documents?${params.toString()}`);
+  }, [selectedYear, selectedMonths, searchParams, router]);
+
+  const downloadPdf = useCallback(() => {
+    if (!selectedYear) return;
+    setDownloading(true);
+    const params = new URLSearchParams();
+    params.set("year", selectedYear);
+    if (selectedMonths.length > 0) {
+      params.set("months", selectedMonths.join(","));
+    }
+    if (selectedType) {
+      params.set("type", selectedType);
+    }
+    const url = `/api/documents/batch-pdf?${params.toString()}`;
+
+    // Use fetch to download as blob, then trigger download
+    fetch(url)
+      .then((res) => {
+        if (!res.ok) {
+          return res.json().then((j) => { throw new Error(j.error || "Download failed"); });
+        }
+        return res.blob();
+      })
+      .then((blob) => {
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        const typeLabel =
+          selectedType === "invoice" ? "invoices"
+          : selectedType === "quotation" ? "quotations"
+          : selectedType === "performa_invoice" ? "performa-invoices"
+          : selectedType === "estimate" ? "estimates"
+          : selectedType === "receipt" ? "receipts"
+          : selectedType === "window_quotation" ? "window-quotations"
+          : "documents";
+        const period = selectedMonths.length > 0
+          ? `${selectedMonths.map((m) => MONTHS.find((x) => x.n === m)?.label).join("")}-${selectedYear}`
+          : selectedYear;
+        a.download = `${typeLabel}-${period}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(blobUrl);
+      })
+      .catch((err) => {
+        alert(err.message || "Could not download PDF.");
+      })
+      .finally(() => {
+        setDownloading(false);
+      });
+  }, [selectedYear, selectedMonths, selectedType]);
+
+  const hasFilter = selectedYear || selectedMonths.length > 0;
+
+  return (
+    <div className="card p-4 space-y-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:flex-wrap">
+        {/* Year */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Year</label>
+          <select
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(e.target.value)}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+          >
+            <option value="">All years</option>
+            {years.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </div>
+
+        {/* Type */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Type</label>
+          <select
+            value={selectedType}
+            onChange={(e) => setSelectedType(e.target.value)}
+            className="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+          >
+            <option value="">All types</option>
+            <option value="invoice">Invoice</option>
+            <option value="quotation">Quotation</option>
+            <option value="performa_invoice">Performa Invoice</option>
+            <option value="estimate">Estimate</option>
+            <option value="receipt">Receipt</option>
+            <option value="window_quotation">Window Quotation</option>
+          </select>
+        </div>
+
+        {/* Apply filter */}
+        <button
+          onClick={applyFilter}
+          disabled={!selectedYear}
+          className="btn-primary text-sm px-4 py-2"
+        >
+          Filter
+        </button>
+
+        {/* Download */}
+        <button
+          onClick={downloadPdf}
+          disabled={!selectedYear || downloading}
+          className="btn-secondary text-sm px-4 py-2 border-brand-600 text-brand-700"
+        >
+          {downloading ? "Downloading…" : "Download PDF"}
+        </button>
+      </div>
+
+      {/* Month checkboxes */}
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Months</span>
+          <button onClick={selectAll} className="text-xs text-brand-600 hover:underline">All</button>
+          <button onClick={clearAll} className="text-xs text-slate-400 hover:underline">Clear</button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {MONTHS.map((m) => (
+            <label
+              key={m.n}
+              className={`cursor-pointer rounded-lg border px-3 py-1.5 text-sm transition ${
+                selectedMonths.includes(m.n)
+                  ? "bg-brand-600 text-white border-brand-600"
+                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
+              }`}
+            >
+              <input
+                type="checkbox"
+                className="sr-only"
+                checked={selectedMonths.includes(m.n)}
+                onChange={() => toggleMonth(m.n)}
+              />
+              {m.label}
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}

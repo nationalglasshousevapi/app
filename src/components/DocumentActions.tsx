@@ -19,6 +19,8 @@ function Icon({ type, className = "" }: { type: string; className?: string }) {
       return <svg className={cls} viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg>;
     case "delete":
       return <svg className={cls} viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
+    case "email":
+      return <svg className={cls} viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg>;
     default:
       return null;
   }
@@ -45,6 +47,7 @@ export default function DocumentActions({
   const pathname = usePathname();
   const [duplicating, setDuplicating] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [emailing, setEmailing] = useState(false);
 
   async function deleteDoc() {
     if (deleting) return;
@@ -108,6 +111,24 @@ export default function DocumentActions({
     }
   }
 
+  async function sendEmail() {
+    if (emailing) return;
+    setEmailing(true);
+    try {
+      const res = await fetch(`/api/documents/${id}/email`, { method: "POST" });
+      const json = await res.json();
+      if (res.ok) {
+        alert("Invoice sent to customer's email.");
+      } else {
+        alert(json.error || "Could not send email.");
+      }
+    } catch {
+      alert("Could not send email. Check your connection.");
+    } finally {
+      setEmailing(false);
+    }
+  }
+
   const btn = (icon: string, label: string, extra = "") =>
     `inline-flex items-center justify-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium transition ${extra}`;
 
@@ -120,6 +141,9 @@ export default function DocumentActions({
         <a href={`/api/documents/${id}/pdf`} target="_blank" title="View PDF" className={btn("", "", "text-brand-600 hover:bg-brand-50")}>
           <Icon type="pdf" />
         </a>
+        <button onClick={sendEmail} disabled={emailing} title="Email to customer" className={btn("", "", "text-blue-600 hover:bg-blue-50")}>
+          {emailing ? <span className="text-xs">…</span> : <Icon type="email" />}
+        </button>
         <a href={whatsappHref} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp" className={btn("", "", "text-emerald-600 hover:bg-emerald-50")}>
           <Icon type="whatsapp" />
         </a>
@@ -146,6 +170,9 @@ export default function DocumentActions({
           <Icon type="pdf" />
         </a>
       </div>
+      <button onClick={sendEmail} disabled={emailing} title="Email to customer" className={btn("email", "Email", "btn-secondary flex-1 text-sm text-blue-600 border-blue-200")}>
+        {emailing ? <span className="text-xs">…</span> : <><Icon type="email" className="mr-1" /> Email</>}
+      </button>
       <a href={whatsappHref} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp" className={btn("whatsapp", "WhatsApp", "btn-secondary flex-1 text-sm text-emerald-700 border-emerald-200")}>
         <Icon type="whatsapp" className="mr-1" /> WhatsApp
       </a>

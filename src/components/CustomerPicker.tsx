@@ -58,12 +58,12 @@ export default function CustomerPicker({
         onFocus={() => results.length && setOpen(true)}
       />
       {open && results.length > 0 && (
-        <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+        <div className="absolute z-50 mt-1 w-full bg-white border border-brand-200 rounded-lg shadow-xl ring-1 ring-black/5 max-h-64 overflow-y-auto">
           {results.map((c) => (
             <button
               type="button"
               key={c.id}
-              className="w-full text-left px-3 py-2 hover:bg-gray-50 text-sm border-b last:border-0 border-gray-50"
+              className="w-full text-left px-4 py-3 hover:bg-brand-50 text-sm border-b last:border-0 border-gray-100"
               onClick={() => {
                 onSelect(c);
                 setQuery(c.name);

@@ -34,7 +34,7 @@ export default function LoginPage() {
     <form onSubmit={handleSubmit} className="card p-8 w-full max-w-sm space-y-6">
       <div className="flex flex-col items-center text-center">
         <Image
-          src="/logo.png"
+          src="/logo.svg"
           alt="National Glass House Logo"
           width={180}
           height={54}
