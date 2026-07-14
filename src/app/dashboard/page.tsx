@@ -6,7 +6,7 @@ import TopCustomersChart from "@/components/TopCustomersChart";
 import DocumentActions from "@/components/DocumentActions";
 import GstExport from "@/components/GstExport";
 import { docTypeLabel } from "@/lib/docTypes";
-import { inr, formatDateLong, formatMonthKey } from "@/lib/format";
+import { inr, formatDateLong, formatDateShort, formatMonthKey } from "@/lib/format";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -78,8 +78,12 @@ export default async function DashboardPage() {
           </p>
           <h1 className="page-title mb-0">Dashboard</h1>
         </div>
-        <Link href="/documents/new" className="btn-primary w-full sm:w-auto">
-          + Create document
+        <Link
+          href="/documents/new"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-brass-500 text-white px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-brass-600 transition w-full sm:w-auto"
+        >
+          <span className="text-lg leading-none">+</span>
+          Create document
         </Link>
       </div>
 
@@ -134,6 +138,7 @@ export default async function DashboardPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-bold text-ink">{inv.doc_number}</p>
+                    <p className="text-xs text-slate-400">{formatDateShort(inv.doc_date)}</p>
                     <p className="text-sm text-slate-500 font-body">{inv.bill_to_name || "\u2014"}</p>
                   </div>
                   <p className="font-semibold text-ink">{inr(Number(inv.total_amount))}</p>

@@ -12,11 +12,14 @@ export default async function CustomerDetailPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { month?: string };
+  searchParams: { month?: string; quarter?: string; from?: string; to?: string };
 }) {
   const sb = supabaseServer();
   const { id } = params;
   const selectedMonth = searchParams.month || "";
+  const selectedQuarter = searchParams.quarter || "";
+  const fromSearch = searchParams.from || "";
+  const toSearch = searchParams.to || "";
 
   // Fetch customer
   const { data: customer } = await sb
@@ -45,14 +48,33 @@ export default async function CustomerDetailPage({
   const totalInvoicedOverall = Number(ledger?.total_invoiced ?? 0);
   const totalPaidOverall = Number(ledger?.total_paid ?? 0);
 
-  // Build date range for month filter
+  // Build date range from params
   let monthFrom: string | null = null;
   let monthTo: string | null = null;
-  if (selectedMonth) {
+  let filterDescription = "All documents";
+
+  if (fromSearch && toSearch) {
+    monthFrom = fromSearch;
+    monthTo = toSearch;
+    filterDescription = `Showing documents from ${fromSearch} to ${toSearch}`;
+  } else if (selectedQuarter) {
+    const match = selectedQuarter.match(/^(\d{4})-Q([1-4])$/);
+    if (match) {
+      const y = Number(match[1]);
+      const q = Number(match[2]);
+      const startMonth = (q - 1) * 3 + 1;
+      const endMonth = q * 3;
+      monthFrom = `${y}-${String(startMonth).padStart(2, "0")}-01`;
+      const lastDay = new Date(y, endMonth, 0).getDate();
+      monthTo = `${y}-${String(endMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+      filterDescription = `Showing documents for Q${q} ${y}`;
+    }
+  } else if (selectedMonth) {
     const [y, m] = selectedMonth.split("-");
     monthFrom = `${y}-${m}-01`;
     const lastDay = new Date(Number(y), Number(m), 0).getDate();
     monthTo = `${y}-${m}-${String(lastDay).padStart(2, "0")}`;
+    filterDescription = `Showing documents for ${new Date(selectedMonth + "-01").toLocaleDateString("en-IN", { month: "long", year: "numeric" })}`;
   }
 
   // Fetch documents for this customer
@@ -173,7 +195,12 @@ export default async function CustomerDetailPage({
                 : "All documents"}
             </p>
           </div>
-          <CustomerMonthFilter currentMonth={selectedMonth} customerId={id} />
+          <CustomerMonthFilter
+            currentMonth={selectedMonth}
+            fromDate={fromSearch}
+            toDate={toSearch}
+            customerId={id}
+          />
         </div>
 
         {/* Month totals */}

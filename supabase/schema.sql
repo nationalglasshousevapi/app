@@ -194,9 +194,9 @@ begin
     'invoiceCount', (select count(*) from documents where doc_type = 'invoice'),
     'customerCount', (select count(*) from customers),
     'monthlySeries', COALESCE((
-      select jsonb_agg(jsonb_build_object('month', to_char(doc_date, 'YYYY-MM'), 'total', total) order by month)
+      select jsonb_agg(jsonb_build_object('month', month, 'total', total) order by month)
       from (
-        select sum(total_amount) as total
+        select to_char(date_trunc('month', doc_date)::date, 'YYYY-MM') as month, sum(total_amount) as total
         from documents
         where doc_type = 'invoice'
         group by date_trunc('month', doc_date)
