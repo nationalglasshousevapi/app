@@ -3,6 +3,7 @@
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { PAYMENT_MODES } from "@/lib/paymentModes";
+import CalendarInput from "@/components/CalendarInput";
 import { inr } from "@/lib/format";
 
 interface Props {
@@ -90,30 +91,7 @@ export default function PaymentForm({ customerId, balanceDue, onDone }: Props) {
 
       <div>
         <label className="label">Payment Date</label>
-        <div className="flex items-center gap-1.5">
-          <div className="relative flex-1">
-            <input
-              type="date"
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-              className="input w-full pl-9"
-              required
-            />
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
-              viewBox="0 0 20 20" fill="currentColor"
-            >
-              <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <button
-            type="button"
-            onClick={() => setPaymentDate(today())}
-            className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition whitespace-nowrap"
-          >
-            Today
-          </button>
-        </div>
+        <CalendarInput value={paymentDate} onChange={setPaymentDate} required />
       </div>
 
       <div>

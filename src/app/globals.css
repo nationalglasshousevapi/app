@@ -9,7 +9,7 @@ body {
 
 /* ── Cards ── */
 .card {
-  @apply bg-white border border-slate-200/80;
+  @apply bg-white border border-slate-200/80 rounded-xl;
 }
 
 /* ── Buttons ── */

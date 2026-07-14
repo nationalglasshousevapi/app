@@ -177,7 +177,7 @@ export default function AccountsList({ customers }: Props) {
       </div>
 
       {/* Desktop table */}
-      <div className="mt-6 overflow-x-auto hidden md:block">
+      <div className="card mt-6 overflow-x-auto hidden md:block">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50/80">
             <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-100">

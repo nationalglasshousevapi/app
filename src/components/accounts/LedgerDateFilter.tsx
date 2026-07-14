@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useState } from "react";
+import CalendarInput from "@/components/CalendarInput";
 
 export default function LedgerDateFilter({
   fromDate,
@@ -86,35 +87,9 @@ export default function LedgerDateFilter({
         })}
         <span className="text-slate-300 mx-1 hidden sm:inline">|</span>
         <div className="flex items-center gap-2">
-          <div className="relative">
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              className="input w-full pl-9"
-            />
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
-              viewBox="0 0 20 20" fill="currentColor"
-            >
-              <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" />
-            </svg>
-          </div>
+          <CalendarInput value={from} onChange={setFrom} placeholder="From" />
           <span className="text-slate-400 text-sm">to</span>
-          <div className="relative">
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => setTo(e.target.value)}
-              className="input w-full pl-9"
-            />
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
-              viewBox="0 0 20 20" fill="currentColor"
-            >
-              <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" />
-            </svg>
-          </div>
+          <CalendarInput value={to} onChange={setTo} placeholder="To" />
           <button
             onClick={apply}
             className="btn-primary text-sm px-4 py-2"

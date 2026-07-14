@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import CalendarInput from "@/components/CalendarInput";
 
 type PeriodType = "monthly" | "yearly" | "range";
 type ReportType = "invoice" | "hsn";
@@ -126,22 +127,12 @@ export default function GstExport() {
         {periodType === "range" && (
           <>
             <div className="flex-1">
-              <label className="block text-xs font-semibold text-slate-500 mb-1">From</label>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="input w-full"
-              />
+              <label className="label">From</label>
+              <CalendarInput value={fromDate} onChange={setFromDate} />
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-semibold text-slate-500 mb-1">To</label>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="input w-full"
-              />
+              <label className="label">To</label>
+              <CalendarInput value={toDate} onChange={setToDate} />
             </div>
           </>
         )}

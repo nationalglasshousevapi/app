@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import CalendarInput from "@/components/CalendarInput";
 
 interface Props {
   currentMonth?: string;
@@ -98,21 +99,9 @@ export default function CustomerMonthFilter({
       {/* Custom range — only when toggled */}
       {showCustom && (
         <div className="flex flex-wrap items-center gap-2 pt-1">
-          <input
-            type="date"
-            value={customFrom}
-            onChange={(e) => setCustomFrom(e.target.value)}
-            className="input w-full"
-            placeholder="From"
-          />
+          <CalendarInput value={customFrom} onChange={setCustomFrom} placeholder="From" />
           <span className="text-slate-400 text-sm">to</span>
-          <input
-            type="date"
-            value={customTo}
-            onChange={(e) => setCustomTo(e.target.value)}
-            className="input w-full"
-            placeholder="To"
-          />
+          <CalendarInput value={customTo} onChange={setCustomTo} placeholder="To" />
           <button
             onClick={applyCustom}
             disabled={!customFrom || !customTo}
