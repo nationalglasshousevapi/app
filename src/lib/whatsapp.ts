@@ -31,7 +31,7 @@ export function documentShareMessage({
   return (
     `Dear ${customerName},\n\n` +
     `Please find your ${docTypeLabel} ${docNumber} from National Glass House.\n` +
-    `Total: Rs. ${total}\n\n` +
+    `Total: ₹ ${total}\n\n` +
     `View PDF: ${pdfUrl}\n\n` +
     `Thank you!`
   );

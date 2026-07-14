@@ -1,5 +1,5 @@
 export function inr(n: number, decimals = 0) {
-  return `Rs. ${n.toLocaleString("en-IN", { maximumFractionDigits: decimals, minimumFractionDigits: decimals })}`;
+  return `₹ ${n.toLocaleString("en-IN", { maximumFractionDigits: decimals, minimumFractionDigits: decimals })}`;
 }
 
 export function formatDateLong(date = new Date()) {

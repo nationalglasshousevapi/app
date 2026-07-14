@@ -22,7 +22,7 @@ export default function RevenueChart({
         <XAxis dataKey="month" fontSize={11} axisLine={false} tickLine={false} tick={{ fill: "#64748b" }} />
         <YAxis fontSize={11} axisLine={false} tickLine={false} tick={{ fill: "#64748b" }} domain={[0, "auto"]} />
         <Tooltip
-          formatter={(value: number) => `Rs. ${value.toLocaleString("en-IN")}`}
+          formatter={(value: number) => `₹ ${value.toLocaleString("en-IN")}`}
           contentStyle={{ borderRadius: 4, border: "1px solid #e2e8f0", fontSize: 13 }}
         />
         <defs>

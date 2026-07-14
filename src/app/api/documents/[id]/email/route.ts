@@ -97,7 +97,7 @@ export async function POST(
       text:
         `Dear ${customerName},\n\n` +
         `Please find attached your ${docTypeLabel(doc.doc_type)} ${doc.doc_number} from National Glass House.\n\n` +
-        `Total: Rs. ${totalFormatted}\n\n` +
+        `Total: ₹ ${totalFormatted}\n\n` +
         `You can also view it online at: ${pdfUrl}\n\n` +
         `Thank you for your business!\n\n` +
         `National Glass House\n` +

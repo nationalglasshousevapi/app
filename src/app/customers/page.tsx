@@ -178,12 +178,22 @@ export default function CustomersPage() {
         </form>
       )}
 
-      <input
-        className="input max-w-md"
-        placeholder="Search by customer name, phone or GST…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
+      <div className="relative max-w-md">
+        <input
+          className="input w-full"
+          placeholder="Search by customer name, phone or GST…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        {loading && q && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <svg className="animate-spin h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          </div>
+        )}
+      </div>
 
       <div className="card overflow-x-auto">
         <table className="w-full text-sm">
@@ -199,10 +209,23 @@ export default function CustomersPage() {
             </tr>
           </thead>
           <tbody>
+            {loading && (
+              Array.from({ length: 5 }).map((_, i) => (
+                <tr key={`skel-${i}`} className="animate-pulse">
+                  <td className="p-4"><div className="h-4 w-32 rounded bg-slate-200" /></td>
+                  <td className="p-4"><div className="h-4 w-24 rounded bg-slate-200" /></td>
+                  <td className="p-4"><div className="h-4 w-28 rounded bg-slate-200" /></td>
+                  <td className="p-4"><div className="h-4 w-20 rounded bg-slate-200" /></td>
+                  <td className="p-4"><div className="h-4 w-8 mx-auto rounded bg-slate-200" /></td>
+                  <td className="p-4 text-right"><div className="h-4 w-20 ml-auto rounded bg-slate-200" /></td>
+                  <td className="p-4"><div className="h-4 w-16 ml-auto rounded bg-slate-200" /></td>
+                </tr>
+              ))
+            )}
             {customers.map((c) => (
               <tr key={c.id} className="table-row">
                 <td className="p-4">
-                  <Link href={`/documents?customer_id=${c.id}`} className="font-semibold text-brand-700 hover:underline">
+                  <Link href={`/customers/${c.id}`} className="font-semibold text-brand-700 hover:underline">
                     {c.name}
                   </Link>
                 </td>

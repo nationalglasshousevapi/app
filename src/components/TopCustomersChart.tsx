@@ -36,7 +36,7 @@ export default function TopCustomersChart({
           tick={{ fill: "#1e293b" }}
         />
         <Tooltip
-          formatter={(value: number) => `Rs. ${value.toLocaleString("en-IN")}`}
+          formatter={(value: number) => `₹ ${value.toLocaleString("en-IN")}`}
           contentStyle={{ borderRadius: 4, border: "1px solid #e2e8f0", fontSize: 13 }}
         />
         <Bar dataKey="total" fill="#B8863B" radius={[0, 3, 3, 0]} maxBarSize={24} />

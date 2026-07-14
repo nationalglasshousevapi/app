@@ -19,8 +19,8 @@ export default function DashboardLoading() {
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[1, 2, 3, 4].map((i) => (
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="card p-5 md:p-6 space-y-2">
             <Skeleton className="h-3 w-20" />
             <Skeleton className="h-7 w-28" />

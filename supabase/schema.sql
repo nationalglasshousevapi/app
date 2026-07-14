@@ -193,7 +193,7 @@ begin
     'thisMonthRevenue', (select coalesce(sum(total_amount), 0) from documents where doc_type = 'invoice' and to_char(doc_date, 'YYYY-MM') = this_month),
     'invoiceCount', (select count(*) from documents where doc_type = 'invoice'),
     'customerCount', (select count(*) from customers),
-    'monthlySeries', (
+    'monthlySeries', COALESCE((
       select jsonb_agg(jsonb_build_object('month', to_char(doc_date, 'YYYY-MM'), 'total', total) order by month)
       from (
         select sum(total_amount) as total
@@ -203,8 +203,8 @@ begin
         order by date_trunc('month', doc_date) desc
         limit 12
       ) sub
-    ),
-    'topCustomers', (
+    ), '[]'::jsonb),
+    'topCustomers', COALESCE((
       select jsonb_agg(jsonb_build_object(
         'id', customer_id,
         'name', bill_to_name,
@@ -219,15 +219,15 @@ begin
         order by total desc
         limit 8
       ) sub
-    ),
-    'documentTypeData', (
+    ), '[]'::jsonb),
+    'documentTypeData', COALESCE((
       select jsonb_agg(jsonb_build_object('type', doc_type, 'count', count) order by count desc)
       from (
         select doc_type, count(*) as count
         from documents
         group by doc_type
       ) sub
-    )
+    ), '[]'::jsonb)
   );
 end;
 $$ language plpgsql stable;

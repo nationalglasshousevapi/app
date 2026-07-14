@@ -395,13 +395,26 @@ export default function DocumentForm({
         </div>
         <div>
           <label className="label">Date <span className="text-red-500">*</span></label>
-          <input
-            type="date"
-            className="input"
-            value={value.doc_date}
-            onChange={(e) => patch({ doc_date: e.target.value })}
-            required
-          />
+          <div className="flex items-center gap-1.5">
+            <div className="relative flex-1">
+              <input
+                type="date"
+                className="input w-full pl-9"
+                value={value.doc_date}
+                onChange={(e) => patch({ doc_date: e.target.value })}
+                required
+              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
+                viewBox="0 0 20 20" fill="currentColor"
+              >
+                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <button type="button" onClick={() => patch({ doc_date: new Date().toISOString().slice(0, 10) })} className="rounded border border-slate-300 px-2 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition whitespace-nowrap">
+              Today
+            </button>
+          </div>
         </div>
         <div>
           <label className="label">Order Number</label>
@@ -413,12 +426,25 @@ export default function DocumentForm({
         </div>
         <div>
           <label className="label">Order Date</label>
-          <input
-            type="date"
-            className="input"
-            value={value.order_date}
-            onChange={(e) => patch({ order_date: e.target.value })}
-          />
+          <div className="flex items-center gap-1.5">
+            <div className="relative flex-1">
+              <input
+                type="date"
+                className="input w-full pl-9"
+                value={value.order_date}
+                onChange={(e) => patch({ order_date: e.target.value })}
+              />
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
+                viewBox="0 0 20 20" fill="currentColor"
+              >
+                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <button type="button" onClick={() => patch({ order_date: new Date().toISOString().slice(0, 10) })} className="rounded border border-slate-300 px-2 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition whitespace-nowrap">
+              Today
+            </button>
+          </div>
         </div>
       </div>
 
@@ -638,51 +664,51 @@ export default function DocumentForm({
           <p className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-700 mb-3">Document total</p>
           <div className="flex justify-between text-sm">
             <span className="text-slate-500">Subtotal</span>
-            <span>Rs. {totals.subtotal.toFixed(2)}</span>
+            <span>₹ {totals.subtotal.toFixed(2)}</span>
           </div>
           {totals.discount > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-slate-500">Discount</span>
-              <span className="text-red-600">- Rs. {totals.discount.toFixed(2)}</span>
+              <span className="text-red-600">- ₹ {totals.discount.toFixed(2)}</span>
             </div>
           )}
           {value.tax_type === "cgst_sgst" && (
             <>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">CGST</span>
-                <span>Rs. {totals.cgst.toFixed(2)}</span>
+                <span>₹ {totals.cgst.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">SGST</span>
-                <span>Rs. {totals.sgst.toFixed(2)}</span>
+                <span>₹ {totals.sgst.toFixed(2)}</span>
               </div>
             </>
           )}
           {value.tax_type === "igst" && (
             <div className="flex justify-between text-sm">
               <span className="text-slate-500">IGST</span>
-              <span>Rs. {totals.igst.toFixed(2)}</span>
+              <span>₹ {totals.igst.toFixed(2)}</span>
             </div>
           )}
           {totals.transport > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-slate-500">Transport</span>
-              <span>Rs. {totals.transport.toFixed(2)}</span>
+              <span>₹ {totals.transport.toFixed(2)}</span>
             </div>
           )}
           {totals.packing > 0 && (
             <div className="flex justify-between text-sm">
               <span className="text-slate-500">Packing &amp; Fwd.</span>
-              <span>Rs. {totals.packing.toFixed(2)}</span>
+              <span>₹ {totals.packing.toFixed(2)}</span>
             </div>
           )}
           <div className="flex justify-between text-sm">
             <span className="text-slate-500">Round Off</span>
-            <span>Rs. {(value.round_off || 0).toFixed(2)}</span>
+            <span>₹ {(value.round_off || 0).toFixed(2)}</span>
           </div>
           <div className="flex justify-between text-lg font-bold pt-3 border-t border-brand-100">
             <span>Total</span>
-            <span>Rs. {totals.total.toFixed(2)}</span>
+            <span>₹ {totals.total.toFixed(2)}</span>
           </div>
         </div>
       </div>

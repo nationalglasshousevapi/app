@@ -17,11 +17,16 @@ export async function GET(req: NextRequest) {
 
   const month = req.nextUrl.searchParams.get("month") ?? "";
   const reportType = req.nextUrl.searchParams.get("type") ?? "invoice"; // invoice | hsn
+  const fromParam = req.nextUrl.searchParams.get("from") ?? "";
+  const toParam = req.nextUrl.searchParams.get("to") ?? "";
 
-  // Build date range from month (YYYY-MM)
+  // Build date range: prefer explicit from/to, then month
   let fromDate: string;
   let toDate: string;
-  if (month) {
+  if (fromParam && toParam) {
+    fromDate = fromParam;
+    toDate = toParam;
+  } else if (month) {
     const [y, m] = month.split("-").map(Number);
     fromDate = `${y}-${String(m).padStart(2, "0")}-01`;
     const end = new Date(y, m, 0);
@@ -46,6 +51,8 @@ export async function GET(req: NextRequest) {
       headers: { "Content-Type": "text/plain" },
     });
   }
+
+  const reportLabel = fromParam && toParam ? `${fromParam}_${toParam}` : month || "all";
 
   if (reportType === "hsn") {
     // Fetch line items for all invoices
@@ -128,7 +135,7 @@ export async function GET(req: NextRequest) {
     return new NextResponse(csv, {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
-        "Content-Disposition": `attachment; filename="gstr1-hsn-${month || "all"}.csv"`,
+        "Content-Disposition": `attachment; filename="gstr1-hsn-${reportLabel}.csv"`,
       },
     });
   }
@@ -155,7 +162,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="gstr1-invoices-${month || "all"}.csv"`,
+      "Content-Disposition": `attachment; filename="gstr1-invoices-${reportLabel}.csv"`,
     },
   });
 }
