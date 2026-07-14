@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { docTypeLabel } from "@/lib/docTypes";
-import { inr } from "@/lib/format";
+import { inr, formatDateReadable } from "@/lib/format";
 import DocumentSearch from "@/components/DocumentSearch";
 import DocumentActions from "@/components/DocumentActions";
 import BatchDownloadPanel from "@/components/BatchDownloadPanel";
+import BackButton from "@/components/BackButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -111,6 +112,7 @@ export default async function DocumentsPage({
 
   return (
     <div className="space-y-7">
+      <BackButton href="/dashboard" label="Back to Dashboard" />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="page-title">Documents</h1>
@@ -227,7 +229,7 @@ export default async function DocumentsPage({
               <tr key={doc.id} className="table-row">
                 <td className="p-4 font-semibold text-ink font-mono">{doc.doc_number}</td>
                 <td className="p-4"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{docTypeLabel(doc.doc_type)}</span></td>
-                <td className="p-4 text-slate-500">{doc.doc_date}</td>
+                <td className="p-4 text-slate-500">{formatDateReadable(doc.doc_date)}</td>
                 <td className="p-4 font-medium">
                   {doc.customer_id ? (
                     <Link href={`/documents?customer_id=${doc.customer_id}`} className="text-brand-700 hover:underline">

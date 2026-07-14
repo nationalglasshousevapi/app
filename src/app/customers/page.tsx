@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { inr } from "@/lib/format";
+import BackButton from "@/components/BackButton";
+import EditCustomerModal from "@/components/EditCustomerModal";
 
 type Customer = {
   id: string;
@@ -28,6 +30,7 @@ export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [invoiceCounts, setInvoiceCounts] = useState<Record<string, number>>({});
   const [balanceData, setBalanceData] = useState<Record<string, number>>({});
+  const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [q, setQ] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY);
@@ -75,6 +78,12 @@ export default function CustomersPage() {
     load(q);
   }
 
+  async function editCustomer(id: string) {
+    const res = await fetch(`/api/customers/${id}`);
+    const json = await res.json();
+    if (json.customer) setEditingCustomer(json.customer);
+  }
+
   async function deleteCustomer(id: string) {
     if (!confirm("Delete this customer? This does not affect past documents.")) return;
     await fetch(`/api/customers/${id}`, { method: "DELETE" });
@@ -83,6 +92,7 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-7">
+      <BackButton href="/dashboard" label="Back to Dashboard" />
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="page-title">Customers</h1>
@@ -207,7 +217,16 @@ export default function CustomersPage() {
                     {inr(balanceData[c.id] ?? 0)}
                   </Link>
                 </td>
-                <td className="p-4 text-right">
+                <td className="p-4 text-right flex items-center justify-end gap-1">
+                  <button
+                    className="inline-flex items-center justify-center p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition"
+                    onClick={() => editCustomer(c.id)}
+                    title="Edit customer"
+                  >
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                    </svg>
+                  </button>
                   <button
                     className="inline-flex items-center justify-center p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
                     onClick={() => deleteCustomer(c.id)}
@@ -230,6 +249,17 @@ export default function CustomersPage() {
           </tbody>
         </table>
       </div>
+
+      {editingCustomer && (
+        <EditCustomerModal
+          customer={editingCustomer}
+          onClose={() => setEditingCustomer(null)}
+          onSaved={() => {
+            setEditingCustomer(null);
+            load(q);
+          }}
+        />
+      )}
     </div>
   );
 }

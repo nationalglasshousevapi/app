@@ -19,6 +19,11 @@ export const itemSchema = z.object({
   qty: z.number().positive("Quantity must be greater than 0."),
   unit: z.string().optional().default("sq.ft"),
   rate: z.number().min(0, "Rate cannot be negative."),
+  actual_length: z.number().min(0).optional().default(0),
+  actual_width: z.number().min(0).optional().default(0),
+  nos: z.number().int().min(1).optional().default(1),
+  calculated_length: z.number().min(0).optional().default(0),
+  calculated_width: z.number().min(0).optional().default(0),
 });
 
 export const createDocumentSchema = z.object({
@@ -40,6 +45,9 @@ export const createDocumentSchema = z.object({
   tax_type: taxTypeSchema.optional().default("cgst_sgst"),
   tax_rate: z.number().optional().default(0.18),
   round_off: z.number().optional().default(0),
+  discount_amount: z.number().min(0).optional().default(0),
+  transport_charges: z.number().min(0).optional().default(0),
+  packing_forwarding_charges: z.number().min(0).optional().default(0),
   remarks: z.string().nullable().optional().default(null),
   status: z.string().optional().default("draft"),
   items: z.array(itemSchema).min(1, "Add at least one line item."),

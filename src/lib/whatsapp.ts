@@ -9,9 +9,9 @@ export function whatsAppShareUrl({
   if (phone) {
     const digits = phone.replace(/\D/g, "");
     const normalized = digits.startsWith("91") ? digits : `91${digits}`;
-    return `https://wa.me/${normalized}?text=${encoded}`;
+    return `https://api.whatsapp.com/send?phone=${normalized}&text=${encoded}`;
   }
-  return `https://wa.me/?text=${encoded}`;
+  return `https://api.whatsapp.com/send?text=${encoded}`;
 }
 
 export function documentShareMessage({

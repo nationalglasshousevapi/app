@@ -33,9 +33,10 @@ const styles = StyleSheet.create({
   tableWrap: { flexGrow: 1, flexDirection: "column" },
   tableHead: { flexDirection: "row", backgroundColor: ACCENT, borderRadius: 4, paddingVertical: 6, paddingHorizontal: 8 },
   headCell: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: "#fff" },
-  row: { flexDirection: "row", paddingVertical: 5, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: "#eef2f4" },
+  row: { flexDirection: "row", paddingVertical: 5, paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: "#eef2f4" },
   rowAlt: { backgroundColor: "#f8fafb" },
-  cell: { fontSize: 8.5 },
+  cell: { fontSize: 8 },
+  // Default layout (non-invoice)
   desc: { width: "25%" },
   size: { width: "15%" },
   hsn: { width: "10%", textAlign: "center" },
@@ -43,6 +44,15 @@ const styles = StyleSheet.create({
   unit: { width: "10%", textAlign: "center" },
   rate: { width: "14%", textAlign: "right" },
   total: { width: "18%", textAlign: "right" },
+  // Invoice-specific layout
+  invDesc: { width: "18%" },
+  invActualLw: { width: "12%", textAlign: "center" },
+  invNos: { width: "8%", textAlign: "center" },
+  invCalcLw: { width: "12%", textAlign: "center" },
+  invQty: { width: "10%", textAlign: "right" },
+  invRate: { width: "12%", textAlign: "right" },
+  invUnit: { width: "8%", textAlign: "center" },
+  invAmount: { width: "20%", textAlign: "right" },
   spacer: { flexGrow: 1 },
   summaryRow: { flexDirection: "row" },
   notes: { width: "55%", paddingRight: 12 },
@@ -59,13 +69,28 @@ const styles = StyleSheet.create({
   footerText: { fontSize: 7.5, color: MUTED },
 });
 
+export type PdfInvoiceItem = {
+  description: string;
+  size?: string | null;
+  hsn_code?: string | null;
+  qty: number;
+  unit?: string | null;
+  rate: number;
+  total: number;
+  actual_length?: number;
+  actual_width?: number;
+  nos?: number;
+  calculated_length?: number;
+  calculated_width?: number;
+};
+
 export type PdfInvoicePageProps = {
   docType: string; docNumber: string; docDate: string; orderNumber?: string | null; orderDate?: string | null;
   company: CompanyDetails;
   billTo: { name?: string | null; address?: string | null; contactPerson?: string | null; contactNumber?: string | null; email?: string | null; gst?: string | null };
   shipTo: { name?: string | null; address?: string | null; contactPerson?: string | null; contactNumber?: string | null };
-  items: Array<{ description: string; size?: string | null; hsn_code?: string | null; qty: number; unit?: string | null; rate: number; total: number }>;
-  subtotal: number; taxType: string; taxRate: number; cgstAmount: number; sgstAmount: number; igstAmount: number; roundOff: number; totalAmount: number; remarks?: string | null; logoSrc?: string;
+  items: PdfInvoiceItem[];
+  subtotal: number; discountAmount?: number; taxType: string; taxRate: number; cgstAmount: number; sgstAmount: number; igstAmount: number; roundOff: number; transportCharges?: number; packingForwardingCharges?: number; totalAmount: number; remarks?: string | null; logoSrc?: string;
 };
 
 function money(v: number) { return `₹ ${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
@@ -127,26 +152,61 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
 
       {/* Items table */}
       <View style={styles.tableWrap}>
-        <View style={styles.tableHead}>
-          <Text style={[styles.headCell, styles.desc]}>DESCRIPTION</Text>
-          <Text style={[styles.headCell, styles.size]}>SIZE</Text>
-          <Text style={[styles.headCell, styles.hsn]}>HSN</Text>
-          <Text style={[styles.headCell, styles.qty]}>QTY</Text>
-          <Text style={[styles.headCell, styles.unit]}>UNIT</Text>
-          <Text style={[styles.headCell, styles.rate]}>RATE</Text>
-          <Text style={[styles.headCell, styles.total]}>TOTAL</Text>
-        </View>
-        {items.map((item, i) => (
-          <View key={`r-${i}`} style={[styles.row, i % 2 ? styles.rowAlt : {}]}>
-            <Text style={[styles.cell, styles.desc]}>{item.description}</Text>
-            <Text style={[styles.cell, styles.size]}>{item.size || "—"}</Text>
-            <Text style={[styles.cell, styles.hsn]}>{item.hsn_code || "—"}</Text>
-            <Text style={[styles.cell, styles.qty]}>{item.qty}</Text>
-            <Text style={[styles.cell, styles.unit]}>{item.unit || "—"}</Text>
-            <Text style={[styles.cell, styles.rate]}>{money(item.rate)}</Text>
-            <Text style={[styles.cell, styles.total]}>{money(item.total)}</Text>
-          </View>
-        ))}
+        {props.docType === "invoice" ? (
+          <>
+            <View style={styles.tableHead}>
+              <Text style={[styles.headCell, styles.invDesc]}>DESCRIPTION</Text>
+              <Text style={[styles.headCell, styles.invActualLw]}>ACTUAL L×W</Text>
+              <Text style={[styles.headCell, styles.invNos]}>NOS</Text>
+              <Text style={[styles.headCell, styles.invCalcLw]}>CALC. L×W</Text>
+              <Text style={[styles.headCell, styles.invQty]}>QTY</Text>
+              <Text style={[styles.headCell, styles.invRate]}>RATE</Text>
+              <Text style={[styles.headCell, styles.invUnit]}>UNIT</Text>
+              <Text style={[styles.headCell, styles.invAmount]}>AMOUNT</Text>
+            </View>
+            {items.map((item, i) => {
+              const al = Number(item.actual_length || 0);
+              const aw = Number(item.actual_width || 0);
+              const cl = Number(item.calculated_length || 0);
+              const cw = Number(item.calculated_width || 0);
+              return (
+                <View key={`r-${i}`} style={[styles.row, i % 2 ? styles.rowAlt : {}]}>
+                  <Text style={[styles.cell, styles.invDesc]}>{item.description}</Text>
+                  <Text style={[styles.cell, styles.invActualLw]}>{al > 0 && aw > 0 ? `${al}×${aw}` : "—"}</Text>
+                  <Text style={[styles.cell, styles.invNos]}>{item.nos || "—"}</Text>
+                  <Text style={[styles.cell, styles.invCalcLw]}>{cl > 0 && cw > 0 ? `${cl}×${cw}` : "—"}</Text>
+                  <Text style={[styles.cell, styles.invQty]}>{item.qty}</Text>
+                  <Text style={[styles.cell, styles.invRate]}>{money(item.rate)}</Text>
+                  <Text style={[styles.cell, styles.invUnit]}>{item.unit || "—"}</Text>
+                  <Text style={[styles.cell, styles.invAmount]}>{money(item.total)}</Text>
+                </View>
+              );
+            })}
+          </>
+        ) : (
+          <>
+            <View style={styles.tableHead}>
+              <Text style={[styles.headCell, styles.desc]}>DESCRIPTION</Text>
+              <Text style={[styles.headCell, styles.size]}>SIZE</Text>
+              <Text style={[styles.headCell, styles.hsn]}>HSN</Text>
+              <Text style={[styles.headCell, styles.qty]}>QTY</Text>
+              <Text style={[styles.headCell, styles.unit]}>UNIT</Text>
+              <Text style={[styles.headCell, styles.rate]}>RATE</Text>
+              <Text style={[styles.headCell, styles.total]}>TOTAL</Text>
+            </View>
+            {items.map((item, i) => (
+              <View key={`r-${i}`} style={[styles.row, i % 2 ? styles.rowAlt : {}]}>
+                <Text style={[styles.cell, styles.desc]}>{item.description}</Text>
+                <Text style={[styles.cell, styles.size]}>{item.size || "—"}</Text>
+                <Text style={[styles.cell, styles.hsn]}>{item.hsn_code || "—"}</Text>
+                <Text style={[styles.cell, styles.qty]}>{item.qty}</Text>
+                <Text style={[styles.cell, styles.unit]}>{item.unit || "—"}</Text>
+                <Text style={[styles.cell, styles.rate]}>{money(item.rate)}</Text>
+                <Text style={[styles.cell, styles.total]}>{money(item.total)}</Text>
+              </View>
+            ))}
+          </>
+        )}
         <View style={styles.spacer} />
       </View>
 
@@ -164,9 +224,18 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
         </View>
         <View style={styles.totCol}>
           <View style={styles.totLine}><Text style={styles.totLabel}>Subtotal</Text><Text style={styles.totValue}>{money(props.subtotal)}</Text></View>
+          {Number(props.discountAmount || 0) > 0 ? (
+            <View style={styles.totLine}><Text style={styles.totLabel}>Discount</Text><Text style={[styles.totValue, { color: "#dc2626" }]}>{money(-(props.discountAmount || 0))}</Text></View>
+          ) : null}
           {taxRows.map(([label, amount]) => (
             <View key={String(label)} style={styles.totLine}><Text style={styles.totLabel}>{label}</Text><Text style={styles.totValue}>{money(amount)}</Text></View>
           ))}
+          {Number(props.transportCharges || 0) > 0 ? (
+            <View style={styles.totLine}><Text style={styles.totLabel}>Transport</Text><Text style={styles.totValue}>{money(props.transportCharges || 0)}</Text></View>
+          ) : null}
+          {Number(props.packingForwardingCharges || 0) > 0 ? (
+            <View style={styles.totLine}><Text style={styles.totLabel}>Packing &amp; Fwd.</Text><Text style={styles.totValue}>{money(props.packingForwardingCharges || 0)}</Text></View>
+          ) : null}
           {props.roundOff !== 0 ? (
             <View style={styles.totLine}><Text style={styles.totLabel}>Round Off</Text><Text style={styles.totValue}>{money(props.roundOff)}</Text></View>
           ) : null}

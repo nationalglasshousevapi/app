@@ -77,6 +77,9 @@ export async function POST(req: NextRequest) {
       sgst_amount: source.sgst_amount,
       igst_amount: source.igst_amount,
       round_off: source.round_off,
+      discount_amount: source.discount_amount || 0,
+      transport_charges: source.transport_charges || 0,
+      packing_forwarding_charges: source.packing_forwarding_charges || 0,
       total_amount: source.total_amount,
       remarks: source.remarks,
       status: "draft",
@@ -100,6 +103,11 @@ export async function POST(req: NextRequest) {
       unit: it.unit,
       rate: it.rate,
       total: it.total,
+      actual_length: it.actual_length || 0,
+      actual_width: it.actual_width || 0,
+      nos: it.nos || 1,
+      calculated_length: it.calculated_length || 0,
+      calculated_width: it.calculated_width || 0,
     }));
     const { error: itemsError } = await sb.from("document_items").insert(rows);
     if (itemsError) {

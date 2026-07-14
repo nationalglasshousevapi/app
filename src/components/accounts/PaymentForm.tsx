@@ -11,8 +11,13 @@ interface Props {
   onDone?: () => void;
 }
 
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export default function PaymentForm({ customerId, balanceDue, onDone }: Props) {
   const router = useRouter();
+  const [paymentDate, setPaymentDate] = useState(today());
   const [amount, setAmount] = useState("");
   const [mode, setMode] = useState<string>("cash");
   const [reference, setReference] = useState("");
@@ -41,6 +46,7 @@ export default function PaymentForm({ customerId, balanceDue, onDone }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer_id: customerId,
+          payment_date: paymentDate,
           amount: parsed,
           payment_mode: mode,
           reference_number: reference || null,
@@ -53,6 +59,7 @@ export default function PaymentForm({ customerId, balanceDue, onDone }: Props) {
         throw new Error(data.error || "Failed to save payment.");
       }
 
+      setPaymentDate(today());
       setAmount("");
       setMode("cash");
       setReference("");
@@ -77,6 +84,17 @@ export default function PaymentForm({ customerId, balanceDue, onDone }: Props) {
           onChange={(e) => setAmount(e.target.value)}
           className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           placeholder="0.00"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-semibold text-slate-500 mb-1">Payment Date</label>
+        <input
+          type="date"
+          value={paymentDate}
+          onChange={(e) => setPaymentDate(e.target.value)}
+          className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           required
         />
       </div>

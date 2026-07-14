@@ -60,6 +60,9 @@ create table if not exists documents (
   sgst_amount numeric(12,2) not null default 0,
   igst_amount numeric(12,2) not null default 0,
   round_off numeric(12,2) not null default 0,
+  discount_amount numeric(12,2) not null default 0,
+  transport_charges numeric(12,2) not null default 0,
+  packing_forwarding_charges numeric(12,2) not null default 0,
   total_amount numeric(12,2) not null default 0,
 
   remarks text,
@@ -84,7 +87,13 @@ create table if not exists document_items (
   qty numeric(12,3) not null default 0,
   unit text default 'sq.ft',
   rate numeric(12,2) not null default 0,
-  total numeric(12,2) not null default 0
+  total numeric(12,2) not null default 0,
+  -- Invoice-specific fields (used for glass size calculations)
+  actual_length numeric(8,2) default 0,
+  actual_width numeric(8,2) default 0,
+  nos integer default 1,
+  calculated_length numeric(8,2) default 0,
+  calculated_width numeric(8,2) default 0
 );
 
 create index if not exists idx_items_document on document_items (document_id);

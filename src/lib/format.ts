@@ -26,3 +26,12 @@ export function formatDateShort(date: Date | string) {
     year: "numeric",
   }).format(d);
 }
+
+export function formatDateReadable(date: Date | string) {
+  const d = typeof date === "string" ? new Date(date) : date;
+  return d.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}

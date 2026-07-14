@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabaseServer";
 import DocumentForm, { DocumentFormValue } from "@/components/DocumentForm";
 import { docTypeLabel } from "@/lib/docTypes";
+import { formatDateReadable } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +43,9 @@ export default async function DocumentDetailPage({
     tax_type: doc.tax_type,
     tax_rate: Number(doc.tax_rate),
     round_off: Number(doc.round_off),
+    discount_amount: Number(doc.discount_amount ?? 0),
+    transport_charges: Number(doc.transport_charges ?? 0),
+    packing_forwarding_charges: Number(doc.packing_forwarding_charges ?? 0),
     remarks: doc.remarks ?? "",
     status: doc.status,
     items: (items ?? []).map((it) => ({
@@ -51,17 +55,25 @@ export default async function DocumentDetailPage({
       qty: Number(it.qty),
       unit: it.unit ?? "sq.ft",
       rate: Number(it.rate),
+      actual_length: Number(it.actual_length ?? 0),
+      actual_width: Number(it.actual_width ?? 0),
+      nos: Number(it.nos ?? 1),
+      calculated_length: Number(it.calculated_length ?? 0),
+      calculated_width: Number(it.calculated_width ?? 0),
     })),
   };
 
   return (
     <div className="space-y-7">
+      <a href="/documents" className="text-sm text-brand-600 hover:underline inline-flex items-center gap-1">
+        <span>&larr;</span> Back to Documents
+      </a>
       <div>
         <p className="text-sm font-semibold text-brand-600">Edit document</p>
         <h1 className="page-title">
           {docTypeLabel(doc.doc_type)} — {doc.doc_number}
         </h1>
-        <p className="page-subtitle">Created {new Date(doc.created_at).toLocaleDateString()}</p>
+        <p className="page-subtitle">Created {formatDateReadable(doc.created_at)}</p>
       </div>
       <DocumentForm initial={initial} />
     </div>

@@ -150,9 +150,9 @@ export default function DocumentActions({
           <button onClick={sendEmail} disabled={emailing} title="Email to customer" className={btn("", "", "text-blue-600 hover:bg-blue-50")}>
             {emailing ? <span className="text-xs">…</span> : <Icon type="email" />}
           </button>
-          <a href={whatsappHref} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp" className={btn("", "", "text-emerald-600 hover:bg-emerald-50")}>
+          <button onClick={() => window.open(whatsappHref, '_blank')} title="Share on WhatsApp" className={btn("", "", "text-emerald-600 hover:bg-emerald-50")}>
             <Icon type="whatsapp" />
-          </a>
+          </button>
           <button onClick={duplicate} disabled={duplicating} title="Duplicate" className={btn("", "", "text-slate-500 hover:bg-slate-100")}>
             {duplicating ? <span className="text-xs">…</span> : <Icon type="copy" />}
           </button>
@@ -189,9 +189,9 @@ export default function DocumentActions({
         <button onClick={sendEmail} disabled={emailing} title="Email to customer" className={btn("email", "Email", "btn-secondary flex-1 text-sm text-blue-600 border-blue-200")}>
           {emailing ? <span className="text-xs">…</span> : <><Icon type="email" className="mr-1" /> Email</>}
         </button>
-        <a href={whatsappHref} target="_blank" rel="noopener noreferrer" title="Share on WhatsApp" className={btn("whatsapp", "WhatsApp", "btn-secondary flex-1 text-sm text-emerald-700 border-emerald-200")}>
+        <button onClick={() => window.open(whatsappHref, '_blank')} title="Share on WhatsApp" className={btn("whatsapp", "WhatsApp", "btn-secondary flex-1 text-sm text-emerald-700 border-emerald-200")}>
           <Icon type="whatsapp" className="mr-1" /> WhatsApp
-        </a>
+        </button>
         <button onClick={duplicate} disabled={duplicating} title="Duplicate" className={btn("copy", "Copy", "btn-secondary flex-1 text-sm")}>
           {duplicating ? <span className="text-xs">…</span> : <><Icon type="copy" className="mr-1" /> Copy</>}
         </button>

@@ -1,6 +1,7 @@
 import { supabaseServer } from "@/lib/supabaseServer";
 import { inr } from "@/lib/format";
 import Link from "next/link";
+import BackButton from "@/components/BackButton";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export default async function AccountsPage() {
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">
+      <BackButton href="/dashboard" label="Back to Dashboard" />
       <h1 className="font-display text-2xl font-bold text-ink">Accounts</h1>
 
       {/* Summary stat cards */}

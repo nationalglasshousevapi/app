@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
 
   const subtotal = items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
 
-  const { cgst, sgst, igst } = computeTax(subtotal, rest.tax_type, rest.tax_rate);
-  const total = computeTotal(subtotal, cgst, sgst, igst, rest.round_off);
+  const { cgst, sgst, igst } = computeTax(subtotal, rest.tax_type, rest.tax_rate, rest.discount_amount);
+  const total = computeTotal(subtotal, cgst, sgst, igst, rest.round_off, rest.discount_amount, rest.transport_charges, rest.packing_forwarding_charges);
 
   const { data: doc, error: docError } = await sb
     .from("documents")
@@ -65,6 +65,9 @@ export async function POST(req: NextRequest) {
       sgst_amount: sgst,
       igst_amount: igst,
       round_off: rest.round_off,
+      discount_amount: rest.discount_amount || 0,
+      transport_charges: rest.transport_charges || 0,
+      packing_forwarding_charges: rest.packing_forwarding_charges || 0,
       total_amount: total,
       remarks: rest.remarks ?? null,
       status: rest.status || "draft",
