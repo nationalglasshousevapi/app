@@ -161,7 +161,7 @@ export default function GstExport() {
         <button
           onClick={download}
           disabled={downloading}
-          className="whitespace-nowrap rounded bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+          className="btn-primary"
         >
           {downloading && (
             <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">

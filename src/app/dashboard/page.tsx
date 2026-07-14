@@ -78,10 +78,7 @@ export default async function DashboardPage() {
           </p>
           <h1 className="page-title mb-0">Dashboard</h1>
         </div>
-        <Link
-          href="/documents/new"
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-brass-500 text-white px-4 py-2.5 text-sm font-semibold shadow-sm hover:bg-brass-600 transition w-full sm:w-auto"
-        >
+        <Link href="/documents/new" className="btn-primary w-full sm:w-auto">
           <span className="text-lg leading-none">+</span>
           Create document
         </Link>
@@ -164,7 +161,7 @@ export default async function DashboardPage() {
                 {d.recentInvoices.map((inv) => (
                   <tr key={inv.id} className="table-row">
                     <td className="py-3 font-semibold font-mono text-ink">{inv.doc_number}</td>
-                    <td className="py-3 text-slate-500">{inv.doc_date}</td>
+                    <td className="py-3 text-slate-500">{formatDateShort(inv.doc_date)}</td>
                     <td className="py-3 text-ink">{inv.bill_to_name || "\u2014"}</td>
                     <td className="py-3 text-right font-semibold font-mono text-ink">{inr(Number(inv.total_amount))}</td>
                     <td className="py-3 text-right">

@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
 
   let query = sb.from("customers").select("*").order("name", { ascending: true });
   if (q) {
-    query = query.ilike("name", `%${q}%`);
+    query = query.or(`name.ilike.%${q}%,contact_number.ilike.%${q}%,gst.ilike.%${q}%,email.ilike.%${q}%`);
   }
 
   const { data, error } = await query;

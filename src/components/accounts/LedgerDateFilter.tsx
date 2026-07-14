@@ -117,7 +117,7 @@ export default function LedgerDateFilter({
           </div>
           <button
             onClick={apply}
-            className="rounded bg-brand-600 px-3 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition"
+            className="btn-primary text-sm px-4 py-2"
           >
             Apply
           </button>

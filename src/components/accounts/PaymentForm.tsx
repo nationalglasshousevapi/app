@@ -159,7 +159,7 @@ export default function PaymentForm({ customerId, balanceDue, onDone }: Props) {
       <button
         type="submit"
         disabled={saving}
-        className="w-full rounded bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+        className="btn-primary w-full"
       >
         {saving ? "Saving..." : "Record Payment"}
       </button>

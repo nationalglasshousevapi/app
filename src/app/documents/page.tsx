@@ -1,10 +1,11 @@
 import Link from "next/link";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { docTypeLabel } from "@/lib/docTypes";
-import { inr, formatDateReadable } from "@/lib/format";
+import { inr, formatDateReadable, formatDateShort } from "@/lib/format";
 import DocumentSearch from "@/components/DocumentSearch";
 import DocumentActions from "@/components/DocumentActions";
 import BatchDownloadPanel from "@/components/BatchDownloadPanel";
+import StatusBadge from "@/components/StatusBadge";
 import BackButton from "@/components/BackButton";
 
 export const dynamic = "force-dynamic";
@@ -133,7 +134,7 @@ export default async function DocumentsPage({
           href="/documents"
           className={`text-sm px-3 py-2 rounded-full border min-h-[40px] inline-flex items-center ${
             !searchParams.type && !searchParams.customer_id && !searchParams.q
-              ? "bg-brand-600 text-white border-brand-600 shadow-sm"
+              ? "bg-brass-500 text-white border-brass-500 shadow-sm"
               : "border-slate-200 text-slate-600 hover:bg-slate-50"
           }`}
         >
@@ -145,7 +146,7 @@ export default async function DocumentsPage({
             href={`/documents?type=${t}${searchParams.q ? `&q=${encodeURIComponent(searchParams.q)}` : ""}${searchParams.customer_id ? `&customer_id=${searchParams.customer_id}` : ""}`}
             className={`text-sm px-3 py-2 rounded-full border min-h-[40px] inline-flex items-center ${
               searchParams.type === t
-                ? "bg-brand-600 text-white border-brand-600 shadow-sm"
+                ? "bg-brass-500 text-white border-brass-500 shadow-sm"
                 : "border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
@@ -161,13 +162,11 @@ export default async function DocumentsPage({
               <div>
                 <p className="font-bold text-slate-900">{doc.doc_number}</p>
                 <p className="text-sm text-slate-500">{doc.bill_to_name || "—"}</p>
-                <p className="text-xs text-slate-400 mt-1">{doc.doc_date}</p>
+                <p className="text-xs text-slate-400 mt-1">{formatDateShort(doc.doc_date)}</p>
               </div>
               <div className="text-right space-y-2">
                 <p className="font-semibold">{inr(Number(doc.total_amount))}</p>
-                <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[doc.status] ?? STATUS_STYLES.draft}`}>
-                  {doc.status}
-                </span>
+                <StatusBadge documentId={doc.id} currentStatus={doc.status} />
               </div>
             </div>
             <p className="text-xs text-slate-500">{docTypeLabel(doc.doc_type)}</p>

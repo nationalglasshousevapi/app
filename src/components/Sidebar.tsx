@@ -110,9 +110,7 @@ export default function Sidebar() {
       <div className={`p-3 border-t border-white/15 space-y-2 ${collapsed ? "flex flex-col items-center" : ""}`}>
         <Link
           href="/documents/new"
-          className={`flex items-center justify-center gap-2 rounded-xl bg-brass-500 text-white px-3 py-3 text-sm font-semibold shadow-sm hover:bg-brass-600 transition w-full ${
-            collapsed ? "" : ""
-          }`}
+          className={`btn-primary w-full ${collapsed ? "px-3 py-3" : ""}`}
           title={collapsed ? "New document" : undefined}
         >
           <span className="text-lg leading-none shrink-0">+</span>
