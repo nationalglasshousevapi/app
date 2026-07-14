@@ -144,9 +144,7 @@ export default function DocumentActions({
           <Link href={`/documents/${id}`} title="Edit" className={btn("", "", "text-brand-600 hover:bg-brand-50")}>
             <Icon type="edit" />
           </Link>
-          <a href={`/api/documents/${id}/pdf`} target="_blank" title="View PDF" className={btn("", "", "text-brand-600 hover:bg-brand-50")}>
-            <Icon type="pdf" />
-          </a>
+          {/* PDF removed — doc_number is now a PDF link */}
           <button onClick={sendEmail} disabled={emailing} title="Email to customer" className={btn("", "", "text-blue-600 hover:bg-blue-50")}>
             {emailing ? <span className="text-xs">…</span> : <Icon type="email" />}
           </button>

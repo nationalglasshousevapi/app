@@ -226,7 +226,11 @@ export default async function DocumentsPage({
           <tbody>
             {(documents ?? []).map((doc) => (
               <tr key={doc.id} className="table-row">
-                <td className="p-4 font-semibold text-ink font-mono">{doc.doc_number}</td>
+                <td className="p-4 font-semibold text-ink font-mono">
+                  <a href={`/api/documents/${doc.id}/pdf`} target="_blank" className="hover:underline">
+                    {doc.doc_number}
+                  </a>
+                </td>
                 <td className="p-4"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{docTypeLabel(doc.doc_type)}</span></td>
                 <td className="p-4 text-slate-500">{formatDateReadable(doc.doc_date)}</td>
                 <td className="p-4 font-medium">
@@ -239,9 +243,7 @@ export default async function DocumentsPage({
                   )}
                 </td>
                 <td className="p-4">
-                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[doc.status] ?? STATUS_STYLES.draft}`}>
-                    {doc.status}
-                  </span>
+                  <StatusBadge documentId={doc.id} currentStatus={doc.status} />
                 </td>
                 <td className="p-4 text-right font-semibold">
                   {inr(Number(doc.total_amount))}

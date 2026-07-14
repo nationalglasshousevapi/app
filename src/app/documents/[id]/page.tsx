@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabaseServer";
 import DocumentForm, { DocumentFormValue } from "@/components/DocumentForm";
+import StatusBadge from "@/components/StatusBadge";
 import { docTypeLabel } from "@/lib/docTypes";
 import { formatDateReadable } from "@/lib/format";
 
@@ -68,12 +69,17 @@ export default async function DocumentDetailPage({
       <a href="/documents" className="text-sm text-brand-600 hover:underline inline-flex items-center gap-1">
         <span>&larr;</span> Back to Documents
       </a>
-      <div>
-        <p className="text-sm font-semibold text-brand-600">Edit document</p>
-        <h1 className="page-title">
-          {docTypeLabel(doc.doc_type)} — {doc.doc_number}
-        </h1>
-        <p className="page-subtitle">Created {formatDateReadable(doc.created_at)}</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-semibold text-brand-600">Edit document</p>
+          <h1 className="page-title">
+            {docTypeLabel(doc.doc_type)} — {doc.doc_number}
+          </h1>
+          <p className="page-subtitle">Created {formatDateReadable(doc.created_at)}</p>
+        </div>
+        <div className="shrink-0 pt-1">
+          <StatusBadge documentId={doc.id} currentStatus={doc.status} />
+        </div>
       </div>
       <DocumentForm initial={initial} />
     </div>
