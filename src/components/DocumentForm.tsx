@@ -411,7 +411,7 @@ export default function DocumentForm({
                 <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" />
               </svg>
             </div>
-            <button type="button" onClick={() => patch({ doc_date: new Date().toISOString().slice(0, 10) })} className="rounded border border-slate-300 px-2 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition whitespace-nowrap">
+            <button type="button" onClick={() => patch({ doc_date: new Date().toISOString().slice(0, 10) })} className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition whitespace-nowrap">
               Today
             </button>
           </div>
@@ -441,7 +441,7 @@ export default function DocumentForm({
                 <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zM4 8h12v8H4V8z" clipRule="evenodd" />
               </svg>
             </div>
-            <button type="button" onClick={() => patch({ order_date: new Date().toISOString().slice(0, 10) })} className="rounded border border-slate-300 px-2 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition whitespace-nowrap">
+            <button type="button" onClick={() => patch({ order_date: new Date().toISOString().slice(0, 10) })} className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition whitespace-nowrap">
               Today
             </button>
           </div>

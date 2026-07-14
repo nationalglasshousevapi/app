@@ -84,7 +84,7 @@ export default function GstExport() {
           <button
             key={tab.value}
             onClick={() => setPeriodType(tab.value)}
-            className={`px-3 py-1.5 text-sm font-semibold rounded-md transition ${
+            className={`px-3 py-1.5 text-sm font-semibold rounded-lg transition ${
               periodType === tab.value
                 ? "bg-white text-brand-700 shadow-sm"
                 : "text-slate-500 hover:text-slate-700"

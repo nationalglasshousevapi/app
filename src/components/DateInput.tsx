@@ -47,7 +47,7 @@ export default function DateInput({ value, onChange, label, required, presets }:
   return (
     <div>
       {label && (
-        <label className="block text-xs font-semibold text-slate-500 mb-1">
+        <label className="label">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
       )}
@@ -77,7 +77,7 @@ export default function DateInput({ value, onChange, label, required, presets }:
             key={p}
             type="button"
             onClick={() => onChange(presetDate(p))}
-            className="rounded border border-slate-300 px-2 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition whitespace-nowrap"
+            className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition whitespace-nowrap"
           >
             {PRESET_LABELS[p]}
           </button>

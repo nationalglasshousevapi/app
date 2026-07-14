@@ -87,4 +87,9 @@ invoiced). Could also add a minimum balance filter.
 
 7. Clickable row → ledger — Already exists (name links to customer ledger), but could make the whole row clickable.
 
-Which of these feel useful to you? Or any other direction you're thinking?
+
+---
+
+I've seen various components have various style like some have hard corners some have rounded corners and similar to buttons and dropdowns etc. can we fix that and have a design system applied to all the components, all components should have a similar styling and follow the same design system
+
+

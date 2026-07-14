@@ -148,7 +148,7 @@ export default function BatchDownloadPanel() {
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value)}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+                className="rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white"
               >
                 <option value="">All years</option>
                 {years.map((y) => (
@@ -162,7 +162,7 @@ export default function BatchDownloadPanel() {
               <select
                 value={selectedType}
                 onChange={(e) => setSelectedType(e.target.value)}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white"
+                className="rounded-xl border border-slate-200 px-3 py-2 text-sm bg-white"
               >
                 <option value="">All types</option>
                 <option value="invoice">Invoice</option>

@@ -21,8 +21,8 @@ export default function LedgerTable({ entries }: Props) {
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-sm">
-        <thead>
-          <tr className="border-b border-slate-200 text-left text-slate-500">
+        <thead className="bg-slate-50/80">
+          <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-100">
             <th scope="col" className="pb-2 font-semibold">Date</th>
             <th scope="col" className="pb-2 font-semibold">Description</th>
             <th scope="col" className="pb-2 font-semibold text-right">Debit</th>

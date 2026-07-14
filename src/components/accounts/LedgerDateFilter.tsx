@@ -78,7 +78,7 @@ export default function LedgerDateFilter({
               key={p}
               type="button"
               onClick={() => setPreset(p)}
-              className="rounded border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition"
+              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition"
             >
               {labels[p]}
             </button>
@@ -91,7 +91,7 @@ export default function LedgerDateFilter({
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="rounded border border-slate-300 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="input w-full pl-9"
             />
             <svg
               className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
@@ -106,7 +106,7 @@ export default function LedgerDateFilter({
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="rounded border border-slate-300 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="input w-full pl-9"
             />
             <svg
               className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none"
@@ -124,7 +124,7 @@ export default function LedgerDateFilter({
           {hasFilter && (
             <button
               onClick={clear}
-              className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition"
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition"
             >
               Clear
             </button>

@@ -76,27 +76,27 @@ export default function PaymentForm({ customerId, balanceDue, onDone }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="block text-sm font-semibold text-slate-500 mb-1">Amount</label>
+        <label className="label">Amount</label>
         <input
           type="number"
           step="0.01"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
-          className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="input"
           placeholder="0.00"
           required
         />
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-slate-500 mb-1">Payment Date</label>
+        <label className="label">Payment Date</label>
         <div className="flex items-center gap-1.5">
           <div className="relative flex-1">
             <input
               type="date"
               value={paymentDate}
               onChange={(e) => setPaymentDate(e.target.value)}
-              className="w-full rounded border border-slate-300 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="input w-full pl-9"
               required
             />
             <svg
@@ -109,7 +109,7 @@ export default function PaymentForm({ customerId, balanceDue, onDone }: Props) {
           <button
             type="button"
             onClick={() => setPaymentDate(today())}
-            className="rounded border border-slate-300 px-2 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition whitespace-nowrap"
+            className="rounded-lg border border-slate-200 px-2.5 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50 transition whitespace-nowrap"
           >
             Today
           </button>
@@ -117,11 +117,11 @@ export default function PaymentForm({ customerId, balanceDue, onDone }: Props) {
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-slate-500 mb-1">Payment Mode</label>
+        <label className="label">Payment Mode</label>
         <select
           value={mode}
           onChange={(e) => setMode(e.target.value)}
-          className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="input"
         >
           {PAYMENT_MODES.map((pm) => (
             <option key={pm.value} value={pm.value}>{pm.label}</option>
@@ -130,27 +130,27 @@ export default function PaymentForm({ customerId, balanceDue, onDone }: Props) {
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-slate-500 mb-1">
+        <label className="label">
           Reference Number <span className="text-slate-400 font-normal">(optional)</span>
         </label>
         <input
           type="text"
           value={reference}
           onChange={(e) => setReference(e.target.value)}
-          className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="input"
           placeholder="Cheque no, UTR, UPI ref..."
         />
       </div>
 
       <div>
-        <label className="block text-sm font-semibold text-slate-500 mb-1">
+        <label className="label">
           Notes <span className="text-slate-400 font-normal">(optional)</span>
         </label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={2}
-          className="w-full rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="input"
         />
       </div>
 

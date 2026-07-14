@@ -73,10 +73,10 @@ export default function CustomerMonthFilter({
             key={p.label}
             type="button"
             onClick={() => applyPreset(p)}
-            className={`rounded border px-2.5 py-1.5 text-xs font-medium transition ${
+            className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
               (p.label === "This Month" && !hasFilter)
                 ? "border-brass-400 bg-brass-50 text-brass-700"
-                : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                : "border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
             {p.label}
@@ -85,10 +85,10 @@ export default function CustomerMonthFilter({
         <button
           type="button"
           onClick={() => setShowCustom(!showCustom)}
-          className={`rounded border px-2.5 py-1.5 text-xs font-medium transition ${
+          className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
             showCustom
               ? "border-brass-400 bg-brass-50 text-brass-700"
-              : "border-slate-300 text-slate-600 hover:bg-slate-50"
+              : "border-slate-200 text-slate-600 hover:bg-slate-50"
           }`}
         >
           Custom
@@ -102,7 +102,7 @@ export default function CustomerMonthFilter({
             type="date"
             value={customFrom}
             onChange={(e) => setCustomFrom(e.target.value)}
-            className="rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="input w-full"
             placeholder="From"
           />
           <span className="text-slate-400 text-sm">to</span>
@@ -110,7 +110,7 @@ export default function CustomerMonthFilter({
             type="date"
             value={customTo}
             onChange={(e) => setCustomTo(e.target.value)}
-            className="rounded border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="input w-full"
             placeholder="To"
           />
           <button
@@ -123,7 +123,7 @@ export default function CustomerMonthFilter({
           {hasFilter && (
             <button
               onClick={clearFilter}
-              className="rounded border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition"
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition"
             >
               Clear
             </button>

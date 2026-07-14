@@ -65,7 +65,7 @@ export default function CustomerPicker({
         onFocus={() => results.length && setOpen(true)}
       />
       {open && (searching || results.length > 0) && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-brand-200 rounded-lg shadow-xl ring-1 ring-black/5 max-h-64 overflow-y-auto">
+        <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl ring-1 ring-black/5 max-h-64 overflow-y-auto">
           {searching ? (
             <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-400">
               <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">

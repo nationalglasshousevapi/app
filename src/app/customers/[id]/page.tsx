@@ -247,7 +247,7 @@ export default async function CustomerDetailPage({
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-slate-50/80">
-              <tr className="text-left text-xs font-semibold text-slate-500 border-b border-slate-100">
+              <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-100">
                 <th scope="col" className="p-4">Number</th>
                 <th scope="col" className="p-4">Type</th>
                 <th scope="col" className="p-4">Date</th>

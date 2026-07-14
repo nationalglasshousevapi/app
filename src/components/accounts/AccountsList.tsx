@@ -179,8 +179,8 @@ export default function AccountsList({ customers }: Props) {
       {/* Desktop table */}
       <div className="mt-6 overflow-x-auto hidden md:block">
         <table className="min-w-full text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 text-left text-slate-500">
+          <thead className="bg-slate-50/80">
+            <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-100">
               <th
                 scope="col"
                 className="pb-2 font-semibold cursor-pointer select-none hover:text-slate-700"
