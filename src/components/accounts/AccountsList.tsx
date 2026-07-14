@@ -183,46 +183,46 @@ export default function AccountsList({ customers }: Props) {
             <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-100">
               <th
                 scope="col"
-                className="pb-2 font-semibold cursor-pointer select-none hover:text-slate-700"
+                className="p-4 font-semibold cursor-pointer select-none hover:text-slate-700"
                 onClick={() => toggleSort("customer_name")}
               >
                 Customer <SortIcon field="customer_name" />
               </th>
               <th
                 scope="col"
-                className="pb-2 font-semibold text-right cursor-pointer select-none hover:text-slate-700"
+                className="p-4 font-semibold text-right cursor-pointer select-none hover:text-slate-700"
                 onClick={() => toggleSort("opening_balance")}
               >
                 Opening <SortIcon field="opening_balance" />
               </th>
               <th
                 scope="col"
-                className="pb-2 font-semibold text-right cursor-pointer select-none hover:text-slate-700"
+                className="p-4 font-semibold text-right cursor-pointer select-none hover:text-slate-700"
                 onClick={() => toggleSort("total_invoiced")}
               >
                 Invoiced <SortIcon field="total_invoiced" />
               </th>
               <th
                 scope="col"
-                className="pb-2 font-semibold text-right cursor-pointer select-none hover:text-slate-700"
+                className="p-4 font-semibold text-right cursor-pointer select-none hover:text-slate-700"
                 onClick={() => toggleSort("total_paid")}
               >
                 Paid <SortIcon field="total_paid" />
               </th>
               <th
                 scope="col"
-                className="pb-2 font-semibold text-right cursor-pointer select-none hover:text-slate-700"
+                className="p-4 font-semibold text-right cursor-pointer select-none hover:text-slate-700"
                 onClick={() => toggleSort("balance_due")}
               >
                 Balance Due <SortIcon field="balance_due" />
               </th>
-              <th scope="col" className="pb-2 font-semibold text-center">Invoices</th>
+              <th scope="col" className="p-4 font-semibold text-center">Invoices</th>
             </tr>
           </thead>
           <tbody>
             {!filtered.length ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-400">No customers found.</td>
+                <td colSpan={6} className="p-4 text-center text-slate-400">No customers found.</td>
               </tr>
             ) : (
               filtered.map((c) => {
@@ -231,17 +231,17 @@ export default function AccountsList({ customers }: Props) {
                 return (
                   <tr
                     key={c.customer_id}
-                    className="border-b border-slate-100 hover:bg-slate-50 cursor-pointer transition"
+                    className="table-row cursor-pointer"
                     onClick={() => router.push(`/accounts/${c.customer_id}`)}
                   >
-                    <td className="py-2 pr-4">
+                    <td className="p-4">
                       <span className="text-brand-600 font-semibold">{c.customer_name}</span>
                     </td>
-                    <td className="py-2 pr-4 text-right font-mono">{inr(Number(c.opening_balance))}</td>
-                    <td className="py-2 pr-4 text-right font-mono">{inr(Number(c.total_invoiced))}</td>
-                    <td className="py-2 pr-4 text-right font-mono">{inr(Number(c.total_paid))}</td>
-                    <td className={`py-2 text-right font-mono font-semibold ${statusColor}`}>{inr(bd)}</td>
-                    <td className="py-2 text-center text-slate-500 text-xs">{c.invoice_count}</td>
+                    <td className="p-4 text-right font-mono">{inr(Number(c.opening_balance))}</td>
+                    <td className="p-4 text-right font-mono">{inr(Number(c.total_invoiced))}</td>
+                    <td className="p-4 text-right font-mono">{inr(Number(c.total_paid))}</td>
+                    <td className={`p-4 text-right font-mono font-semibold ${statusColor}`}>{inr(bd)}</td>
+                    <td className="p-4 text-center text-slate-500 text-xs">{c.invoice_count}</td>
                   </tr>
                 );
               })
