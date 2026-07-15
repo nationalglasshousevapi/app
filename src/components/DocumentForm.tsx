@@ -640,7 +640,7 @@ export default function DocumentForm({
                 <h2 className="font-bold text-slate-900 text-lg">Tax &amp; charges</h2>
               </div>
 
-              {/* Tax section */}
+              {/* Tax — auto-set 18% for taxable, 0% for none */}
               <div className="space-y-3">
                 <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Tax</h3>
                 <div>
@@ -648,43 +648,19 @@ export default function DocumentForm({
                   <select
                     className="input"
                     value={value.tax_type}
-                    onChange={(e) => patch({ tax_type: e.target.value as DocumentFormValue["tax_type"] })}
+                    onChange={(e) => {
+                      const t = e.target.value as DocumentFormValue["tax_type"];
+                      patch({
+                        tax_type: t,
+                        // Auto-set rate to 18% for taxable types, 0% for none
+                        tax_rate: t === "none" ? 0 : 0.18,
+                      });
+                    }}
                   >
-                    <option value="cgst_sgst">CGST + SGST (intra-state)</option>
-                    <option value="igst">IGST (inter-state)</option>
+                    <option value="cgst_sgst">CGST + SGST (9% + 9%)</option>
+                    <option value="igst">IGST (18%)</option>
                     <option value="none">No Tax</option>
                   </select>
-                </div>
-                <div>
-                  <label className="label">Tax Rate</label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      className="input flex-1"
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="100"
-                      value={Math.round(value.tax_rate * 100 * 10) / 10}
-                      onChange={(e) => patch({ tax_rate: Math.max(0, Number(e.target.value) / 100) })}
-                    />
-                    <span className="text-sm text-slate-500 font-medium w-5">%</span>
-                  </div>
-                  <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                    {[0, 5, 12, 18, 28].map((pct) => (
-                      <button
-                        key={pct}
-                        type="button"
-                        onClick={() => patch({ tax_rate: pct / 100 })}
-                        className={`px-2.5 py-1 text-xs rounded-lg border font-medium transition ${
-                          Math.round(value.tax_rate * 100) === pct
-                            ? "bg-brand-600 text-white border-brand-600"
-                            : "bg-white text-slate-600 border-slate-200 hover:border-brand-300"
-                        }`}
-                      >
-                        {pct}%
-                      </button>
-                    ))}
-                  </div>
                 </div>
               </div>
 
