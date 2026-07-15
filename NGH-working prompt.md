@@ -93,3 +93,15 @@ invoiced). Could also add a minimum balance filter.
 I've seen various components have various style like some have hard corners some have rounded corners and similar to buttons and dropdowns etc. can we fix that and have a design system applied to all the components, all components should have a similar styling and follow the same design system
 
 
+---
+
+1. Remove create receipt in documents, it is treating a recipt like an invoice
+2. In new invoice page, first line should be Customer (select or create new - which should open new customer modal - which should have all the fields to create a customer including opening balance in the same modal), this should be at the top, after select customer, the remaining fields should appear below that
+3. Make the record payment modal/popup more user friendly
+4. Remove the create receipt from ledger page
+5. I would like to have a receipt for the customer's payment which I can sent it to them like we do for invoice.
+6. 
+
+---
+
+Update window quotation

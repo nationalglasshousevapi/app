@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { renderToBuffer } from "@react-pdf/renderer";
+import { Document, Page, renderToBuffer, StyleSheet } from "@react-pdf/renderer";
 import React from "react";
 import { readFile } from "fs/promises";
 import path from "path";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { companyDetails } from "@/lib/company";
 import PdfDocument from "@/components/PdfDocument";
+import PdfReceiptPage from "@/components/PdfReceiptPage";
+
+const receiptPageStyles = StyleSheet.create({
+  page: { padding: 24, fontSize: 9, fontFamily: "Helvetica", color: "#1e293b" },
+});
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +19,6 @@ async function companyLogo() {
     const logo = await readFile(path.join(process.cwd(), "public", "logo.png"));
     return `data:image/png;base64,${logo.toString("base64")}`;
   } catch {
-    // A missing logo must never prevent a customer from opening an invoice.
     return undefined;
   }
 }
@@ -33,14 +37,60 @@ export async function GET(
   if (error || !doc)
     return NextResponse.json({ error: error?.message ?? "Not found" }, { status: 404 });
 
+  const company = companyDetails();
+  const logoSrc = await companyLogo();
+
+  // Receipt — use simplified receipt template
+  if (doc.doc_type === "receipt") {
+    // Fetch linked payment for payment details
+    const { data: payment } = await sb
+      .from("payments")
+      .select("payment_mode, reference_number")
+      .eq("document_id", doc.id)
+      .maybeSingle();
+
+    const buffer = await renderToBuffer(
+      React.createElement(
+        Document,
+        null,
+        React.createElement(
+          Page,
+          { size: "A4", style: receiptPageStyles.page },
+          React.createElement(PdfReceiptPage, {
+            docNumber: doc.doc_number,
+            docDate: doc.doc_date,
+            company,
+            logoSrc,
+            customerName: doc.bill_to_name ?? "",
+            customerAddress: doc.bill_to_address,
+            customerContact: doc.bill_to_contact_number,
+            customerGst: doc.bill_to_gst,
+            amount: Number(doc.total_amount),
+            paymentMode: payment?.payment_mode ?? "Payment",
+            referenceNumber: payment?.reference_number ?? null,
+            remarks: doc.remarks,
+          }),
+        ),
+      ),
+    );
+
+    return new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `inline; filename="${doc.doc_number}.pdf"`,
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+        "Pragma": "no-cache",
+        "Expires": "0",
+      },
+    });
+  }
+
+  // Invoice / quotation / estimate — use full invoice template
   const { data: items } = await sb
     .from("document_items")
     .select("*")
     .eq("document_id", params.id)
     .order("position", { ascending: true });
-
-  const company = companyDetails();
-  const logoSrc = await companyLogo();
 
   const buffer = await renderToBuffer(
     React.createElement(PdfDocument, {

@@ -1,10 +1,9 @@
 import { supabaseServer } from "@/lib/supabaseServer";
 import { inr } from "@/lib/format";
 import LedgerTable from "@/components/accounts/LedgerTable";
-import PaymentForm from "@/components/accounts/PaymentForm";
+import PaymentModal from "@/components/accounts/PaymentModal";
 import BackButton from "@/components/BackButton";
 import LedgerDateFilter from "@/components/accounts/LedgerDateFilter";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -216,20 +215,7 @@ export default async function CustomerLedgerPage({
         </div>
 
         <div>
-          <Link
-            href={`/documents/new?type=receipt&customer_id=${customerId}`}
-            className="btn-secondary w-full text-center mb-4 inline-flex items-center justify-center gap-2"
-          >
-            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-              <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-              <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
-            </svg>
-            Create Receipt
-          </Link>
-          <h2 className="font-display text-lg font-bold text-ink mb-4">Record Payment</h2>
-          <div className="card p-5">
-            <PaymentForm customerId={customerId} balanceDue={runningBalance} />
-          </div>
+          <PaymentModal customerId={customerId} balanceDue={runningBalance} />
         </div>
       </div>
     </main>

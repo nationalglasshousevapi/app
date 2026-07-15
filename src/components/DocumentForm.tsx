@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { pdf } from "@react-pdf/renderer";
 import { DOC_TYPES, docTypeLabel, DocType } from "@/lib/docTypes";
 import CustomerPicker from "./CustomerPicker";
+import NewCustomerModal from "./NewCustomerModal";
 import CalendarInput from "./CalendarInput";
 import LineItemsEditor, { EMPTY_ITEM, LineItem } from "./LineItemsEditor";
 import PdfDocument from "./PdfDocument";
@@ -103,6 +104,8 @@ export default function DocumentForm({
   const [company, setCompany] = useState<CompanyDetails | null>(null);
   const [companyLoading, setCompanyLoading] = useState(false);
   const [customerPickerKey, setCustomerPickerKey] = useState(0);
+  const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
+  const isNewInvoice = !initial.id && !value.customer_id;
   const router = useRouter();
 
   const isDirty = useMemo(() => {
@@ -198,6 +201,11 @@ export default function DocumentForm({
           }
         : {}),
     });
+  }
+
+  function handleCustomerCreated(c: Customer) {
+    selectCustomer(c);
+    setShowNewCustomerModal(false);
   }
 
   const totals = useMemo(() => {
@@ -372,52 +380,14 @@ export default function DocumentForm({
   }
 
   return (
-    <form onSubmit={save} className="space-y-6">
-      <div className="card p-5 md:p-6 grid md:grid-cols-4 gap-4">
-        <div className="md:col-span-4 flex items-center gap-3 pb-1">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">1</span>
-          <h2 className="font-bold text-slate-900 text-lg">Document details</h2>
-        </div>
-        <div>
-          <label className="label">Document Type</label>
-          <select
-            className="input"
-            value={value.doc_type}
-            disabled={!!value.id}
-            onChange={(e) => patch({ doc_type: e.target.value as DocType })}
-          >
-            {DOC_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-          {value.id && <p className="text-xs text-gray-400 mt-1">Type can't be changed after creation</p>}
-        </div>
-        <div>
-          <label className="label">Date <span className="text-red-500">*</span></label>
-          <CalendarInput value={value.doc_date} onChange={(v) => patch({ doc_date: v })} required />
-        </div>
-        <div>
-          <label className="label">Order Number</label>
-          <input
-            className="input"
-            value={value.order_number}
-            onChange={(e) => patch({ order_number: e.target.value })}
-          />
-        </div>
-        <div>
-          <label className="label">Order Date</label>
-          <CalendarInput value={value.order_date} onChange={(v) => patch({ order_date: v })} />
-        </div>
-      </div>
-
+    <><form onSubmit={save} className="space-y-6">
+      {/* Step 1: Customer — always shown first */}
       <div className="card p-5 md:p-6 space-y-4">
         <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">2</span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">1</span>
           <div>
-            <h2 className="font-bold text-slate-900 text-lg">Customer details</h2>
-            <p className="text-xs text-slate-500">Search saved customers, or enter details below.</p>
+            <h2 className="font-bold text-slate-900 text-lg">Select customer</h2>
+            <p className="text-xs text-slate-500">Search saved customers or create a new one.</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -426,288 +396,373 @@ export default function DocumentForm({
           </div>
           <button
             type="button"
-            onClick={() => {
-              patch({
-                customer_id: null,
-                bill_to_name: "",
-                bill_to_address: "",
-                bill_to_contact_person: "",
-                bill_to_contact_number: "",
-                bill_to_email: "",
-                bill_to_gst: "",
-                ship_to_name: "",
-                ship_to_address: "",
-                ship_to_contact_person: "",
-                ship_to_contact_number: "",
-              });
-              setSameAsBilling(true);
-              setCustomerPickerKey((k) => k + 1);
-            }}
+            onClick={() => setShowNewCustomerModal(true)}
             className="btn-secondary px-3 py-3.5 shrink-0 text-sm"
-            title="Clear customer"
+            title="Create new customer"
           >
-            Clear
+            + New
           </button>
-        </div>
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="label">Name <span className="text-red-500">*</span></label>
-            <input
-              className={`input ${fieldErrors.bill_to_name ? "border-red-400 focus:ring-red-400/30" : ""}`}
-              value={value.bill_to_name}
-              onChange={(e) => { patch({ bill_to_name: e.target.value }); clearFieldError("bill_to_name"); }}
-              required
-            />
-            {fieldErrors.bill_to_name && (
-              <p className="text-xs text-red-500 mt-1">{fieldErrors.bill_to_name}</p>
-            )}
-          </div>
-          <div>
-            <label className="label">GST</label>
-            <input
-              className="input"
-              value={value.bill_to_gst}
-              onChange={(e) => patch({ bill_to_gst: e.target.value })}
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="label">Address</label>
-            <input
-              className="input"
-              value={value.bill_to_address}
-              onChange={(e) => patch({ bill_to_address: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="label">Contact Person</label>
-            <input
-              className="input"
-              value={value.bill_to_contact_person}
-              onChange={(e) => patch({ bill_to_contact_person: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="label">Contact Number</label>
-            <input
-              className="input"
-              value={value.bill_to_contact_number}
-              onChange={(e) => patch({ bill_to_contact_number: e.target.value })}
-            />
-          </div>
-        </div>
-
-        <label className="flex items-center gap-2 text-sm font-medium text-slate-600 rounded-xl bg-slate-50 px-3 py-2.5">
-          <input
-            type="checkbox"
-            checked={sameAsBilling}
-            onChange={(e) => setSameAsBilling(e.target.checked)}
-          />
-          Ship to same as billing
-        </label>
-
-        <div
-          className={`overflow-hidden transition-all duration-200 ease-in-out ${
-            !sameAsBilling ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
-          }`}
-        >
-          <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-            <div>
-              <label className="label">Ship To Name</label>
-              <input
-                className="input"
-                value={value.ship_to_name}
-                onChange={(e) => patch({ ship_to_name: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="label">Ship To Address</label>
-              <input
-                className="input"
-                value={value.ship_to_address}
-                onChange={(e) => patch({ ship_to_address: e.target.value })}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card p-4 md:p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">3</span>
-          <div>
-            <h2 className="font-bold text-slate-900 text-lg">Items and pricing</h2>
-            <p className="text-xs text-slate-500">Add each product or service as a separate line.</p>
-          </div>
-        </div>
-        <LineItemsEditor items={value.items} onChange={(items) => patch({ items })} docType={value.doc_type} />
-      </div>
-
-      <div className="card p-5 md:p-6 grid md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">4</span>
-            <h2 className="font-bold text-slate-900 text-lg">Tax and notes</h2>
-          </div>
-          <div>
-            <label className="label">Tax Type</label>
-            <select
-              className="input"
-              value={value.tax_type}
-              onChange={(e) => patch({ tax_type: e.target.value as DocumentFormValue["tax_type"] })}
+          {value.customer_id && (
+            <button
+              type="button"
+              onClick={() => {
+                patch({
+                  customer_id: null,
+                  bill_to_name: "",
+                  bill_to_address: "",
+                  bill_to_contact_person: "",
+                  bill_to_contact_number: "",
+                  bill_to_email: "",
+                  bill_to_gst: "",
+                  ship_to_name: "",
+                  ship_to_address: "",
+                  ship_to_contact_person: "",
+                  ship_to_contact_number: "",
+                });
+                setSameAsBilling(true);
+                setCustomerPickerKey((k) => k + 1);
+              }}
+              className="btn-secondary px-3 py-3.5 shrink-0 text-sm"
+              title="Clear customer"
             >
-              <option value="cgst_sgst">CGST + SGST (intra-state)</option>
-              <option value="igst">IGST (inter-state)</option>
-              <option value="none">No Tax</option>
-            </select>
-          </div>
-          <div>
-            <label className="label">Tax Rate (combined, e.g. 0.18 = 18%)</label>
-            <input
-              className="input"
-              type="number"
-              step="0.01"
-              value={value.tax_rate}
-              onChange={(e) => patch({ tax_rate: Number(e.target.value) })}
-            />
-          </div>
-          <div>
-            <label className="label">Discount</label>
-            <input
-              className="input"
-              type="number"
-              step="0.01"
-              min="0"
-              value={value.discount_amount}
-              onChange={(e) => patch({ discount_amount: Number(e.target.value) })}
-            />
-          </div>
-          <div>
-            <label className="label">Transport Charges</label>
-            <input
-              className="input"
-              type="number"
-              step="0.01"
-              min="0"
-              value={value.transport_charges}
-              onChange={(e) => patch({ transport_charges: Number(e.target.value) })}
-            />
-          </div>
-          <div>
-            <label className="label">Packing &amp; Forwarding</label>
-            <input
-              className="input"
-              type="number"
-              step="0.01"
-              min="0"
-              value={value.packing_forwarding_charges}
-              onChange={(e) => patch({ packing_forwarding_charges: Number(e.target.value) })}
-            />
-          </div>
-          <div>
-            <label className="label">Round Off</label>
-            <input
-              className="input"
-              type="number"
-              step="0.01"
-              value={value.round_off}
-              onChange={(e) => patch({ round_off: Number(e.target.value) })}
-            />
-          </div>
-          <div>
-            <label className="label">Remarks</label>
-            <textarea
-              className="input"
-              rows={3}
-              value={value.remarks}
-              onChange={(e) => patch({ remarks: e.target.value })}
-            />
-          </div>
+              Clear
+            </button>
+          )}
         </div>
-
-        <div className="rounded-2xl border border-brand-100 bg-brand-50/50 p-5 space-y-2 self-start">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-700 mb-3">Document total</p>
-          <div className="flex justify-between text-sm">
-            <span className="text-slate-500">Subtotal</span>
-            <span>₹ {totals.subtotal.toFixed(2)}</span>
+        {value.customer_id && (
+          <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-1">
+            <p className="font-semibold text-slate-900">{value.bill_to_name}</p>
+            {value.bill_to_address && <p className="text-sm text-slate-500">{value.bill_to_address}</p>}
+            {value.bill_to_gst && <p className="text-sm text-slate-400">GST: {value.bill_to_gst}</p>}
           </div>
-          {totals.discount > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Discount</span>
-              <span className="text-red-600">- ₹ {totals.discount.toFixed(2)}</span>
-            </div>
-          )}
-          {value.tax_type === "cgst_sgst" && (
-            <>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">CGST</span>
-                <span>₹ {totals.cgst.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">SGST</span>
-                <span>₹ {totals.sgst.toFixed(2)}</span>
-              </div>
-            </>
-          )}
-          {value.tax_type === "igst" && (
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">IGST</span>
-              <span>₹ {totals.igst.toFixed(2)}</span>
-            </div>
-          )}
-          {totals.transport > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Transport</span>
-              <span>₹ {totals.transport.toFixed(2)}</span>
-            </div>
-          )}
-          {totals.packing > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-slate-500">Packing &amp; Fwd.</span>
-              <span>₹ {totals.packing.toFixed(2)}</span>
-            </div>
-          )}
-          <div className="flex justify-between text-sm">
-            <span className="text-slate-500">Round Off</span>
-            <span>₹ {(value.round_off || 0).toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-lg font-bold pt-3 border-t border-brand-100">
-            <span>Total</span>
-            <span>₹ {totals.total.toFixed(2)}</span>
-          </div>
-        </div>
+        )}
       </div>
 
-      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-        <button type="submit" disabled={saving} className="btn-primary w-full sm:w-auto">
-          {saving ? "Saving…" : value.id ? "Save changes" : `Save ${docTypeLabel(value.doc_type)}`}
-        </button>
-        <div className="flex items-center gap-3 flex-wrap">
-          <button
-            type="button"
-            onClick={previewPdf}
-            disabled={companyLoading || !value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)}
-            className="btn-secondary"
-            title={(!value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)) ? "Fill required fields first" : "Preview as PDF"}
-          >
-            {companyLoading ? "Loading…" : "Preview PDF"}
-          </button>
-          {value.id && (
-            <a href={`/api/documents/${value.id}/pdf`} target="_blank" className="btn-secondary">
-              View PDF
-            </a>
-          )}
-          {value.id && isDirty && (
-            <span className="text-xs text-amber-600 font-medium">
-              Save changes to update PDF
-            </span>
-          )}
-        </div>
-      </div>
-      {saveError ? (
-        <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          {saveError}
-        </div>
-      ) : null}
+      {/* Remaining sections — hidden for new docs until a customer is selected */}
+      {!isNewInvoice && (
+        <>
+          {/* Document details */}
+          <div className="card p-5 md:p-6 grid md:grid-cols-4 gap-4">
+            <div className="md:col-span-4 flex items-center gap-3 pb-1">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">2</span>
+              <h2 className="font-bold text-slate-900 text-lg">Document details</h2>
+            </div>
+            <div>
+              <label className="label">Document Type</label>
+              <select
+                className="input"
+                value={value.doc_type}
+                disabled={!!value.id}
+                onChange={(e) => patch({ doc_type: e.target.value as DocType })}
+              >
+                {DOC_TYPES.filter((t) => t.value !== "receipt").map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              {value.id && <p className="text-xs text-gray-400 mt-1">Type can't be changed after creation</p>}
+            </div>
+            <div>
+              <label className="label">Date <span className="text-red-500">*</span></label>
+              <CalendarInput value={value.doc_date} onChange={(v) => patch({ doc_date: v })} required />
+            </div>
+            <div>
+              <label className="label">Order Number</label>
+              <input
+                className="input"
+                value={value.order_number}
+                onChange={(e) => patch({ order_number: e.target.value })}
+              />
+            </div>
+            <div>
+              <label className="label">Order Date</label>
+              <CalendarInput value={value.order_date} onChange={(v) => patch({ order_date: v })} />
+            </div>
+          </div>
+
+          {/* Billing / Shipping details */}
+          <div className="card p-5 md:p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">3</span>
+              <div>
+                <h2 className="font-bold text-slate-900 text-lg">Billing details</h2>
+                <p className="text-xs text-slate-500">Edit customer details for this document if needed.</p>
+              </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="label">Name <span className="text-red-500">*</span></label>
+                <input
+                  className={`input ${fieldErrors.bill_to_name ? "border-red-400 focus:ring-red-400/30" : ""}`}
+                  value={value.bill_to_name}
+                  onChange={(e) => { patch({ bill_to_name: e.target.value }); clearFieldError("bill_to_name"); }}
+                  required
+                />
+                {fieldErrors.bill_to_name && (
+                  <p className="text-xs text-red-500 mt-1">{fieldErrors.bill_to_name}</p>
+                )}
+              </div>
+              <div>
+                <label className="label">GST</label>
+                <input
+                  className="input"
+                  value={value.bill_to_gst}
+                  onChange={(e) => patch({ bill_to_gst: e.target.value })}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="label">Address</label>
+                <input
+                  className="input"
+                  value={value.bill_to_address}
+                  onChange={(e) => patch({ bill_to_address: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="label">Contact Person</label>
+                <input
+                  className="input"
+                  value={value.bill_to_contact_person}
+                  onChange={(e) => patch({ bill_to_contact_person: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="label">Contact Number</label>
+                <input
+                  className="input"
+                  value={value.bill_to_contact_number}
+                  onChange={(e) => patch({ bill_to_contact_number: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-600 rounded-xl bg-slate-50 px-3 py-2.5">
+              <input
+                type="checkbox"
+                checked={sameAsBilling}
+                onChange={(e) => setSameAsBilling(e.target.checked)}
+              />
+              Ship to same as billing
+            </label>
+
+            <div
+              className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                !sameAsBilling ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                <div>
+                  <label className="label">Ship To Name</label>
+                  <input
+                    className="input"
+                    value={value.ship_to_name}
+                    onChange={(e) => patch({ ship_to_name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="label">Ship To Address</label>
+                  <input
+                    className="input"
+                    value={value.ship_to_address}
+                    onChange={(e) => patch({ ship_to_address: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Items and pricing */}
+          <div className="card p-4 md:p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">4</span>
+              <div>
+                <h2 className="font-bold text-slate-900 text-lg">Items and pricing</h2>
+                <p className="text-xs text-slate-500">Add each product or service as a separate line.</p>
+              </div>
+            </div>
+            <LineItemsEditor items={value.items} onChange={(items) => patch({ items })} docType={value.doc_type} />
+          </div>
+
+          {/* Tax and notes */}
+          <div className="card p-5 md:p-6 grid md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">5</span>
+                <h2 className="font-bold text-slate-900 text-lg">Tax and notes</h2>
+              </div>
+              <div>
+                <label className="label">Tax Type</label>
+                <select
+                  className="input"
+                  value={value.tax_type}
+                  onChange={(e) => patch({ tax_type: e.target.value as DocumentFormValue["tax_type"] })}
+                >
+                  <option value="cgst_sgst">CGST + SGST (intra-state)</option>
+                  <option value="igst">IGST (inter-state)</option>
+                  <option value="none">No Tax</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Tax Rate (combined, e.g. 0.18 = 18%)</label>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  value={value.tax_rate}
+                  onChange={(e) => patch({ tax_rate: Number(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className="label">Discount</label>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={value.discount_amount}
+                  onChange={(e) => patch({ discount_amount: Number(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className="label">Transport Charges</label>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={value.transport_charges}
+                  onChange={(e) => patch({ transport_charges: Number(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className="label">Packing &amp; Forwarding</label>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={value.packing_forwarding_charges}
+                  onChange={(e) => patch({ packing_forwarding_charges: Number(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className="label">Round Off</label>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  value={value.round_off}
+                  onChange={(e) => patch({ round_off: Number(e.target.value) })}
+                />
+              </div>
+              <div>
+                <label className="label">Remarks</label>
+                <textarea
+                  className="input"
+                  rows={3}
+                  value={value.remarks}
+                  onChange={(e) => patch({ remarks: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-brand-100 bg-brand-50/50 p-5 space-y-2 self-start">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-700 mb-3">Document total</p>
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Subtotal</span>
+                <span>₹ {totals.subtotal.toFixed(2)}</span>
+              </div>
+              {totals.discount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Discount</span>
+                  <span className="text-red-600">- ₹ {totals.discount.toFixed(2)}</span>
+                </div>
+              )}
+              {value.tax_type === "cgst_sgst" && (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">CGST</span>
+                    <span>₹ {totals.cgst.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">SGST</span>
+                    <span>₹ {totals.sgst.toFixed(2)}</span>
+                  </div>
+                </>
+              )}
+              {value.tax_type === "igst" && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">IGST</span>
+                  <span>₹ {totals.igst.toFixed(2)}</span>
+                </div>
+              )}
+              {totals.transport > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Transport</span>
+                  <span>₹ {totals.transport.toFixed(2)}</span>
+                </div>
+              )}
+              {totals.packing > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Packing &amp; Fwd.</span>
+                  <span>₹ {totals.packing.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">Round Off</span>
+                <span>₹ {(value.round_off || 0).toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-lg font-bold pt-3 border-t border-brand-100">
+                <span>Total</span>
+                <span>₹ {totals.total.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <button type="submit" disabled={saving} className="btn-primary w-full sm:w-auto">
+              {saving ? "Saving…" : value.id ? "Save changes" : `Save ${docTypeLabel(value.doc_type)}`}
+            </button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={previewPdf}
+                disabled={companyLoading || !value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)}
+                className="btn-secondary"
+                title={(!value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)) ? "Fill required fields first" : "Preview as PDF"}
+              >
+                {companyLoading ? "Loading…" : "Preview PDF"}
+              </button>
+              {value.id && (
+                <a href={`/api/documents/${value.id}/pdf`} target="_blank" className="btn-secondary">
+                  View PDF
+                </a>
+              )}
+              {value.id && isDirty && (
+                <span className="text-xs text-amber-600 font-medium">
+                  Save changes to update PDF
+                </span>
+              )}
+            </div>
+          </div>
+          {saveError ? (
+            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {saveError}
+            </div>
+          ) : null}
+        </>
+      )}
+
+      {/* New Customer Modal */}
+      {showNewCustomerModal && (
+        <NewCustomerModal
+          onClose={() => setShowNewCustomerModal(false)}
+          onCreated={handleCustomerCreated}
+        />
+      )}
     </form>
+    </>
   );
 }
