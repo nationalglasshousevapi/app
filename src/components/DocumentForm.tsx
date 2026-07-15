@@ -632,78 +632,117 @@ export default function DocumentForm({
             <LineItemsEditor items={value.items} onChange={(items) => patch({ items })} docType={value.doc_type} />
           </div>
 
-          {/* Tax and notes */}
+          {/* Tax, charges, and notes */}
           <div className="card p-5 md:p-6 grid md:grid-cols-2 gap-6">
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div className="flex items-center gap-3">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">5</span>
-                <h2 className="font-bold text-slate-900 text-lg">Tax and notes</h2>
+                <h2 className="font-bold text-slate-900 text-lg">Tax &amp; charges</h2>
               </div>
-              <div>
-                <label className="label">Tax Type</label>
-                <select
-                  className="input"
-                  value={value.tax_type}
-                  onChange={(e) => patch({ tax_type: e.target.value as DocumentFormValue["tax_type"] })}
-                >
-                  <option value="cgst_sgst">CGST + SGST (intra-state)</option>
-                  <option value="igst">IGST (inter-state)</option>
-                  <option value="none">No Tax</option>
-                </select>
+
+              {/* Tax section */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Tax</h3>
+                <div>
+                  <label className="label">Tax Type</label>
+                  <select
+                    className="input"
+                    value={value.tax_type}
+                    onChange={(e) => patch({ tax_type: e.target.value as DocumentFormValue["tax_type"] })}
+                  >
+                    <option value="cgst_sgst">CGST + SGST (intra-state)</option>
+                    <option value="igst">IGST (inter-state)</option>
+                    <option value="none">No Tax</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label">Tax Rate</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      className="input flex-1"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="100"
+                      value={Math.round(value.tax_rate * 100 * 10) / 10}
+                      onChange={(e) => patch({ tax_rate: Math.max(0, Number(e.target.value) / 100) })}
+                    />
+                    <span className="text-sm text-slate-500 font-medium w-5">%</span>
+                  </div>
+                  <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                    {[0, 5, 12, 18, 28].map((pct) => (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => patch({ tax_rate: pct / 100 })}
+                        className={`px-2.5 py-1 text-xs rounded-lg border font-medium transition ${
+                          Math.round(value.tax_rate * 100) === pct
+                            ? "bg-brand-600 text-white border-brand-600"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-brand-300"
+                        }`}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="label">Tax Rate (combined, e.g. 0.18 = 18%)</label>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  value={value.tax_rate}
-                  onChange={(e) => patch({ tax_rate: Number(e.target.value) })}
-                />
+
+              {/* Charges section */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Charges</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="label">Transport</label>
+                    <input
+                      className="input"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={value.transport_charges}
+                      onChange={(e) => patch({ transport_charges: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Packing &amp; Fwd.</label>
+                    <input
+                      className="input"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={value.packing_forwarding_charges}
+                      onChange={(e) => patch({ packing_forwarding_charges: Number(e.target.value) })}
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="label">Discount</label>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={value.discount_amount}
-                  onChange={(e) => patch({ discount_amount: Number(e.target.value) })}
-                />
+
+              {/* Adjustments section */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Adjustments</h3>
+                <div>
+                  <label className="label">Discount</label>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={value.discount_amount}
+                    onChange={(e) => patch({ discount_amount: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="label">Round Off (can be negative or positive)</label>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    value={value.round_off}
+                    onChange={(e) => patch({ round_off: Number(e.target.value) })}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="label">Transport Charges</label>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={value.transport_charges}
-                  onChange={(e) => patch({ transport_charges: Number(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className="label">Packing &amp; Forwarding</label>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={value.packing_forwarding_charges}
-                  onChange={(e) => patch({ packing_forwarding_charges: Number(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className="label">Round Off</label>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  value={value.round_off}
-                  onChange={(e) => patch({ round_off: Number(e.target.value) })}
-                />
-              </div>
+
               <div>
                 <label className="label">Remarks</label>
                 <textarea
@@ -715,7 +754,7 @@ export default function DocumentForm({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-brand-100 bg-brand-50/50 p-5 space-y-2 self-start">
+            <div className="rounded-2xl border border-brand-100 bg-brand-50/50 p-5 space-y-2 self-start md:sticky md:top-6">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-700 mb-3">Document total</p>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Subtotal</span>
@@ -725,24 +764,6 @@ export default function DocumentForm({
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Discount</span>
                   <span className="text-red-600">- ₹ {totals.discount.toFixed(2)}</span>
-                </div>
-              )}
-              {value.tax_type === "cgst_sgst" && (
-                <>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">CGST</span>
-                    <span>₹ {totals.cgst.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">SGST</span>
-                    <span>₹ {totals.sgst.toFixed(2)}</span>
-                  </div>
-                </>
-              )}
-              {value.tax_type === "igst" && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">IGST</span>
-                  <span>₹ {totals.igst.toFixed(2)}</span>
                 </div>
               )}
               {totals.transport > 0 && (
@@ -757,9 +778,40 @@ export default function DocumentForm({
                   <span>₹ {totals.packing.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-sm">
+              <div className="pt-2 border-t border-brand-100" />
+              {value.tax_type === "cgst_sgst" && (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Taxable amount</span>
+                    <span>₹ {totals.taxableAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>CGST @ {((value.tax_rate * 100) / 2).toFixed(1)}%</span>
+                    <span>₹ {totals.cgst.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>SGST @ {((value.tax_rate * 100) / 2).toFixed(1)}%</span>
+                    <span>₹ {totals.sgst.toFixed(2)}</span>
+                  </div>
+                </>
+              )}
+              {value.tax_type === "igst" && (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Taxable amount</span>
+                    <span>₹ {totals.taxableAmount.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-xs text-slate-500">
+                    <span>IGST @ {(value.tax_rate * 100).toFixed(1)}%</span>
+                    <span>₹ {totals.igst.toFixed(2)}</span>
+                  </div>
+                </>
+              )}
+              <div className="flex justify-between text-sm pt-2 border-t border-brand-100">
                 <span className="text-slate-500">Round Off</span>
-                <span>₹ {(value.round_off || 0).toFixed(2)}</span>
+                <span className={value.round_off < 0 ? "text-red-600" : ""}>
+                  {value.round_off < 0 ? "" : "+"}₹ {(value.round_off || 0).toFixed(2)}
+                </span>
               </div>
               <div className="flex justify-between text-lg font-bold pt-3 border-t border-brand-100">
                 <span>Total</span>
