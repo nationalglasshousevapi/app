@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
+import { motion } from "framer-motion";
 
 type Customer = {
   id: string;
@@ -63,13 +64,19 @@ export default function EditCustomerModal({
   }
 
   return (
-    <div
+    <motion.div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
       onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.15 }}
     >
-      <div
+      <motion.div
         className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-auto overflow-hidden"
         onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, scale: 0.95, y: -8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
       >
         <div className="p-6 pb-0">
           <h2 className="font-display text-xl font-bold text-ink">Edit Customer</h2>
@@ -159,7 +166,7 @@ export default function EditCustomerModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

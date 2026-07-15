@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { motion } from "framer-motion";
 
 export default function StatCard({
   label,
@@ -6,18 +9,27 @@ export default function StatCard({
   sub,
   accent = "teal",
   href,
+  index = 0,
 }: {
   label: string;
   value: string;
   sub?: string;
   accent?: "teal" | "brass" | "blue" | "pane";
   href?: string;
+  index?: number;
 }) {
   const accents = {
     teal: "bg-brand-600",
     brass: "bg-brass-500",
     blue: "bg-blue-600",
     pane: "bg-brand-500",
+  };
+
+  const cardClass = "card p-5 md:p-6";
+  const motionProps = {
+    initial: { opacity: 0, y: 12 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.3, delay: index * 0.06 },
   };
 
   const content = (
@@ -34,11 +46,17 @@ export default function StatCard({
 
   if (href) {
     return (
-      <Link href={href} className="card p-5 md:p-6 block transition hover:border-brand-200 hover:shadow-md">
-        {content}
-      </Link>
+      <motion.div {...motionProps}>
+        <Link href={href} className={`${cardClass} block transition hover:border-brand-200 hover:shadow-md`}>
+          {content}
+        </Link>
+      </motion.div>
     );
   }
 
-  return <div className="card p-5 md:p-6">{content}</div>;
+  return (
+    <motion.div {...motionProps} className={cardClass}>
+      {content}
+    </motion.div>
+  );
 }

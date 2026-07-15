@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export type CustomerResult = {
   id: string;
@@ -97,62 +98,70 @@ export default function CustomerPicker({
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => results.length && setOpen(true)}
       />
-      {open && (searching || showRecent || showSearch) && (
-        <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl ring-1 ring-black/5 max-h-64 overflow-y-auto">
-          {searching ? (
-            <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-400">
-              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              Searching…
-            </div>
-          ) : (
-            <>
-              {showRecent && (
-                <div className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400 bg-slate-50 border-b border-slate-100">
-                  Recent customers
-                </div>
-              )}
-              {showSearch && (
-                <div className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400 bg-slate-50 border-b border-slate-100">
-                  Search results
-                </div>
-              )}
-              {results.map((c) => (
-                <button
-                  type="button"
-                  key={c.id}
-                  className="w-full text-left px-4 py-3 hover:bg-brand-50 text-sm border-b last:border-0 border-gray-100"
-                  onClick={() => {
-                    onSelect(c);
-                    setQuery(c.name);
-                    setOpen(false);
-                  }}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{c.name}</span>
-                    {c.balance_due != null && c.balance_due !== 0 && (
-                      <span
-                        className={`text-xs font-mono ${
-                          c.balance_due > 0 ? "text-red-500" : "text-green-600"
-                        }`}
-                      >
-                        {c.balance_due > 0 ? "" : "+"}
-                        {inr(Math.abs(c.balance_due))}
-                        {c.balance_due > 0 ? " due" : " cr"}
-                      </span>
-                    )}
+      <AnimatePresence>
+        {open && (searching || showRecent || showSearch) && (
+          <motion.div
+            className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl ring-1 ring-black/5 max-h-64 overflow-y-auto"
+            initial={{ opacity: 0, y: -4, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -4, scale: 0.97 }}
+            transition={{ duration: 0.12 }}
+          >
+            {searching ? (
+              <div className="flex items-center gap-2 px-4 py-3 text-sm text-slate-400">
+                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Searching…
+              </div>
+            ) : (
+              <>
+                {showRecent && (
+                  <div className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400 bg-slate-50 border-b border-slate-100">
+                    Recent customers
                   </div>
-                  <div className="text-xs text-gray-400">
-                    {c.contact_number || c.address || ""}
+                )}
+                {showSearch && (
+                  <div className="px-4 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-400 bg-slate-50 border-b border-slate-100">
+                    Search results
                   </div>
-                </button>
-              ))}
-            </>
-          )}
-        </div>
-      )}
+                )}
+                {results.map((c) => (
+                  <button
+                    type="button"
+                    key={c.id}
+                    className="w-full text-left px-4 py-3 hover:bg-brand-50 text-sm border-b last:border-0 border-gray-100"
+                    onClick={() => {
+                      onSelect(c);
+                      setQuery(c.name);
+                      setOpen(false);
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">{c.name}</span>
+                      {c.balance_due != null && c.balance_due !== 0 && (
+                        <span
+                          className={`text-xs font-mono ${
+                            c.balance_due > 0 ? "text-red-500" : "text-green-600"
+                          }`}
+                        >
+                          {c.balance_due > 0 ? "" : "+"}
+                          {inr(Math.abs(c.balance_due))}
+                          {c.balance_due > 0 ? " due" : " cr"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-400">
+                      {c.contact_number || c.address || ""}
+                    </div>
+                  </button>
+                ))}
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

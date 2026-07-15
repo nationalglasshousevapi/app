@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon } from "./icons";
@@ -54,17 +55,23 @@ export default function MobileBottomNav() {
           );
         })}
 
-        <Link
-          href="/documents/new"
-          className={`flex items-center justify-center w-14 h-14 -mt-4 rounded-full shadow-lg transition-transform active:scale-95 ${
-            isNewDocPage
-              ? "bg-brass-600 ring-4 ring-brass-100"
-              : "bg-brass-500 hover:bg-brass-600"
-          } text-white`}
-          aria-label="Create new document"
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", damping: 15, stiffness: 200, delay: 0.2 }}
         >
-          <span className="text-2xl leading-none font-light">+</span>
-        </Link>
+          <Link
+            href="/documents/new"
+            className={`flex items-center justify-center w-14 h-14 -mt-4 rounded-full shadow-lg transition-transform active:scale-95 ${
+              isNewDocPage
+                ? "bg-brass-600 ring-4 ring-brass-100"
+                : "bg-brass-500 hover:bg-brass-600"
+            } text-white`}
+            aria-label="Create new document"
+          >
+            <span className="text-2xl leading-none font-light">+</span>
+          </Link>
+        </motion.div>
 
         <div className="min-w-[64px]" />
       </div>

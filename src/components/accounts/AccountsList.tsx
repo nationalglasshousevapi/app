@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { inr } from "@/lib/format";
@@ -229,10 +230,13 @@ export default function AccountsList({ customers }: Props) {
                 const bd = Number(c.balance_due);
                 const statusColor = bd <= 0 ? "text-green-600" : bd > Number(c.total_invoiced) * 0.5 ? "text-red-600" : "text-amber-600";
                 return (
-                  <tr
+                  <motion.tr
                     key={c.customer_id}
                     className="table-row cursor-pointer"
                     onClick={() => router.push(`/accounts/${c.customer_id}`)}
+                    initial={{ opacity: 0, x: -4 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: filtered.indexOf(c) * 0.02, duration: 0.15 }}
                   >
                     <td className="p-4">
                       <span className="text-brand-600 font-semibold">{c.customer_name}</span>
@@ -242,7 +246,7 @@ export default function AccountsList({ customers }: Props) {
                     <td className="p-4 text-right font-mono">{inr(Number(c.total_paid))}</td>
                     <td className={`p-4 text-right font-mono font-semibold ${statusColor}`}>{inr(bd)}</td>
                     <td className="p-4 text-center text-slate-500 text-xs">{c.invoice_count}</td>
-                  </tr>
+                  </motion.tr>
                 );
               })
             )}

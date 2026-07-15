@@ -42,6 +42,40 @@ const config: Config = {
         "2xl": ["1.375rem", { lineHeight: "1.875rem" }],
         "3xl": ["1.625rem", { lineHeight: "2.125rem" }],
       },
+      keyframes: {
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "fade-in-up": {
+          "0%": { opacity: "0", transform: "translateY(8px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "fade-in-down": {
+          "0%": { opacity: "0", transform: "translateY(-4px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "scale-in": {
+          "0%": { opacity: "0", transform: "scale(0.95)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        "slide-down": {
+          "0%": { opacity: "0", transform: "translateY(-8px) scale(0.98)" },
+          "100%": { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        "slide-up": {
+          "0%": { opacity: "0", transform: "translateY(12px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+      },
+      animation: {
+        "fade-in": "fade-in 0.2s ease-out",
+        "fade-in-up": "fade-in-up 0.3s ease-out",
+        "fade-in-down": "fade-in-down 0.2s ease-out",
+        "scale-in": "scale-in 0.2s ease-out",
+        "slide-down": "slide-down 0.2s ease-out",
+        "slide-up": "slide-up 0.3s ease-out",
+      },
     },
   },
   plugins: [],

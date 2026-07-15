@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon } from "./icons";
@@ -37,10 +38,10 @@ export default function Sidebar() {
   }
 
   return (
-    <aside
-      className={`hidden md:flex shrink-0 bg-brand-600 sticky top-0 h-screen md:flex-col transition-all duration-200 ease-in-out ${
-        collapsed ? "w-16" : "w-64"
-      }`}
+    <motion.aside
+      className="hidden md:flex shrink-0 bg-brand-600 sticky top-0 h-screen md:flex-col overflow-hidden"
+      animate={{ width: collapsed ? 64 : 256 }}
+      transition={{ type: "spring", damping: 28, stiffness: 250, mass: 0.8 }}
     >
       {/* Logo + toggle button row */}
       <div className={`flex items-center p-4 md:py-5 ${collapsed ? "justify-center flex-col gap-3" : "justify-between gap-2"}`}>
@@ -131,6 +132,6 @@ export default function Sidebar() {
           {!collapsed && <span>Sign out</span>}
         </button>
       </div>
-    </aside>
+    </motion.aside>
   );
 }
