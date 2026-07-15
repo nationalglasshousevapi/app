@@ -79,17 +79,17 @@ export default function LedgerDateFilter({
               key={p}
               type="button"
               onClick={() => setPreset(p)}
-              className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-100 transition"
+              className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 transition min-h-[40px]"
             >
               {labels[p]}
             </button>
           );
         })}
         <span className="text-slate-300 mx-1 hidden sm:inline">|</span>
-        <div className="flex items-center gap-2">
-          <CalendarInput value={from} onChange={setFrom} placeholder="From" />
+        <div className="flex flex-wrap items-center gap-2">
+          <CalendarInput value={from} onChange={setFrom} placeholder="From" compact />
           <span className="text-slate-400 text-sm">to</span>
-          <CalendarInput value={to} onChange={setTo} placeholder="To" />
+          <CalendarInput value={to} onChange={setTo} placeholder="To" compact />
           <button
             onClick={apply}
             className="btn-primary text-sm px-4 py-2"
@@ -99,7 +99,7 @@ export default function LedgerDateFilter({
           {hasFilter && (
             <button
               onClick={clear}
-              className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition"
+              className="rounded-lg border border-slate-200 px-3.5 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 transition min-h-[40px]"
             >
               Clear
             </button>

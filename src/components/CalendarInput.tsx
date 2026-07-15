@@ -12,6 +12,7 @@ interface CalendarInputProps {
   required?: boolean;
   placeholder?: string;
   className?: string;
+  compact?: boolean;
 }
 
 function toDate(ymd: string): Date | undefined {
@@ -38,6 +39,7 @@ export default function CalendarInput({
   required,
   placeholder = "Select date",
   className = "",
+  compact,
 }: CalendarInputProps) {
   const selected = toDate(value);
 
@@ -56,7 +58,11 @@ export default function CalendarInput({
         <PopoverTrigger asChild>
           <button
             type="button"
-            className="flex w-full items-center rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-base transition focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 min-h-[48px] text-left"
+            className={`flex w-full items-center rounded-xl border border-slate-200 bg-white transition focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 text-left ${
+              compact
+                ? "px-3 py-2.5 text-sm min-h-[40px]"
+                : "px-4 py-3.5 text-base min-h-[48px]"
+            }`}
           >
             <svg
               className="mr-2 h-4 w-4 shrink-0 text-slate-400"

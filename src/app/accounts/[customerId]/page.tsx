@@ -160,18 +160,33 @@ export default async function CustomerLedgerPage({
           <p className="text-sm text-slate-500 mt-1">Customer Ledger</p>
         </div>
 
-        <div className="flex gap-4 text-sm">
-          <div className="card p-3 text-center min-w-[100px]">
-            <div className="text-slate-500 text-xs font-semibold">Invoiced</div>
-            <div className="font-display font-bold text-ink mt-1">{inr(totalInvoiced)}</div>
+        <div className="flex gap-4">
+          <div className="rounded-xl border-t-2 border-brand-500 bg-brand-50/60 p-5 text-center min-w-[130px]">
+            <div className="flex items-center justify-center gap-1.5 text-brand-700 text-xs font-semibold mb-1">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-1 1v8a1 1 0 001 1h10a1 1 0 001-1V8a1 1 0 00-1-1h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clipRule="evenodd" />
+              </svg>
+              Invoiced
+            </div>
+            <div className="font-display text-xl font-bold text-ink">{inr(totalInvoiced)}</div>
           </div>
-          <div className="card p-3 text-center min-w-[100px]">
-            <div className="text-slate-500 text-xs font-semibold">Paid</div>
-            <div className="font-display font-bold text-ink mt-1">{inr(totalPaid)}</div>
+          <div className="rounded-xl border-t-2 border-emerald-500 bg-emerald-50/60 p-5 text-center min-w-[130px]">
+            <div className="flex items-center justify-center gap-1.5 text-emerald-700 text-xs font-semibold mb-1">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+              Paid
+            </div>
+            <div className="font-display text-xl font-bold text-ink">{inr(totalPaid)}</div>
           </div>
-          <div className="card p-3 text-center min-w-[100px]">
-            <div className="text-slate-500 text-xs font-semibold">Balance</div>
-            <div className={`font-display font-bold mt-1 ${runningBalance > 0 ? "text-red-600" : "text-green-600"}`}>
+          <div className="rounded-xl border-t-2 border-red-500 bg-red-50/60 p-5 text-center min-w-[130px]">
+            <div className="flex items-center justify-center gap-1.5 text-red-700 text-xs font-semibold mb-1">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" />
+              </svg>
+              Balance
+            </div>
+            <div className={`font-display text-xl font-bold ${runningBalance > 0 ? "text-red-600" : "text-green-600"}`}>
               {inr(Math.abs(runningBalance))}
             </div>
           </div>
@@ -185,22 +200,22 @@ export default async function CustomerLedgerPage({
 
       {/* Summary cards when filter is active */}
       {hasFilter && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          <div className="card p-3 text-center">
-            <div className="text-xs text-slate-500 font-semibold">Opening Balance</div>
-            <div className="font-display font-bold text-ink mt-1">{inr(Math.abs(openingAtStart))}</div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 mb-6">
+          <div className="rounded-xl border-t-2 border-slate-400 bg-slate-50/80 p-4 text-center">
+            <div className="text-slate-500 text-xs font-semibold">Opening Balance</div>
+            <div className="font-display text-lg font-bold text-ink mt-0.5">{inr(Math.abs(openingAtStart))}</div>
           </div>
-          <div className="card p-3 text-center">
-            <div className="text-xs text-slate-500 font-semibold">Invoiced</div>
-            <div className="font-display font-bold text-ink mt-1">{inr(totalInvoiced)}</div>
+          <div className="rounded-xl border-t-2 border-brand-500 bg-brand-50/60 p-4 text-center">
+            <div className="text-brand-700 text-xs font-semibold">Invoiced</div>
+            <div className="font-display text-lg font-bold text-ink mt-0.5">{inr(totalInvoiced)}</div>
           </div>
-          <div className="card p-3 text-center">
-            <div className="text-xs text-slate-500 font-semibold">Paid</div>
-            <div className="font-display font-bold text-ink mt-1">{inr(totalPaid)}</div>
+          <div className="rounded-xl border-t-2 border-emerald-500 bg-emerald-50/60 p-4 text-center">
+            <div className="text-emerald-700 text-xs font-semibold">Paid</div>
+            <div className="font-display text-lg font-bold text-ink mt-0.5">{inr(totalPaid)}</div>
           </div>
-          <div className="card p-3 text-center">
-            <div className="text-xs text-slate-500 font-semibold">Ending Balance</div>
-            <div className={`font-display font-bold mt-1 ${runningBalance > 0 ? "text-red-600" : "text-green-600"}`}>
+          <div className="rounded-xl border-t-2 border-red-500 bg-red-50/60 p-4 text-center">
+            <div className="text-red-700 text-xs font-semibold">Ending Balance</div>
+            <div className={`font-display text-lg font-bold mt-0.5 ${runningBalance > 0 ? "text-red-600" : "text-green-600"}`}>
               {inr(Math.abs(runningBalance))}
             </div>
           </div>
