@@ -105,6 +105,7 @@ export default function DocumentForm({
   const [companyLoading, setCompanyLoading] = useState(false);
   const [customerPickerKey, setCustomerPickerKey] = useState(0);
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
+  const [customizingBilling, setCustomizingBilling] = useState(false);
   const isNewInvoice = !initial.id && !value.customer_id;
   const router = useRouter();
 
@@ -481,95 +482,142 @@ export default function DocumentForm({
             </div>
           </div>
 
-          {/* Billing / Shipping details */}
+          {/* Billing / Shipping details — read-only summary with optional customize */}
           <div className="card p-5 md:p-6 space-y-4">
             <div className="flex items-center gap-3">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">3</span>
-              <div>
+              <div className="flex-1">
                 <h2 className="font-bold text-slate-900 text-lg">Billing details</h2>
-                <p className="text-xs text-slate-500">Edit customer details for this document if needed.</p>
               </div>
+              {value.customer_id && (
+                <button
+                  type="button"
+                  onClick={() => setCustomizingBilling((v) => !v)}
+                  className="btn-secondary text-xs px-3 py-1.5"
+                >
+                  {customizingBilling ? "Done" : "Customize"}
+                </button>
+              )}
             </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <label className="label">Name <span className="text-red-500">*</span></label>
-                <input
-                  className={`input ${fieldErrors.bill_to_name ? "border-red-400 focus:ring-red-400/30" : ""}`}
-                  value={value.bill_to_name}
-                  onChange={(e) => { patch({ bill_to_name: e.target.value }); clearFieldError("bill_to_name"); }}
-                  required
-                />
-                {fieldErrors.bill_to_name && (
-                  <p className="text-xs text-red-500 mt-1">{fieldErrors.bill_to_name}</p>
+
+            {customizingBilling ? (
+              /* Editable mode — when "Customize" is active */
+              <div className="space-y-4">
+                <p className="text-xs text-slate-500">Override billing details for this document only.</p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="label">Name <span className="text-red-500">*</span></label>
+                    <input
+                      className={`input ${fieldErrors.bill_to_name ? "border-red-400 focus:ring-red-400/30" : ""}`}
+                      value={value.bill_to_name}
+                      onChange={(e) => { patch({ bill_to_name: e.target.value }); clearFieldError("bill_to_name"); }}
+                      required
+                    />
+                    {fieldErrors.bill_to_name && (
+                      <p className="text-xs text-red-500 mt-1">{fieldErrors.bill_to_name}</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="label">GST</label>
+                    <input
+                      className="input"
+                      value={value.bill_to_gst}
+                      onChange={(e) => patch({ bill_to_gst: e.target.value })}
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="label">Address</label>
+                    <input
+                      className="input"
+                      value={value.bill_to_address}
+                      onChange={(e) => patch({ bill_to_address: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Contact Person</label>
+                    <input
+                      className="input"
+                      value={value.bill_to_contact_person}
+                      onChange={(e) => patch({ bill_to_contact_person: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Contact Number</label>
+                    <input
+                      className="input"
+                      value={value.bill_to_contact_number}
+                      onChange={(e) => patch({ bill_to_contact_number: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 text-sm font-medium text-slate-600 rounded-xl bg-slate-50 px-3 py-2.5">
+                  <input
+                    type="checkbox"
+                    checked={sameAsBilling}
+                    onChange={(e) => setSameAsBilling(e.target.checked)}
+                  />
+                  Ship to same as billing
+                </label>
+
+                <div
+                  className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                    !sameAsBilling ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
+                  }`}
+                >
+                  <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                    <div>
+                      <label className="label">Ship To Name</label>
+                      <input
+                        className="input"
+                        value={value.ship_to_name}
+                        onChange={(e) => patch({ ship_to_name: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Ship To Address</label>
+                      <input
+                        className="input"
+                        value={value.ship_to_address}
+                        onChange={(e) => patch({ ship_to_address: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* Read-only summary card */
+              <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-400 text-xs font-medium">Name:</span>
+                  <span className="text-slate-900 font-medium">{value.bill_to_name}</span>
+                </div>
+                {value.bill_to_gst && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 text-xs font-medium">GST:</span>
+                    <span className="text-sm text-slate-600">{value.bill_to_gst}</span>
+                  </div>
+                )}
+                {value.bill_to_address && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 text-xs font-medium">Address:</span>
+                    <span className="text-sm text-slate-600">{value.bill_to_address}</span>
+                  </div>
+                )}
+                {value.bill_to_contact_person && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 text-xs font-medium">Contact:</span>
+                    <span className="text-sm text-slate-600">{value.bill_to_contact_person}</span>
+                  </div>
+                )}
+                {value.bill_to_contact_number && (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 text-xs font-medium">Phone:</span>
+                    <span className="text-sm text-slate-600">{value.bill_to_contact_number}</span>
+                  </div>
                 )}
               </div>
-              <div>
-                <label className="label">GST</label>
-                <input
-                  className="input"
-                  value={value.bill_to_gst}
-                  onChange={(e) => patch({ bill_to_gst: e.target.value })}
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="label">Address</label>
-                <input
-                  className="input"
-                  value={value.bill_to_address}
-                  onChange={(e) => patch({ bill_to_address: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="label">Contact Person</label>
-                <input
-                  className="input"
-                  value={value.bill_to_contact_person}
-                  onChange={(e) => patch({ bill_to_contact_person: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="label">Contact Number</label>
-                <input
-                  className="input"
-                  value={value.bill_to_contact_number}
-                  onChange={(e) => patch({ bill_to_contact_number: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <label className="flex items-center gap-2 text-sm font-medium text-slate-600 rounded-xl bg-slate-50 px-3 py-2.5">
-              <input
-                type="checkbox"
-                checked={sameAsBilling}
-                onChange={(e) => setSameAsBilling(e.target.checked)}
-              />
-              Ship to same as billing
-            </label>
-
-            <div
-              className={`overflow-hidden transition-all duration-200 ease-in-out ${
-                !sameAsBilling ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
-              }`}
-            >
-              <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-                <div>
-                  <label className="label">Ship To Name</label>
-                  <input
-                    className="input"
-                    value={value.ship_to_name}
-                    onChange={(e) => patch({ ship_to_name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="label">Ship To Address</label>
-                  <input
-                    className="input"
-                    value={value.ship_to_address}
-                    onChange={(e) => patch({ ship_to_address: e.target.value })}
-                  />
-                </div>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Items and pricing */}
