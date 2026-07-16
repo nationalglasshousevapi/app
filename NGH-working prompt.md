@@ -104,4 +104,13 @@ I've seen various components have various style like some have hard corners some
 
 ---
 
-Update window quotation
+- Opening balance should in ledger
+- show Rupee symbol in all the currency fields
+- Have an option to add polish charges, bevel charges, hardware, labour etc as an additional item to the customer which we can have control to enter the amount for the document as some document may have it some might not.
+- we should have an option to edit, delete a payment record
+
+---
+
+- Update window quotation.
+- Automatically generate cutting sheet of how to cut which glass sizes from the sheets in stock
+

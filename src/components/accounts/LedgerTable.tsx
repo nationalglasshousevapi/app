@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { formatDateShort, inr } from "@/lib/format";
 import EditPaymentModal from "./EditPaymentModal";
+import EditOpeningBalanceModal from "./EditOpeningBalanceModal";
 
 interface PaymentDetails {
   id: string;
@@ -27,10 +28,14 @@ interface LedgerEntry {
 
 interface Props {
   entries: LedgerEntry[];
+  customerId?: string;
+  openingBalance?: number;
+  customerName?: string;
 }
 
-export default function LedgerTable({ entries }: Props) {
+export default function LedgerTable({ entries, customerId, openingBalance, customerName }: Props) {
   const [editingPayment, setEditingPayment] = useState<PaymentDetails | null>(null);
+  const [editingOpening, setEditingOpening] = useState(false);
 
   return (
     <div className="overflow-x-auto">
@@ -75,6 +80,18 @@ export default function LedgerTable({ entries }: Props) {
                   {isPositive ? " Dr" : " Cr"}
                 </td>
                 <td className="py-2 text-right">
+                  {entry.type === "opening" && customerId && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingOpening(true)}
+                      className="text-slate-400 hover:text-brand-600 transition p-1"
+                      title="Edit opening balance"
+                    >
+                      <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                      </svg>
+                    </button>
+                  )}
                   {entry.type === "payment" && entry.paymentDetails && (
                     <button
                       type="button"
@@ -98,6 +115,15 @@ export default function LedgerTable({ entries }: Props) {
         <EditPaymentModal
           payment={editingPayment}
           onClose={() => setEditingPayment(null)}
+        />
+      )}
+
+      {editingOpening && customerId && openingBalance !== undefined && (
+        <EditOpeningBalanceModal
+          customerId={customerId}
+          currentBalance={openingBalance}
+          customerName={customerName ?? ""}
+          onClose={() => setEditingOpening(false)}
         />
       )}
     </div>

@@ -246,7 +246,12 @@ export default async function CustomerLedgerPage({
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <h2 className="font-display text-lg font-bold text-ink mb-4">Ledger</h2>
-          <LedgerTable entries={entries} />
+          <LedgerTable
+            entries={entries}
+            customerId={customerId}
+            openingBalance={Number(customer.opening_balance)}
+            customerName={customer.name}
+          />
         </div>
 
         <div>
