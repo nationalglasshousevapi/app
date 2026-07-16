@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
       discount_amount: source.discount_amount || 0,
       transport_charges: source.transport_charges || 0,
       packing_forwarding_charges: source.packing_forwarding_charges || 0,
+      additional_charges: source.additional_charges ?? [],
       total_amount: source.total_amount,
       remarks: source.remarks,
       status: "draft",

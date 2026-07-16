@@ -2,6 +2,7 @@
 
 import { DEFAULT_HSN_CODE } from "@/lib/company";
 import type { DocType } from "@/lib/docTypes";
+import { inr } from "@/lib/format";
 
 export type LineItem = {
   description: string;
@@ -224,7 +225,7 @@ export default function LineItemsEditor({
         <div className="flex justify-between items-center pt-0.5">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Amount</span>
           <span className="text-sm font-bold text-ink font-mono">
-            ₹ {amount.toFixed(2)}
+            {inr(amount, 2)}
           </span>
         </div>
       </div>
@@ -316,7 +317,7 @@ export default function LineItemsEditor({
         <div className="flex justify-between items-center pt-0.5">
           <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</span>
           <span className="text-sm font-bold text-ink font-mono">
-            ₹ {(item.qty * item.rate || 0).toFixed(2)}
+            {inr(item.qty * item.rate || 0, 2)}
           </span>
         </div>
       </div>
@@ -441,7 +442,7 @@ export default function LineItemsEditor({
                     </select>
                   </div>
                   <div className="col-span-1 text-sm font-semibold text-slate-700 px-1 flex items-center min-h-[48px]">
-                    ₹ {((item.qty || 0) * (item.rate || 0)).toFixed(2)}
+                    {inr((item.qty || 0) * (item.rate || 0), 2)}
                   </div>
                   <div className="col-span-1 flex items-center min-h-[48px] justify-center">
                     <button

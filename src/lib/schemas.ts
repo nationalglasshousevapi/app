@@ -26,6 +26,11 @@ export const itemSchema = z.object({
   calculated_width: z.number().min(0).optional().default(0),
 });
 
+export const additionalChargeSchema = z.object({
+  label: z.string().min(1, "Charge label is required."),
+  amount: z.number().min(0, "Amount cannot be negative."),
+});
+
 export const createDocumentSchema = z.object({
   doc_type: docTypeSchema,
   doc_date: z.string().optional(),
@@ -48,6 +53,7 @@ export const createDocumentSchema = z.object({
   discount_amount: z.number().min(0).optional().default(0),
   transport_charges: z.number().min(0).optional().default(0),
   packing_forwarding_charges: z.number().min(0).optional().default(0),
+  additional_charges: z.array(additionalChargeSchema).optional().default([]),
   remarks: z.string().nullable().optional().default(null),
   status: z.string().optional().default("draft"),
   items: z.array(itemSchema).min(1, "Add at least one line item."),

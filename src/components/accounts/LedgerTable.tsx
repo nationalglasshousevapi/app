@@ -1,8 +1,18 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useState } from "react";
 import Link from "next/link";
 import { formatDateShort, inr } from "@/lib/format";
+import EditPaymentModal from "./EditPaymentModal";
+
+interface PaymentDetails {
+  id: string;
+  payment_date: string;
+  amount: number;
+  payment_mode: string;
+  reference_number: string | null;
+  notes: string | null;
+}
 
 interface LedgerEntry {
   date: string;
@@ -12,6 +22,7 @@ interface LedgerEntry {
   credit: number;
   balance: number;
   refId?: string;
+  paymentDetails?: PaymentDetails;
 }
 
 interface Props {
@@ -19,6 +30,8 @@ interface Props {
 }
 
 export default function LedgerTable({ entries }: Props) {
+  const [editingPayment, setEditingPayment] = useState<PaymentDetails | null>(null);
+
   return (
     <div className="overflow-x-auto">
       <table className="min-w-full text-sm">
@@ -29,6 +42,7 @@ export default function LedgerTable({ entries }: Props) {
             <th scope="col" className="pb-2 font-semibold text-right">Debit</th>
             <th scope="col" className="pb-2 font-semibold text-right">Credit</th>
             <th scope="col" className="pb-2 font-semibold text-right">Balance</th>
+            <th scope="col" className="pb-2 font-semibold text-right">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -60,11 +74,32 @@ export default function LedgerTable({ entries }: Props) {
                   {inr(Math.abs(entry.balance))}
                   {isPositive ? " Dr" : " Cr"}
                 </td>
+                <td className="py-2 text-right">
+                  {entry.type === "payment" && entry.paymentDetails && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingPayment(entry.paymentDetails!)}
+                      className="text-slate-400 hover:text-brand-600 transition p-1"
+                      title="Edit payment"
+                    >
+                      <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                        <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                      </svg>
+                    </button>
+                  )}
+                </td>
               </tr>
             );
           })}
         </tbody>
       </table>
+
+      {editingPayment && (
+        <EditPaymentModal
+          payment={editingPayment}
+          onClose={() => setEditingPayment(null)}
+        />
+      )}
     </div>
   );
 }

@@ -56,6 +56,15 @@ export function computeTax(
   return { cgst, sgst, igst };
 }
 
+export type AdditionalCharge = {
+  label: string;
+  amount: number;
+};
+
+export function computeAdditionalChargesTotal(charges: AdditionalCharge[]): number {
+  return charges.reduce((sum, c) => sum + (c.amount || 0), 0);
+}
+
 export function computeTotal(
   subtotal: number,
   cgst: number,
@@ -65,9 +74,11 @@ export function computeTotal(
   discountAmount: number = 0,
   transportCharges: number = 0,
   packingForwardingCharges: number = 0,
+  additionalCharges: AdditionalCharge[] = [],
 ): number {
   const taxableAmount = subtotal - discountAmount;
-  return Math.round((taxableAmount + cgst + sgst + igst + roundOff + transportCharges + packingForwardingCharges) * 100) / 100;
+  const extraCharges = transportCharges + packingForwardingCharges + computeAdditionalChargesTotal(additionalCharges);
+  return Math.round((taxableAmount + cgst + sgst + igst + roundOff + extraCharges) * 100) / 100;
 }
 
 export function formatItemRows(

@@ -91,20 +91,26 @@ export default async function CustomerLedgerPage({
     credit: number;
     balance: number;
     refId?: string;
+    paymentDetails?: {
+      id: string;
+      payment_date: string;
+      amount: number;
+      payment_mode: string;
+      reference_number: string | null;
+      notes: string | null;
+    };
   }[] = [];
 
   let runningBalance = openingAtStart;
 
-  if (runningBalance !== 0) {
-    entries.push({
-      date: "",
-      type: "opening",
-      description: "Opening Balance",
-      debit: runningBalance > 0 ? runningBalance : 0,
-      credit: runningBalance < 0 ? -runningBalance : 0,
-      balance: runningBalance,
-    });
-  }
+  entries.push({
+    date: "",
+    type: "opening",
+    description: "Opening Balance",
+    debit: openingAtStart > 0 ? openingAtStart : 0,
+    credit: openingAtStart < 0 ? -openingAtStart : 0,
+    balance: openingAtStart,
+  });
 
   let i = 0;
   let j = 0;
@@ -138,6 +144,14 @@ export default async function CustomerLedgerPage({
         credit: amount,
         balance: runningBalance,
         refId: pay.id,
+        paymentDetails: {
+          id: pay.id,
+          payment_date: pay.payment_date,
+          amount: Number(pay.amount),
+          payment_mode: pay.payment_mode,
+          reference_number: pay.reference_number,
+          notes: pay.notes,
+        },
       });
       j++;
     } else {

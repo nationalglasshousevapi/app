@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { pdf } from "@react-pdf/renderer";
 import { DOC_TYPES, docTypeLabel, DocType } from "@/lib/docTypes";
+import { inr } from "@/lib/format";
+import type { AdditionalCharge } from "@/lib/documents";
 import CustomerPicker from "./CustomerPicker";
 import NewCustomerModal from "./NewCustomerModal";
 import CalendarInput from "./CalendarInput";
@@ -45,6 +47,7 @@ export type DocumentFormValue = {
   discount_amount: number;
   transport_charges: number;
   packing_forwarding_charges: number;
+  additional_charges: AdditionalCharge[];
   remarks: string;
   status: string;
   items: LineItem[];
@@ -77,6 +80,7 @@ export function blankDocument(defaultType: DocType = "invoice"): DocumentFormVal
     discount_amount: 0,
     transport_charges: 0,
     packing_forwarding_charges: 0,
+    additional_charges: [],
     remarks: "",
     status: "draft",
     items: [{ ...EMPTY_ITEM }],
@@ -132,6 +136,7 @@ export default function DocumentForm({
       "discount_amount",
       "transport_charges",
       "packing_forwarding_charges",
+      "additional_charges",
       "remarks",
       "status",
     ];
@@ -177,6 +182,16 @@ export default function DocumentForm({
       return true;
     }
 
+    // Deep compare additional charges
+    const currCharges = value.additional_charges || [];
+    const initCharges = initial.additional_charges || [];
+    if (currCharges.length !== initCharges.length) return true;
+    for (let i = 0; i < currCharges.length; i++) {
+      if (currCharges[i].label !== initCharges[i]?.label || currCharges[i].amount !== initCharges[i]?.amount) {
+        return true;
+      }
+    }
+
     return false;
   }, [value, initial, sameAsBilling]);
 
@@ -215,6 +230,7 @@ export default function DocumentForm({
     const taxableAmount = subtotal - discount;
     const transport = value.transport_charges || 0;
     const packing = value.packing_forwarding_charges || 0;
+    const additionalChargesTotal = (value.additional_charges || []).reduce((sum, c) => sum + (c.amount || 0), 0);
     let cgst = 0,
       sgst = 0,
       igst = 0;
@@ -224,9 +240,9 @@ export default function DocumentForm({
     } else if (value.tax_type === "igst") {
       igst = Math.round(taxableAmount * value.tax_rate * 100) / 100;
     }
-    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + transport + packing) * 100) / 100;
-    return { subtotal, discount, taxableAmount, cgst, sgst, igst, transport, packing, total };
-  }, [value.items, value.tax_type, value.tax_rate, value.round_off, value.discount_amount, value.transport_charges, value.packing_forwarding_charges]);
+    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + transport + packing + additionalChargesTotal) * 100) / 100;
+    return { subtotal, discount, taxableAmount, cgst, sgst, igst, transport, packing, additionalChargesTotal, total };
+  }, [value.items, value.tax_type, value.tax_rate, value.round_off, value.discount_amount, value.transport_charges, value.packing_forwarding_charges, value.additional_charges]);
 
   function validate(): Record<string, string> {
     const errors: Record<string, string> = {};
@@ -278,6 +294,8 @@ export default function DocumentForm({
     const taxableAmount = subtotal - discount;
     const transport = value.transport_charges || 0;
     const packing = value.packing_forwarding_charges || 0;
+    const additionalCharges = value.additional_charges || [];
+    const additionalChargesTotal = additionalCharges.reduce((sum, c) => sum + (c.amount || 0), 0);
     let cgst = 0, sgst = 0, igst = 0;
     if (value.tax_type === "cgst_sgst") {
       cgst = Math.round(((taxableAmount * value.tax_rate) / 2) * 100) / 100;
@@ -285,7 +303,7 @@ export default function DocumentForm({
     } else if (value.tax_type === "igst") {
       igst = Math.round(taxableAmount * value.tax_rate * 100) / 100;
     }
-    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + transport + packing) * 100) / 100;
+    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + transport + packing + additionalChargesTotal) * 100) / 100;
 
     const pdfDoc = pdf(
       <PdfDocument
@@ -333,6 +351,7 @@ export default function DocumentForm({
         roundOff={value.round_off || 0}
         transportCharges={transport}
         packingForwardingCharges={packing}
+        additionalCharges={additionalCharges}
         totalAmount={total}
         remarks={value.remarks || null}
       />
@@ -691,6 +710,64 @@ export default function DocumentForm({
                     />
                   </div>
                 </div>
+
+                {/* Additional charges */}
+                <div className="space-y-2 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Other Charges</span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        patch({
+                          additional_charges: [
+                            ...(value.additional_charges || []),
+                            { label: "", amount: 0 },
+                          ],
+                        })
+                      }
+                      className="btn-secondary text-xs px-2.5 py-1"
+                    >
+                      + Add
+                    </button>
+                  </div>
+                  {(value.additional_charges || []).map((charge, idx) => (
+                    <div key={idx} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
+                      <input
+                        className="input"
+                        placeholder="e.g. Polish, Bevel..."
+                        value={charge.label}
+                        onChange={(e) => {
+                          const next = [...(value.additional_charges || [])];
+                          next[idx] = { ...next[idx], label: e.target.value };
+                          patch({ additional_charges: next });
+                        }}
+                      />
+                      <input
+                        className="input w-24"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={charge.amount || ""}
+                        onChange={(e) => {
+                          const next = [...(value.additional_charges || [])];
+                          next[idx] = { ...next[idx], amount: Number(e.target.value) };
+                          patch({ additional_charges: next });
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          patch({
+                            additional_charges: (value.additional_charges || []).filter((_, i) => i !== idx),
+                          })
+                        }
+                        className="btn-danger text-xs px-2 py-1.5"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* Adjustments section */}
@@ -734,40 +811,46 @@ export default function DocumentForm({
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-700 mb-3">Document total</p>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Subtotal</span>
-                <span>₹ {totals.subtotal.toFixed(2)}</span>
+                <span>{inr(totals.subtotal, 2)}</span>
               </div>
               {totals.discount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Discount</span>
-                  <span className="text-red-600">- ₹ {totals.discount.toFixed(2)}</span>
+                  <span className="text-red-600">- {inr(totals.discount, 2)}</span>
                 </div>
               )}
               {totals.transport > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Transport</span>
-                  <span>₹ {totals.transport.toFixed(2)}</span>
+                  <span>{inr(totals.transport, 2)}</span>
                 </div>
               )}
               {totals.packing > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Packing &amp; Fwd.</span>
-                  <span>₹ {totals.packing.toFixed(2)}</span>
+                  <span>{inr(totals.packing, 2)}</span>
                 </div>
               )}
+              {(value.additional_charges || []).filter(c => c.amount > 0).map((charge, idx) => (
+                <div key={idx} className="flex justify-between text-sm">
+                  <span className="text-slate-500">{charge.label}</span>
+                  <span>{inr(charge.amount, 2)}</span>
+                </div>
+              ))}
               <div className="pt-2 border-t border-brand-100" />
               {value.tax_type === "cgst_sgst" && (
                 <>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-500">Taxable amount</span>
-                    <span>₹ {totals.taxableAmount.toFixed(2)}</span>
+                    <span>{inr(totals.taxableAmount, 2)}</span>
                   </div>
                   <div className="flex justify-between text-xs text-slate-500">
                     <span>CGST @ {((value.tax_rate * 100) / 2).toFixed(1)}%</span>
-                    <span>₹ {totals.cgst.toFixed(2)}</span>
+                    <span>{inr(totals.cgst, 2)}</span>
                   </div>
                   <div className="flex justify-between text-xs text-slate-500">
                     <span>SGST @ {((value.tax_rate * 100) / 2).toFixed(1)}%</span>
-                    <span>₹ {totals.sgst.toFixed(2)}</span>
+                    <span>{inr(totals.sgst, 2)}</span>
                   </div>
                 </>
               )}
@@ -775,23 +858,23 @@ export default function DocumentForm({
                 <>
                   <div className="flex justify-between text-sm">
                     <span className="text-slate-500">Taxable amount</span>
-                    <span>₹ {totals.taxableAmount.toFixed(2)}</span>
+                    <span>{inr(totals.taxableAmount, 2)}</span>
                   </div>
                   <div className="flex justify-between text-xs text-slate-500">
                     <span>IGST @ {(value.tax_rate * 100).toFixed(1)}%</span>
-                    <span>₹ {totals.igst.toFixed(2)}</span>
+                    <span>{inr(totals.igst, 2)}</span>
                   </div>
                 </>
               )}
               <div className="flex justify-between text-sm pt-2 border-t border-brand-100">
                 <span className="text-slate-500">Round Off</span>
                 <span className={value.round_off < 0 ? "text-red-600" : ""}>
-                  {value.round_off < 0 ? "" : "+"}₹ {(value.round_off || 0).toFixed(2)}
+                  {value.round_off < 0 ? "" : "+"}{inr(value.round_off || 0, 2)}
                 </span>
               </div>
               <div className="flex justify-between text-lg font-bold pt-3 border-t border-brand-100">
                 <span>Total</span>
-                <span>₹ {totals.total.toFixed(2)}</span>
+                <span>{inr(totals.total, 2)}</span>
               </div>
             </div>
           </div>

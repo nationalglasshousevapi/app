@@ -63,6 +63,7 @@ create table if not exists documents (
   discount_amount numeric(12,2) not null default 0,
   transport_charges numeric(12,2) not null default 0,
   packing_forwarding_charges numeric(12,2) not null default 0,
+  additional_charges jsonb not null default '[]'::jsonb,
   total_amount numeric(12,2) not null default 0,
 
   remarks text,
