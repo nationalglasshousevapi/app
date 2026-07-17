@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { DEFAULT_HSN_CODE } from "@/lib/company";
 import { inr } from "@/lib/format";
 
@@ -59,6 +60,119 @@ function PlusIcon({ className }: { className?: string }) {
   );
 }
 
+/* ── Description Combobox ── */
+function DescriptionCombobox({
+  value,
+  onChange,
+  id,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  id?: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [items, setItems] = useState<{ id: string; description: string }[]>([]);
+  const [filtered, setFiltered] = useState<{ id: string; description: string }[]>([]);
+  const [adding, setAdding] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch on mount
+  useEffect(() => {
+    fetch("/api/descriptions")
+      .then((r) => r.json())
+      .then((json) => setItems(json.descriptions ?? []))
+      .catch(() => {});
+  }, []);
+
+  // Filter as user types
+  useEffect(() => {
+    if (!value.trim()) {
+      setFiltered(items);
+      return;
+    }
+    const q = value.toLowerCase();
+    setFiltered(items.filter((d) => d.description.toLowerCase().includes(q)));
+  }, [value, items]);
+
+  // Close on outside click
+  useEffect(() => {
+    function onClick(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
+  const valueExists = items.some((d) => d.description === value.trim());
+  const showAdd = value.trim() && !valueExists && !adding;
+
+  async function addAndSelect() {
+    setAdding(true);
+    try {
+      const res = await fetch("/api/descriptions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: value.trim() }),
+      });
+      const json = await res.json();
+      if (json.description) {
+        setItems((prev) => [...prev, json.description].sort((a, b) => a.description.localeCompare(b.description)));
+      }
+    } catch {}
+    setAdding(false);
+    setOpen(false);
+  }
+
+  return (
+    <div className="relative" ref={ref}>
+      <input
+        ref={inputRef}
+        className="input"
+        placeholder="e.g. 5mm clear glass"
+        value={value}
+        required
+        id={id}
+        onChange={(e) => {
+          onChange(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+      />
+      {open && (filtered.length > 0 || showAdd) && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl ring-1 ring-black/5 max-h-48 overflow-y-auto">
+          {filtered.map((d) => (
+            <button
+              type="button"
+              key={d.id}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-brand-50 border-b border-gray-100 last:border-0 ${
+                value === d.description ? "bg-brand-50 font-medium" : ""
+              }`}
+              onClick={() => {
+                onChange(d.description);
+                setOpen(false);
+              }}
+            >
+              {d.description}
+            </button>
+          ))}
+          {showAdd && (
+            <button
+              type="button"
+              onClick={addAndSelect}
+              className="w-full text-left px-3 py-2 text-sm text-brand-600 hover:bg-brand-50 border-t border-dashed border-gray-200 font-medium"
+            >
+              + Add &ldquo;{value.trim()}&rdquo; to saved descriptions
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function LineItemsEditor({
   items,
   onChange,
@@ -110,12 +224,9 @@ export default function LineItemsEditor({
         <div className="flex gap-2 items-start">
           <div className="flex-1 min-w-0">
             <label className="label">Description <span className="text-red-500">*</span></label>
-            <input
-              className="input"
-              placeholder="e.g. 5mm clear glass"
+            <DescriptionCombobox
               value={item.description}
-              required
-              onChange={(e) => update(idx, { description: e.target.value })}
+              onChange={(v) => update(idx, { description: v })}
             />
           </div>
           <button
@@ -259,12 +370,9 @@ export default function LineItemsEditor({
           {items.map((item, idx) => (
             <div key={idx} className="grid grid-cols-12 gap-2 items-start rounded-xl bg-slate-50/80 p-4 border border-slate-100">
               <div className="col-span-2">
-                <input
-                  className="input"
-                  placeholder="e.g. 5mm clear glass"
+                <DescriptionCombobox
                   value={item.description}
-                  required
-                  onChange={(e) => update(idx, { description: e.target.value })}
+                  onChange={(v) => update(idx, { description: v })}
                 />
               </div>
               <div className="col-span-1">

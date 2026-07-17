@@ -87,7 +87,7 @@ export type PdfInvoicePageProps = {
   billTo: { name?: string | null; address?: string | null; contactPerson?: string | null; contactNumber?: string | null; email?: string | null; gst?: string | null };
   shipTo: { name?: string | null; address?: string | null; contactPerson?: string | null; contactNumber?: string | null };
   items: PdfInvoiceItem[];
-  subtotal: number; discountAmount?: number; taxType: string; taxRate: number; cgstAmount: number; sgstAmount: number; igstAmount: number; roundOff: number; transportCharges?: number; packingForwardingCharges?: number; additionalCharges?: AdditionalChargePdf[]; totalAmount: number; remarks?: string | null; logoSrc?: string;
+  subtotal: number; discountAmount?: number; taxType: string; taxRate: number; cgstAmount: number; sgstAmount: number; igstAmount: number; roundOff: number; transportCharges?: number; packingForwardingCharges?: number; hardwareCharges?: number; additionalCharges?: AdditionalChargePdf[]; totalAmount: number; remarks?: string | null; logoSrc?: string;
 };
 
 function money(v: number) { return `₹ ${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
@@ -207,6 +207,9 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
           ) : null}
           {Number(props.packingForwardingCharges || 0) > 0 ? (
             <View style={styles.totLine}><Text style={styles.totLabel}>Packing &amp; Fwd.</Text><Text style={styles.totValue}>{money(props.packingForwardingCharges || 0)}</Text></View>
+          ) : null}
+          {Number(props.hardwareCharges || 0) > 0 ? (
+            <View style={styles.totLine}><Text style={styles.totLabel}>Hardware</Text><Text style={styles.totValue}>{money(props.hardwareCharges || 0)}</Text></View>
           ) : null}
           {(props.additionalCharges || []).filter(c => c.amount > 0).map((charge, i) => (
             <View key={`ac-${i}`} style={styles.totLine}><Text style={styles.totLabel}>{charge.label}</Text><Text style={styles.totValue}>{money(charge.amount)}</Text></View>

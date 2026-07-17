@@ -75,9 +75,10 @@ export function computeTotal(
   transportCharges: number = 0,
   packingForwardingCharges: number = 0,
   additionalCharges: AdditionalCharge[] = [],
+  hardwareCharges: number = 0,
 ): number {
   const taxableAmount = subtotal - discountAmount;
-  const extraCharges = transportCharges + packingForwardingCharges + computeAdditionalChargesTotal(additionalCharges);
+  const extraCharges = transportCharges + packingForwardingCharges + computeAdditionalChargesTotal(additionalCharges) + hardwareCharges;
   return Math.round((taxableAmount + cgst + sgst + igst + roundOff + extraCharges) * 100) / 100;
 }
 

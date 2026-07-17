@@ -134,6 +134,14 @@ drop trigger if exists trg_documents_updated on documents;
 create trigger trg_documents_updated before update on documents
   for each row execute function set_updated_at();
 
+-- ========== Safe migrations (idempotent ALTER TABLE) ==========
+
+-- Ensure additional_charges column exists (added after initial schema creation)
+alter table documents add column if not exists additional_charges jsonb not null default '[]'::jsonb;
+
+-- Ensure hardware_charges column exists (for hardware charge support)
+alter table documents add column if not exists hardware_charges numeric(12,2) not null default 0;
+
 -- ========== Customer Accounts / Payments ==========
 
 alter table customers add column if not exists opening_balance numeric(12,2) not null default 0;
@@ -233,6 +241,13 @@ begin
 end;
 $$ language plpgsql stable;
 
+-- ========== Reusable descriptions (for dropdown in line items) ==========
+create table if not exists descriptions (
+  id uuid primary key default gen_random_uuid(),
+  description text not null unique,
+  created_at timestamptz not null default now()
+);
+
 -- ========== Row Level Security ==========
 -- The app talks to Supabase using the service-role key from server-side API routes only,
 -- which bypasses RLS. Enabling RLS here just makes sure the anon/public key (if ever used
@@ -242,4 +257,5 @@ alter table documents enable row level security;
 alter table document_items enable row level security;
 alter table counters enable row level security;
 alter table payments enable row level security;
+alter table descriptions enable row level security;
 

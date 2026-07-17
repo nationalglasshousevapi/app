@@ -52,6 +52,7 @@ export const createDocumentSchema = z.object({
   discount_amount: z.number().min(0).optional().default(0),
   transport_charges: z.number().min(0).optional().default(0),
   packing_forwarding_charges: z.number().min(0).optional().default(0),
+  hardware_charges: z.number().min(0).optional().default(0),
   additional_charges: z.array(additionalChargeSchema).optional().default([]),
   remarks: z.string().nullable().optional().default(null),
   status: z.string().optional().default("draft"),

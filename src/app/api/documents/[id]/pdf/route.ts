@@ -139,6 +139,7 @@ export async function GET(
       roundOff: Number(doc.round_off),
       transportCharges: Number(doc.transport_charges || 0),
       packingForwardingCharges: Number(doc.packing_forwarding_charges || 0),
+      hardwareCharges: Number(doc.hardware_charges || 0),
       additionalCharges: doc.additional_charges ?? [],
       totalAmount: Number(doc.total_amount),
       remarks: doc.remarks,

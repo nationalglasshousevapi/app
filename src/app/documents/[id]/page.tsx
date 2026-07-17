@@ -47,6 +47,7 @@ export default async function DocumentDetailPage({
     discount_amount: Number(doc.discount_amount ?? 0),
     transport_charges: Number(doc.transport_charges ?? 0),
     packing_forwarding_charges: Number(doc.packing_forwarding_charges ?? 0),
+    hardware_charges: Number(doc.hardware_charges ?? 0),
     additional_charges: doc.additional_charges ?? [],
     remarks: doc.remarks ?? "",
     status: doc.status,

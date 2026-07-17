@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { pdf } from "@react-pdf/renderer";
-import { DOC_TYPES, docTypeLabel, DocType } from "@/lib/docTypes";
+import { DOC_TYPES, docTypeLabel, docTypeShort, DocType } from "@/lib/docTypes";
 import { inr } from "@/lib/format";
 import type { AdditionalCharge } from "@/lib/documents";
 import CustomerPicker from "./CustomerPicker";
@@ -47,6 +47,7 @@ export type DocumentFormValue = {
   discount_amount: number;
   transport_charges: number;
   packing_forwarding_charges: number;
+  hardware_charges: number;
   additional_charges: AdditionalCharge[];
   remarks: string;
   status: string;
@@ -80,6 +81,7 @@ export function blankDocument(defaultType: DocType = "invoice"): DocumentFormVal
     discount_amount: 0,
     transport_charges: 0,
     packing_forwarding_charges: 0,
+    hardware_charges: 0,
     additional_charges: [],
     remarks: "",
     status: "draft",
@@ -104,6 +106,7 @@ export default function DocumentForm({
   });
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [company, setCompany] = useState<CompanyDetails | null>(null);
   const [companyLoading, setCompanyLoading] = useState(false);
@@ -136,6 +139,7 @@ export default function DocumentForm({
       "discount_amount",
       "transport_charges",
       "packing_forwarding_charges",
+      "hardware_charges",
       "additional_charges",
       "remarks",
       "status",
@@ -230,6 +234,7 @@ export default function DocumentForm({
     const taxableAmount = subtotal - discount;
     const transport = value.transport_charges || 0;
     const packing = value.packing_forwarding_charges || 0;
+    const hardware = value.hardware_charges || 0;
     const additionalChargesTotal = (value.additional_charges || []).reduce((sum, c) => sum + (c.amount || 0), 0);
     let cgst = 0,
       sgst = 0,
@@ -240,8 +245,8 @@ export default function DocumentForm({
     } else if (value.tax_type === "igst") {
       igst = Math.round(taxableAmount * value.tax_rate * 100) / 100;
     }
-    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + transport + packing + additionalChargesTotal) * 100) / 100;
-    return { subtotal, discount, taxableAmount, cgst, sgst, igst, transport, packing, additionalChargesTotal, total };
+    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + transport + packing + hardware + additionalChargesTotal) * 100) / 100;
+    return { subtotal, discount, taxableAmount, cgst, sgst, igst, transport, packing, hardware, additionalChargesTotal, total };
   }, [value.items, value.tax_type, value.tax_rate, value.round_off, value.discount_amount, value.transport_charges, value.packing_forwarding_charges, value.additional_charges]);
 
   function validate(): Record<string, string> {
@@ -294,6 +299,7 @@ export default function DocumentForm({
     const taxableAmount = subtotal - discount;
     const transport = value.transport_charges || 0;
     const packing = value.packing_forwarding_charges || 0;
+    const hardware = value.hardware_charges || 0;
     const additionalCharges = value.additional_charges || [];
     const additionalChargesTotal = additionalCharges.reduce((sum, c) => sum + (c.amount || 0), 0);
     let cgst = 0, sgst = 0, igst = 0;
@@ -303,12 +309,12 @@ export default function DocumentForm({
     } else if (value.tax_type === "igst") {
       igst = Math.round(taxableAmount * value.tax_rate * 100) / 100;
     }
-    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + transport + packing + additionalChargesTotal) * 100) / 100;
+    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + transport + packing + hardware + additionalChargesTotal) * 100) / 100;
 
     const pdfDoc = pdf(
       <PdfDocument
         docType={value.doc_type}
-        docNumber="PREVIEW"
+        docNumber={value.doc_number || `${docTypeShort(value.doc_type)}-DRAFT`}
         docDate={value.doc_date}
         orderNumber={value.order_number || null}
         orderDate={value.order_date || null}
@@ -351,6 +357,7 @@ export default function DocumentForm({
         roundOff={value.round_off || 0}
         transportCharges={transport}
         packingForwardingCharges={packing}
+        hardwareCharges={hardware}
         additionalCharges={additionalCharges}
         totalAmount={total}
         remarks={value.remarks || null}
@@ -363,6 +370,7 @@ export default function DocumentForm({
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaveError("");
+    setSaveSuccess(null);
     setFieldErrors({});
 
     const errors = validate();
@@ -390,7 +398,14 @@ export default function DocumentForm({
         setSaveError(json.error ?? "Unable to save. Please try again.");
         return;
       }
-      router.push(`/documents/${json.document.id}`);
+      const doc = json.document;
+      // Update form state with saved document id and number
+      setValue((v) => ({
+        ...v,
+        id: doc.id,
+        doc_number: doc.doc_number,
+      }));
+      setSaveSuccess(doc.doc_number);
       router.refresh();
     } catch {
       setSaveError("Unable to reach the server. Check your connection and try again.");
@@ -410,50 +425,63 @@ export default function DocumentForm({
             <p className="text-xs text-slate-500">Search saved customers or create a new one.</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex-1">
-            <CustomerPicker key={customerPickerKey} onSelect={selectCustomer} initialName={value.bill_to_name} />
-          </div>
-          <button
-            type="button"
-            onClick={() => setShowNewCustomerModal(true)}
-            className="btn-secondary px-3 py-3.5 shrink-0 text-sm"
-            title="Create new customer"
-          >
-            + New
-          </button>
-          {value.customer_id && (
+        {value.customer_id ? (
+          <div className="flex items-center gap-2">
+            <div className="flex-1 rounded-xl bg-brand-50 border border-brand-100 p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-semibold text-slate-900">{value.bill_to_name}</p>
+                  {value.bill_to_gst && <p className="text-xs text-slate-400 mt-0.5">GST: {value.bill_to_gst}</p>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      patch({
+                        customer_id: null,
+                        bill_to_name: "",
+                        bill_to_address: "",
+                        bill_to_contact_person: "",
+                        bill_to_contact_number: "",
+                        bill_to_email: "",
+                        bill_to_gst: "",
+                        ship_to_name: "",
+                        ship_to_address: "",
+                        ship_to_contact_person: "",
+                        ship_to_contact_number: "",
+                      });
+                      setSameAsBilling(true);
+                      setCustomerPickerKey((k) => k + 1);
+                    }}
+                    className="text-xs text-slate-500 hover:text-red-600 underline"
+                  >
+                    Change
+                  </button>
+                </div>
+              </div>
+            </div>
             <button
               type="button"
-              onClick={() => {
-                patch({
-                  customer_id: null,
-                  bill_to_name: "",
-                  bill_to_address: "",
-                  bill_to_contact_person: "",
-                  bill_to_contact_number: "",
-                  bill_to_email: "",
-                  bill_to_gst: "",
-                  ship_to_name: "",
-                  ship_to_address: "",
-                  ship_to_contact_person: "",
-                  ship_to_contact_number: "",
-                });
-                setSameAsBilling(true);
-                setCustomerPickerKey((k) => k + 1);
-              }}
+              onClick={() => setShowNewCustomerModal(true)}
               className="btn-secondary px-3 py-3.5 shrink-0 text-sm"
-              title="Clear customer"
+              title="Create new customer"
             >
-              Clear
+              + New
             </button>
-          )}
-        </div>
-        {value.customer_id && (
-          <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-1">
-            <p className="font-semibold text-slate-900">{value.bill_to_name}</p>
-            {value.bill_to_address && <p className="text-sm text-slate-500">{value.bill_to_address}</p>}
-            {value.bill_to_gst && <p className="text-sm text-slate-400">GST: {value.bill_to_gst}</p>}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <CustomerPicker key={customerPickerKey} onSelect={selectCustomer} initialName={value.bill_to_name} />
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowNewCustomerModal(true)}
+              className="btn-secondary px-3 py-3.5 shrink-0 text-sm"
+              title="Create new customer"
+            >
+              + New
+            </button>
           </div>
         )}
       </div>
@@ -466,6 +494,11 @@ export default function DocumentForm({
             <div className="md:col-span-4 flex items-center gap-3 pb-1">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">2</span>
               <h2 className="font-bold text-slate-900 text-lg">Document details</h2>
+              {value.doc_number && (
+                <span className="ml-auto text-xs font-mono font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-full px-3 py-1">
+                  {docTypeLabel(value.doc_type)} #{value.doc_number}
+                </span>
+              )}
             </div>
             <div>
               <label className="label">Document Type</label>
@@ -686,7 +719,7 @@ export default function DocumentForm({
               {/* Charges section */}
               <div className="space-y-3">
                 <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Charges</h3>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
                     <label className="label">Transport</label>
                     <input
@@ -694,7 +727,7 @@ export default function DocumentForm({
                       type="number"
                       step="0.01"
                       min="0"
-                      value={value.transport_charges}
+                      value={value.transport_charges || ""}
                       onChange={(e) => patch({ transport_charges: Number(e.target.value) })}
                     />
                   </div>
@@ -705,8 +738,19 @@ export default function DocumentForm({
                       type="number"
                       step="0.01"
                       min="0"
-                      value={value.packing_forwarding_charges}
+                      value={value.packing_forwarding_charges || ""}
                       onChange={(e) => patch({ packing_forwarding_charges: Number(e.target.value) })}
+                    />
+                  </div>
+                  <div>
+                    <label className="label">Hardware</label>
+                    <input
+                      className="input"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={value.hardware_charges || ""}
+                      onChange={(e) => patch({ hardware_charges: Number(e.target.value) })}
                     />
                   </div>
                 </div>
@@ -780,7 +824,7 @@ export default function DocumentForm({
                     type="number"
                     step="0.01"
                     min="0"
-                    value={value.discount_amount}
+                    value={value.discount_amount || ""}
                     onChange={(e) => patch({ discount_amount: Number(e.target.value) })}
                   />
                 </div>
@@ -790,7 +834,7 @@ export default function DocumentForm({
                     className="input"
                     type="number"
                     step="0.01"
-                    value={value.round_off}
+                    value={value.round_off || ""}
                     onChange={(e) => patch({ round_off: Number(e.target.value) })}
                   />
                 </div>
@@ -829,6 +873,12 @@ export default function DocumentForm({
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Packing &amp; Fwd.</span>
                   <span>{inr(totals.packing, 2)}</span>
+                </div>
+              )}
+              {totals.hardware > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Hardware</span>
+                  <span>{inr(totals.hardware, 2)}</span>
                 </div>
               )}
               {(value.additional_charges || []).filter(c => c.amount > 0).map((charge, idx) => (
@@ -888,11 +938,11 @@ export default function DocumentForm({
               <button
                 type="button"
                 onClick={previewPdf}
-                disabled={companyLoading || !value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)}
+                disabled={!value.id || companyLoading || !value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)}
                 className="btn-secondary"
-                title={(!value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)) ? "Fill required fields first" : "Preview as PDF"}
+                title={!value.id ? "Save the document first to preview PDF" : (!value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)) ? "Fill required fields first" : "Preview as PDF"}
               >
-                {companyLoading ? "Loading…" : "Preview PDF"}
+                {companyLoading ? "Loading…" : !value.id ? "Save first to preview" : "Preview PDF"}
               </button>
               {value.id && (
                 <a href={`/api/documents/${value.id}/pdf`} target="_blank" className="btn-secondary">
@@ -911,6 +961,21 @@ export default function DocumentForm({
               {saveError}
             </div>
           ) : null}
+          {saveSuccess && (
+            <div role="alert" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-center justify-between">
+              <span>✓ Saved as <strong>{saveSuccess}</strong></span>
+              <a href={`/documents/${value.id}`} className="text-emerald-700 underline font-medium ml-2 shrink-0">
+                View document →
+              </a>
+              <button
+                type="button"
+                onClick={() => setSaveSuccess(null)}
+                className="ml-3 text-emerald-500 hover:text-emerald-700 shrink-0"
+              >
+                ✕
+              </button>
+            </div>
+          )}
         </>
       )}
 
