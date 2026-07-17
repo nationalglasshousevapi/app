@@ -95,7 +95,6 @@ export default function BatchDownloadPanel() {
           : selectedType === "performa_invoice" ? "performa-invoices"
           : selectedType === "estimate" ? "estimates"
           : selectedType === "receipt" ? "receipts"
-          : selectedType === "window_quotation" ? "window-quotations"
           : "documents";
         const period = selectedMonths.length > 0
           ? `${selectedMonths.map((m) => MONTHS.find((x) => x.n === m)?.label).join("")}-${selectedYear}`

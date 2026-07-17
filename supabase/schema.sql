@@ -31,7 +31,7 @@ create table if not exists counters (
 create table if not exists documents (
   id uuid primary key default gen_random_uuid(),
   doc_type text not null check (doc_type in (
-    'invoice', 'quotation', 'performa_invoice', 'estimate', 'receipt', 'window_quotation'
+    'invoice', 'quotation', 'performa_invoice', 'estimate', 'receipt'
   )),
   doc_number text not null,          -- human-readable number, e.g. "24-25-071"
   financial_year text not null,      -- e.g. "24-25"
@@ -242,3 +242,4 @@ alter table documents enable row level security;
 alter table document_items enable row level security;
 alter table counters enable row level security;
 alter table payments enable row level security;
+

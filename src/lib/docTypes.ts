@@ -3,8 +3,7 @@ export type DocType =
   | "quotation"
   | "performa_invoice"
   | "estimate"
-  | "receipt"
-  | "window_quotation";
+  | "receipt";
 
 export const DOC_TYPES: { value: DocType; label: string; short: string }[] = [
   { value: "invoice", label: "Invoice", short: "INV" },
@@ -12,7 +11,6 @@ export const DOC_TYPES: { value: DocType; label: string; short: string }[] = [
   { value: "performa_invoice", label: "Performa Invoice", short: "PFI" },
   { value: "estimate", label: "Estimate", short: "EST" },
   { value: "receipt", label: "Receipt", short: "RCP" },
-  { value: "window_quotation", label: "Window Quotation", short: "WQT" },
 ];
 
 export function docTypeLabel(t: string): string {

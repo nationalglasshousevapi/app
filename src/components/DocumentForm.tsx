@@ -648,7 +648,7 @@ export default function DocumentForm({
                 <p className="text-xs text-slate-500">Add each product or service as a separate line.</p>
               </div>
             </div>
-            <LineItemsEditor items={value.items} onChange={(items) => patch({ items })} docType={value.doc_type} />
+            <LineItemsEditor items={value.items} onChange={(items) => patch({ items })} />
           </div>
 
           {/* Tax, charges, and notes */}

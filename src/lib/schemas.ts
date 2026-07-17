@@ -7,7 +7,6 @@ export const docTypeSchema = z.enum([
   "performa_invoice",
   "estimate",
   "receipt",
-  "window_quotation",
 ]);
 
 export const taxTypeSchema = z.enum(["cgst_sgst", "igst", "none"]);

@@ -107,7 +107,6 @@ export default async function DocumentsPage({
     "quotation",
     "performa_invoice",
     "estimate",
-    "window_quotation",
   ];
 
   return (

@@ -36,15 +36,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", paddingVertical: 5, paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: "#eef2f4" },
   rowAlt: { backgroundColor: "#f8fafb" },
   cell: { fontSize: 8 },
-  // Default layout (non-invoice)
-  desc: { width: "25%" },
-  size: { width: "15%" },
-  hsn: { width: "10%", textAlign: "center" },
-  qty: { width: "8%", textAlign: "right" },
-  unit: { width: "10%", textAlign: "center" },
-  rate: { width: "14%", textAlign: "right" },
-  total: { width: "18%", textAlign: "right" },
-  // Invoice-specific layout
+  // Table layout (LxW dimensions for all document types)
   invDesc: { width: "18%" },
   invActualLw: { width: "12%", textAlign: "center" },
   invNos: { width: "8%", textAlign: "center" },
@@ -157,61 +149,36 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
 
       {/* Items table */}
       <View style={styles.tableWrap}>
-        {props.docType === "invoice" ? (
-          <>
-            <View style={styles.tableHead}>
-              <Text style={[styles.headCell, styles.invDesc]}>DESCRIPTION</Text>
-              <Text style={[styles.headCell, styles.invActualLw]}>ACTUAL L×W</Text>
-              <Text style={[styles.headCell, styles.invNos]}>NOS</Text>
-              <Text style={[styles.headCell, styles.invCalcLw]}>CALC. L×W</Text>
-              <Text style={[styles.headCell, styles.invQty]}>QTY</Text>
-              <Text style={[styles.headCell, styles.invRate]}>RATE</Text>
-              <Text style={[styles.headCell, styles.invUnit]}>UNIT</Text>
-              <Text style={[styles.headCell, styles.invAmount]}>AMOUNT</Text>
-            </View>
-            {items.map((item, i) => {
-              const al = Number(item.actual_length || 0);
-              const aw = Number(item.actual_width || 0);
-              const cl = Number(item.calculated_length || 0);
-              const cw = Number(item.calculated_width || 0);
-              return (
-                <View key={`r-${i}`} style={[styles.row, i % 2 ? styles.rowAlt : {}]}>
-                  <Text style={[styles.cell, styles.invDesc]}>{item.description}</Text>
-                  <Text style={[styles.cell, styles.invActualLw]}>{al > 0 && aw > 0 ? `${al}×${aw}` : "—"}</Text>
-                  <Text style={[styles.cell, styles.invNos]}>{item.nos || "—"}</Text>
-                  <Text style={[styles.cell, styles.invCalcLw]}>{cl > 0 && cw > 0 ? `${cl}×${cw}` : "—"}</Text>
-                  <Text style={[styles.cell, styles.invQty]}>{item.qty}</Text>
-                  <Text style={[styles.cell, styles.invRate]}>{money(item.rate)}</Text>
-                  <Text style={[styles.cell, styles.invUnit]}>{item.unit || "—"}</Text>
-                  <Text style={[styles.cell, styles.invAmount]}>{money(item.total)}</Text>
-                </View>
-              );
-            })}
-          </>
-        ) : (
-          <>
-            <View style={styles.tableHead}>
-              <Text style={[styles.headCell, styles.desc]}>DESCRIPTION</Text>
-              <Text style={[styles.headCell, styles.size]}>SIZE</Text>
-              <Text style={[styles.headCell, styles.hsn]}>HSN</Text>
-              <Text style={[styles.headCell, styles.qty]}>QTY</Text>
-              <Text style={[styles.headCell, styles.unit]}>UNIT</Text>
-              <Text style={[styles.headCell, styles.rate]}>RATE</Text>
-              <Text style={[styles.headCell, styles.total]}>TOTAL</Text>
-            </View>
-            {items.map((item, i) => (
+        <>
+          <View style={styles.tableHead}>
+            <Text style={[styles.headCell, styles.invDesc]}>DESCRIPTION</Text>
+            <Text style={[styles.headCell, styles.invActualLw]}>ACTUAL L×W</Text>
+            <Text style={[styles.headCell, styles.invNos]}>NOS</Text>
+            <Text style={[styles.headCell, styles.invCalcLw]}>CALC. L×W</Text>
+            <Text style={[styles.headCell, styles.invQty]}>QTY</Text>
+            <Text style={[styles.headCell, styles.invRate]}>RATE</Text>
+            <Text style={[styles.headCell, styles.invUnit]}>UNIT</Text>
+            <Text style={[styles.headCell, styles.invAmount]}>AMOUNT</Text>
+          </View>
+          {items.map((item, i) => {
+            const al = Number(item.actual_length || 0);
+            const aw = Number(item.actual_width || 0);
+            const cl = Number(item.calculated_length || 0);
+            const cw = Number(item.calculated_width || 0);
+            return (
               <View key={`r-${i}`} style={[styles.row, i % 2 ? styles.rowAlt : {}]}>
-                <Text style={[styles.cell, styles.desc]}>{item.description}</Text>
-                <Text style={[styles.cell, styles.size]}>{item.size || "—"}</Text>
-                <Text style={[styles.cell, styles.hsn]}>{item.hsn_code || "—"}</Text>
-                <Text style={[styles.cell, styles.qty]}>{item.qty}</Text>
-                <Text style={[styles.cell, styles.unit]}>{item.unit || "—"}</Text>
-                <Text style={[styles.cell, styles.rate]}>{money(item.rate)}</Text>
-                <Text style={[styles.cell, styles.total]}>{money(item.total)}</Text>
+                <Text style={[styles.cell, styles.invDesc]}>{item.description}</Text>
+                <Text style={[styles.cell, styles.invActualLw]}>{al > 0 && aw > 0 ? `${al}×${aw}` : "—"}</Text>
+                <Text style={[styles.cell, styles.invNos]}>{item.nos || "—"}</Text>
+                <Text style={[styles.cell, styles.invCalcLw]}>{cl > 0 && cw > 0 ? `${cl}×${cw}` : "—"}</Text>
+                <Text style={[styles.cell, styles.invQty]}>{item.qty}</Text>
+                <Text style={[styles.cell, styles.invRate]}>{money(item.rate)}</Text>
+                <Text style={[styles.cell, styles.invUnit]}>{item.unit || "—"}</Text>
+                <Text style={[styles.cell, styles.invAmount]}>{money(item.total)}</Text>
               </View>
-            ))}
-          </>
-        )}
+            );
+          })}
+        </>
         <View style={styles.spacer} />
       </View>
 
