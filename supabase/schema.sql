@@ -248,6 +248,25 @@ create table if not exists descriptions (
   created_at timestamptz not null default now()
 );
 
+-- Seed common descriptions (idempotent — skips duplicates)
+insert into descriptions (description) values
+  ('5 mm Clear Glass'),
+  ('5 mm Mirror'),
+  ('4 mm Clear Glass'),
+  ('12 mm Clear Glass'),
+  ('10 mm Clear Glass'),
+  ('8 mm Clear Glass'),
+  ('12 mm Toughened Glass'),
+  ('10 mm Toughened Glass'),
+  ('8 mm Toughened Glass'),
+  ('6 mm Toughened Glass'),
+  ('6 mm Clear Glass'),
+  ('6 mm Mirror'),
+  ('4 mm Mirror'),
+  ('Laminated Glass'),
+  ('Frosted Glass')
+on conflict (description) do nothing;
+
 -- ========== Row Level Security ==========
 -- The app talks to Supabase using the service-role key from server-side API routes only,
 -- which bypasses RLS. Enabling RLS here just makes sure the anon/public key (if ever used

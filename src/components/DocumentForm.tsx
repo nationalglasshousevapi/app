@@ -10,6 +10,7 @@ import CustomerPicker from "./CustomerPicker";
 import NewCustomerModal from "./NewCustomerModal";
 import CalendarInput from "./CalendarInput";
 import LineItemsEditor, { EMPTY_ITEM, LineItem } from "./LineItemsEditor";
+import ManageDescriptionsModal from "./ManageDescriptionsModal";
 import PdfDocument from "./PdfDocument";
 import type { CompanyDetails } from "@/lib/company";
 
@@ -112,6 +113,7 @@ export default function DocumentForm({
   const [companyLoading, setCompanyLoading] = useState(false);
   const [customerPickerKey, setCustomerPickerKey] = useState(0);
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
+  const [showManageDescriptions, setShowManageDescriptions] = useState(false);
   const [customizingBilling, setCustomizingBilling] = useState(false);
   const isNewInvoice = !initial.id && !value.customer_id;
   const router = useRouter();
@@ -676,10 +678,17 @@ export default function DocumentForm({
           <div className="card p-4 md:p-6 space-y-4">
             <div className="flex items-center gap-3">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">4</span>
-              <div>
+              <div className="flex-1">
                 <h2 className="font-bold text-slate-900 text-lg">Items and pricing</h2>
                 <p className="text-xs text-slate-500">Add each product or service as a separate line.</p>
               </div>
+              <button
+                type="button"
+                onClick={() => setShowManageDescriptions(true)}
+                className="btn-secondary text-xs px-3 py-1.5"
+              >
+                Manage descriptions
+              </button>
             </div>
             <LineItemsEditor items={value.items} onChange={(items) => patch({ items })} />
           </div>
@@ -727,6 +736,7 @@ export default function DocumentForm({
                       type="number"
                       step="0.01"
                       min="0"
+                      placeholder="0"
                       value={value.transport_charges || ""}
                       onChange={(e) => patch({ transport_charges: Number(e.target.value) })}
                     />
@@ -738,6 +748,7 @@ export default function DocumentForm({
                       type="number"
                       step="0.01"
                       min="0"
+                      placeholder="0"
                       value={value.packing_forwarding_charges || ""}
                       onChange={(e) => patch({ packing_forwarding_charges: Number(e.target.value) })}
                     />
@@ -749,6 +760,7 @@ export default function DocumentForm({
                       type="number"
                       step="0.01"
                       min="0"
+                      placeholder="0"
                       value={value.hardware_charges || ""}
                       onChange={(e) => patch({ hardware_charges: Number(e.target.value) })}
                     />
@@ -824,6 +836,7 @@ export default function DocumentForm({
                     type="number"
                     step="0.01"
                     min="0"
+                    placeholder="0"
                     value={value.discount_amount || ""}
                     onChange={(e) => patch({ discount_amount: Number(e.target.value) })}
                   />
@@ -834,6 +847,7 @@ export default function DocumentForm({
                     className="input"
                     type="number"
                     step="0.01"
+                    placeholder="0"
                     value={value.round_off || ""}
                     onChange={(e) => patch({ round_off: Number(e.target.value) })}
                   />
@@ -984,6 +998,13 @@ export default function DocumentForm({
         <NewCustomerModal
           onClose={() => setShowNewCustomerModal(false)}
           onCreated={handleCustomerCreated}
+        />
+      )}
+
+      {/* Manage Descriptions Modal */}
+      {showManageDescriptions && (
+        <ManageDescriptionsModal
+          onClose={() => setShowManageDescriptions(false)}
         />
       )}
     </form>
