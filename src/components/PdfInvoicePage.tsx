@@ -74,6 +74,7 @@ export type PdfInvoiceItem = {
   nos?: number;
   calculated_length?: number;
   calculated_width?: number;
+  item_type?: "glass" | "charge";
 };
 
 export type AdditionalChargePdf = {
@@ -87,7 +88,7 @@ export type PdfInvoicePageProps = {
   billTo: { name?: string | null; address?: string | null; contactPerson?: string | null; contactNumber?: string | null; email?: string | null; gst?: string | null };
   shipTo: { name?: string | null; address?: string | null; contactPerson?: string | null; contactNumber?: string | null };
   items: PdfInvoiceItem[];
-  subtotal: number; discountAmount?: number; taxType: string; taxRate: number; cgstAmount: number; sgstAmount: number; igstAmount: number; roundOff: number; transportCharges?: number; packingForwardingCharges?: number; hardwareCharges?: number; additionalCharges?: AdditionalChargePdf[]; totalAmount: number; remarks?: string | null; logoSrc?: string;
+  subtotal: number; discountAmount?: number; taxType: string; taxRate: number; cgstAmount: number; sgstAmount: number; igstAmount: number; roundOff: number; additionalCharges?: AdditionalChargePdf[]; totalAmount: number; remarks?: string | null; logoSrc?: string;
 };
 
 function money(v: number) { return `₹ ${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
@@ -161,6 +162,7 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
             <Text style={[styles.headCell, styles.invAmount]}>AMOUNT</Text>
           </View>
           {items.map((item, i) => {
+            const isCharge = item.item_type === "charge";
             const al = Number(item.actual_length || 0);
             const aw = Number(item.actual_width || 0);
             const cl = Number(item.calculated_length || 0);
@@ -168,12 +170,12 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
             return (
               <View key={`r-${i}`} style={[styles.row, i % 2 ? styles.rowAlt : {}]}>
                 <Text style={[styles.cell, styles.invDesc]}>{item.description}</Text>
-                <Text style={[styles.cell, styles.invActualLw]}>{al > 0 && aw > 0 ? `${al}×${aw}` : "—"}</Text>
-                <Text style={[styles.cell, styles.invNos]}>{item.nos || "—"}</Text>
-                <Text style={[styles.cell, styles.invCalcLw]}>{cl > 0 && cw > 0 ? `${cl}×${cw}` : "—"}</Text>
-                <Text style={[styles.cell, styles.invQty]}>{item.qty}</Text>
+                <Text style={[styles.cell, styles.invActualLw]}>{isCharge ? "—" : al > 0 && aw > 0 ? `${al}×${aw}` : "—"}</Text>
+                <Text style={[styles.cell, styles.invNos]}>{isCharge ? "—" : item.nos || "—"}</Text>
+                <Text style={[styles.cell, styles.invCalcLw]}>{isCharge ? "—" : cl > 0 && cw > 0 ? `${cl}×${cw}` : "—"}</Text>
+                <Text style={[styles.cell, styles.invQty]}>{isCharge ? 1 : item.qty}</Text>
                 <Text style={[styles.cell, styles.invRate]}>{money(item.rate)}</Text>
-                <Text style={[styles.cell, styles.invUnit]}>{item.unit || "—"}</Text>
+                <Text style={[styles.cell, styles.invUnit]}>{isCharge ? "—" : item.unit || "—"}</Text>
                 <Text style={[styles.cell, styles.invAmount]}>{money(item.total)}</Text>
               </View>
             );
@@ -202,15 +204,6 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
           {taxRows.map(([label, amount]) => (
             <View key={String(label)} style={styles.totLine}><Text style={styles.totLabel}>{label}</Text><Text style={styles.totValue}>{money(amount)}</Text></View>
           ))}
-          {Number(props.transportCharges || 0) > 0 ? (
-            <View style={styles.totLine}><Text style={styles.totLabel}>Transport</Text><Text style={styles.totValue}>{money(props.transportCharges || 0)}</Text></View>
-          ) : null}
-          {Number(props.packingForwardingCharges || 0) > 0 ? (
-            <View style={styles.totLine}><Text style={styles.totLabel}>Packing &amp; Fwd.</Text><Text style={styles.totValue}>{money(props.packingForwardingCharges || 0)}</Text></View>
-          ) : null}
-          {Number(props.hardwareCharges || 0) > 0 ? (
-            <View style={styles.totLine}><Text style={styles.totLabel}>Hardware</Text><Text style={styles.totValue}>{money(props.hardwareCharges || 0)}</Text></View>
-          ) : null}
           {(props.additionalCharges || []).filter(c => c.amount > 0).map((charge, i) => (
             <View key={`ac-${i}`} style={styles.totLine}><Text style={styles.totLabel}>{charge.label}</Text><Text style={styles.totValue}>{money(charge.amount)}</Text></View>
           ))}

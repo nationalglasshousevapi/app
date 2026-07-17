@@ -10,6 +10,7 @@ export interface ParsedItem {
   nos: number;
   calculated_length: number;
   calculated_width: number;
+  item_type: "glass" | "charge";
 }
 
 export function parseItems(rawItems: unknown[]): ParsedItem[] {
@@ -27,6 +28,7 @@ export function parseItems(rawItems: unknown[]): ParsedItem[] {
       nos: Number(row.nos ?? 1),
       calculated_length: Number(row.calculated_length ?? 0),
       calculated_width: Number(row.calculated_width ?? 0),
+      item_type: (row.item_type as string) === "charge" ? "charge" : "glass",
     };
   });
 }
@@ -72,13 +74,10 @@ export function computeTotal(
   igst: number,
   roundOff: number,
   discountAmount: number = 0,
-  transportCharges: number = 0,
-  packingForwardingCharges: number = 0,
   additionalCharges: AdditionalCharge[] = [],
-  hardwareCharges: number = 0,
 ): number {
   const taxableAmount = subtotal - discountAmount;
-  const extraCharges = transportCharges + packingForwardingCharges + computeAdditionalChargesTotal(additionalCharges) + hardwareCharges;
+  const extraCharges = computeAdditionalChargesTotal(additionalCharges);
   return Math.round((taxableAmount + cgst + sgst + igst + roundOff + extraCharges) * 100) / 100;
 }
 
@@ -101,5 +100,6 @@ export function formatItemRows(
     nos: it.nos || 1,
     calculated_length: it.calculated_length || 0,
     calculated_width: it.calculated_width || 0,
+    item_type: it.item_type || "glass",
   }));
 }

@@ -45,9 +45,6 @@ export default async function DocumentDetailPage({
     tax_rate: Number(doc.tax_rate),
     round_off: Number(doc.round_off),
     discount_amount: Number(doc.discount_amount ?? 0),
-    transport_charges: Number(doc.transport_charges ?? 0),
-    packing_forwarding_charges: Number(doc.packing_forwarding_charges ?? 0),
-    hardware_charges: Number(doc.hardware_charges ?? 0),
     additional_charges: doc.additional_charges ?? [],
     remarks: doc.remarks ?? "",
     status: doc.status,
@@ -63,6 +60,7 @@ export default async function DocumentDetailPage({
       nos: Number(it.nos ?? 1),
       calculated_length: Number(it.calculated_length ?? 0),
       calculated_width: Number(it.calculated_width ?? 0),
+      item_type: it.item_type || "glass",
     })),
   };
 

@@ -23,6 +23,7 @@ export const itemSchema = z.object({
   nos: z.number().int().min(1).optional().default(1),
   calculated_length: z.number().min(0).optional().default(0),
   calculated_width: z.number().min(0).optional().default(0),
+  item_type: z.enum(["glass", "charge"]).optional().default("glass"),
 });
 
 export const additionalChargeSchema = z.object({
@@ -50,9 +51,6 @@ export const createDocumentSchema = z.object({
   tax_rate: z.number().optional().default(0.18),
   round_off: z.number().optional().default(0),
   discount_amount: z.number().min(0).optional().default(0),
-  transport_charges: z.number().min(0).optional().default(0),
-  packing_forwarding_charges: z.number().min(0).optional().default(0),
-  hardware_charges: z.number().min(0).optional().default(0),
   additional_charges: z.array(additionalChargeSchema).optional().default([]),
   remarks: z.string().nullable().optional().default(null),
   status: z.string().optional().default("draft"),

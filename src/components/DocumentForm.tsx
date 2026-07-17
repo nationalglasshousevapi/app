@@ -46,9 +46,6 @@ export type DocumentFormValue = {
   tax_rate: number;
   round_off: number;
   discount_amount: number;
-  transport_charges: number;
-  packing_forwarding_charges: number;
-  hardware_charges: number;
   additional_charges: AdditionalCharge[];
   remarks: string;
   status: string;
@@ -80,9 +77,6 @@ export function blankDocument(defaultType: DocType = "invoice"): DocumentFormVal
     tax_rate: 0.18,
     round_off: 0,
     discount_amount: 0,
-    transport_charges: 0,
-    packing_forwarding_charges: 0,
-    hardware_charges: 0,
     additional_charges: [],
     remarks: "",
     status: "draft",
@@ -139,9 +133,7 @@ export default function DocumentForm({
       "tax_rate",
       "round_off",
       "discount_amount",
-      "transport_charges",
-      "packing_forwarding_charges",
-      "hardware_charges",
+      "additional_charges",
       "additional_charges",
       "remarks",
       "status",
@@ -172,7 +164,8 @@ export default function DocumentForm({
         Number(v.actual_width) !== Number(init.actual_width) ||
         Number(v.nos) !== Number(init.nos) ||
         Number(v.calculated_length) !== Number(init.calculated_length) ||
-        Number(v.calculated_width) !== Number(init.calculated_width)
+        Number(v.calculated_width) !== Number(init.calculated_width) ||
+        v.item_type !== init.item_type
       ) {
         return true;
       }
@@ -234,9 +227,6 @@ export default function DocumentForm({
     const subtotal = value.items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
     const discount = value.discount_amount || 0;
     const taxableAmount = subtotal - discount;
-    const transport = value.transport_charges || 0;
-    const packing = value.packing_forwarding_charges || 0;
-    const hardware = value.hardware_charges || 0;
     const additionalChargesTotal = (value.additional_charges || []).reduce((sum, c) => sum + (c.amount || 0), 0);
     let cgst = 0,
       sgst = 0,
@@ -247,9 +237,9 @@ export default function DocumentForm({
     } else if (value.tax_type === "igst") {
       igst = Math.round(taxableAmount * value.tax_rate * 100) / 100;
     }
-    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + transport + packing + hardware + additionalChargesTotal) * 100) / 100;
-    return { subtotal, discount, taxableAmount, cgst, sgst, igst, transport, packing, hardware, additionalChargesTotal, total };
-  }, [value.items, value.tax_type, value.tax_rate, value.round_off, value.discount_amount, value.transport_charges, value.packing_forwarding_charges, value.additional_charges]);
+    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + additionalChargesTotal) * 100) / 100;
+    return { subtotal, discount, taxableAmount, cgst, sgst, igst, additionalChargesTotal, total };
+  }, [value.items, value.tax_type, value.tax_rate, value.round_off, value.discount_amount, value.additional_charges]);
 
   function validate(): Record<string, string> {
     const errors: Record<string, string> = {};
@@ -299,9 +289,6 @@ export default function DocumentForm({
     const subtotal = value.items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
     const discount = value.discount_amount || 0;
     const taxableAmount = subtotal - discount;
-    const transport = value.transport_charges || 0;
-    const packing = value.packing_forwarding_charges || 0;
-    const hardware = value.hardware_charges || 0;
     const additionalCharges = value.additional_charges || [];
     const additionalChargesTotal = additionalCharges.reduce((sum, c) => sum + (c.amount || 0), 0);
     let cgst = 0, sgst = 0, igst = 0;
@@ -311,7 +298,7 @@ export default function DocumentForm({
     } else if (value.tax_type === "igst") {
       igst = Math.round(taxableAmount * value.tax_rate * 100) / 100;
     }
-    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + transport + packing + hardware + additionalChargesTotal) * 100) / 100;
+    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + additionalChargesTotal) * 100) / 100;
 
     const pdfDoc = pdf(
       <PdfDocument
@@ -348,6 +335,7 @@ export default function DocumentForm({
           nos: it.nos || 1,
           calculated_length: it.calculated_length || 0,
           calculated_width: it.calculated_width || 0,
+          item_type: it.item_type || "glass",
         }))}
         subtotal={subtotal}
         discountAmount={discount}
@@ -357,9 +345,6 @@ export default function DocumentForm({
         sgstAmount={sgst}
         igstAmount={igst}
         roundOff={value.round_off || 0}
-        transportCharges={transport}
-        packingForwardingCharges={packing}
-        hardwareCharges={hardware}
         additionalCharges={additionalCharges}
         totalAmount={total}
         remarks={value.remarks || null}
@@ -640,36 +625,16 @@ export default function DocumentForm({
                 </div>
               </div>
             ) : (
-              /* Read-only summary card */
-              <div className="rounded-xl bg-slate-50 border border-slate-100 p-4 space-y-1.5">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-400 text-xs font-medium">Name:</span>
-                  <span className="text-slate-900 font-medium">{value.bill_to_name}</span>
-                </div>
-                {value.bill_to_gst && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-400 text-xs font-medium">GST:</span>
-                    <span className="text-sm text-slate-600">{value.bill_to_gst}</span>
-                  </div>
-                )}
-                {value.bill_to_address && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-400 text-xs font-medium">Address:</span>
-                    <span className="text-sm text-slate-600">{value.bill_to_address}</span>
-                  </div>
-                )}
-                {value.bill_to_contact_person && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-400 text-xs font-medium">Contact:</span>
-                    <span className="text-sm text-slate-600">{value.bill_to_contact_person}</span>
-                  </div>
-                )}
-                {value.bill_to_contact_number && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-slate-400 text-xs font-medium">Phone:</span>
-                    <span className="text-sm text-slate-600">{value.bill_to_contact_number}</span>
-                  </div>
-                )}
+              /* Read-only summary — compact single line */
+              <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-2.5 flex items-center flex-wrap gap-x-3 gap-y-1 text-sm">
+                <span className="font-semibold text-slate-900">{value.bill_to_name}</span>
+                {value.bill_to_gst && <span className="text-slate-400">|</span>}
+                {value.bill_to_gst && <span className="text-slate-500">GST: {value.bill_to_gst}</span>}
+                {value.bill_to_address && <span className="text-slate-400">|</span>}
+                {value.bill_to_address && <span className="text-slate-500 truncate max-w-[200px]">{value.bill_to_address}</span>}
+                {(value.bill_to_contact_person || value.bill_to_contact_number) && <span className="text-slate-400">|</span>}
+                {value.bill_to_contact_person && <span className="text-slate-500">{value.bill_to_contact_person}</span>}
+                {value.bill_to_contact_number && <span className="text-slate-500">{value.bill_to_contact_number}</span>}
               </div>
             )}
           </div>
@@ -725,47 +690,10 @@ export default function DocumentForm({
                 </div>
               </div>
 
-              {/* Charges section */}
+              {/* Additional charges */}
               <div className="space-y-3">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Charges</h3>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="label">Transport</label>
-                    <input
-                      className="input"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0"
-                      value={value.transport_charges || ""}
-                      onChange={(e) => patch({ transport_charges: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Packing &amp; Fwd.</label>
-                    <input
-                      className="input"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0"
-                      value={value.packing_forwarding_charges || ""}
-                      onChange={(e) => patch({ packing_forwarding_charges: Number(e.target.value) })}
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Hardware</label>
-                    <input
-                      className="input"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      placeholder="0"
-                      value={value.hardware_charges || ""}
-                      onChange={(e) => patch({ hardware_charges: Number(e.target.value) })}
-                    />
-                  </div>
-                </div>
+                <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Additional Charges</h3>
+                <p className="text-xs text-slate-400">Add predefined charges (Transport, Hardware, Labour) as line items in the items table above. Use this section for one-off charges like Polish, Bevel etc.</p>
 
                 {/* Additional charges */}
                 <div className="space-y-2 pt-2">
@@ -875,24 +803,6 @@ export default function DocumentForm({
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Discount</span>
                   <span className="text-red-600">- {inr(totals.discount, 2)}</span>
-                </div>
-              )}
-              {totals.transport > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Transport</span>
-                  <span>{inr(totals.transport, 2)}</span>
-                </div>
-              )}
-              {totals.packing > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Packing &amp; Fwd.</span>
-                  <span>{inr(totals.packing, 2)}</span>
-                </div>
-              )}
-              {totals.hardware > 0 && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Hardware</span>
-                  <span>{inr(totals.hardware, 2)}</span>
                 </div>
               )}
               {(value.additional_charges || []).filter(c => c.amount > 0).map((charge, idx) => (

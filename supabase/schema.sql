@@ -94,7 +94,9 @@ create table if not exists document_items (
   actual_width numeric(8,2) default 0,
   nos integer default 1,
   calculated_length numeric(8,2) default 0,
-  calculated_width numeric(8,2) default 0
+  calculated_width numeric(8,2) default 0,
+  -- Item type: 'glass' (with dimensions) or 'charge' (flat amount)
+  item_type text not null default 'glass' check (item_type in ('glass', 'charge'))
 );
 
 create index if not exists idx_items_document on document_items (document_id);
@@ -139,8 +141,13 @@ create trigger trg_documents_updated before update on documents
 -- Ensure additional_charges column exists (added after initial schema creation)
 alter table documents add column if not exists additional_charges jsonb not null default '[]'::jsonb;
 
--- Ensure hardware_charges column exists (for hardware charge support)
-alter table documents add column if not exists hardware_charges numeric(12,2) not null default 0;
+-- Add item_type to document_items for charge items
+alter table document_items add column if not exists item_type text not null default 'glass' check (item_type in ('glass', 'charge'));
+
+-- Drop old fixed charge columns in favour of charge-type line items
+alter table documents drop column if exists hardware_charges;
+alter table documents drop column if exists transport_charges;
+alter table documents drop column if exists packing_forwarding_charges;
 
 -- ========== Customer Accounts / Payments ==========
 
@@ -248,7 +255,7 @@ create table if not exists descriptions (
   created_at timestamptz not null default now()
 );
 
--- Seed common descriptions (idempotent — skips duplicates)
+-- Seed common descriptions and charge labels (idempotent — skips duplicates)
 insert into descriptions (description) values
   ('5 mm Clear Glass'),
   ('5 mm Mirror'),
@@ -264,7 +271,11 @@ insert into descriptions (description) values
   ('6 mm Mirror'),
   ('4 mm Mirror'),
   ('Laminated Glass'),
-  ('Frosted Glass')
+  ('Frosted Glass'),
+  ('Transport'),
+  ('Labour'),
+  ('Hardware'),
+  ('Packing & Forwarding')
 on conflict (description) do nothing;
 
 -- ========== Row Level Security ==========

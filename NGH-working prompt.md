@@ -114,3 +114,19 @@ I've seen various components have various style like some have hard corners some
 - Update window quotation.
 - Automatically generate cutting sheet of how to cut which glass sizes from the sheets in stock
 
+
+---
+
+1. when we save the document show a notification that the document is saved along with the number.
+2. Quotation and other documents doesn't have a document number in the pdf if the document isn't saved.
+3. don't allow to preview a document if it isn't saved
+4. show the document number in the document creation page
+5. unable to save the document saying 'additiona_charges' not available in db
+6. in the document creation page, when we select the customer then we have the customer name in dropdown, below that as well. we should improve this.
+7. add an option for hardware label in the document, like transport and labour
+8. make the description as a dropdown which we can add to as and when we go for example we have 5 mm clear glass, 5 mm mirror, 4 mm clear glass, 12 mm clear glass, 10 mm clear glass, 8 mm clear glass, 12 mm toughened glass, etc.. and we should be able to add them in the dropdown for future use. (we can have that as a table or something as a modal in either document creation or settings)
+
+---
+
+1. we shouldn't have any default value for quantity, transport, labour etc? have that as 0 in placeholder etc
+2. make the description as a dropdown which we can add to as and when we go for example we have 5 mm clear glass, 5 mm mirror, 4 mm clear glass, 12 mm clear glass, 10 mm clear glass, 8 mm clear glass, 12 mm toughened glass, etc.. and we should be able to add them in the dropdown for future use. (we can have that as a table or something as a modal in either document creation or settings)
