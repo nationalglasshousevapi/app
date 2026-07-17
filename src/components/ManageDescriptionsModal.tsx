@@ -7,6 +7,13 @@ type DescriptionItem = {
   description: string;
 };
 
+const CHARGE_LABELS = new Set(["Transport", "Labour", "Hardware", "Packing & Forwarding"]);
+
+function categoryOrder(desc: string): number {
+  const isGlass = !CHARGE_LABELS.has(desc);
+  return isGlass ? 0 : 1;
+}
+
 export default function ManageDescriptionsModal({
   onClose,
 }: {
@@ -22,7 +29,14 @@ export default function ManageDescriptionsModal({
     fetch("/api/descriptions")
       .then((r) => r.json())
       .then((json) => {
-        setItems(json.descriptions ?? []);
+        const raw = json.descriptions ?? [];
+        raw.sort((a: DescriptionItem, b: DescriptionItem) => {
+          const ag = categoryOrder(a.description);
+          const bg = categoryOrder(b.description);
+          if (ag !== bg) return ag - bg;
+          return a.description.localeCompare(b.description);
+        });
+        setItems(raw);
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -80,18 +94,48 @@ export default function ManageDescriptionsModal({
           ) : items.length === 0 ? (
             <p className="text-sm text-slate-400">No descriptions saved yet.</p>
           ) : (
-            items.map((d) => (
-              <div key={d.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 border border-slate-100">
-                <span className="text-sm text-slate-800">{d.description}</span>
-                <button
-                  type="button"
-                  onClick={() => deleteDescription(d.id)}
-                  className="text-xs text-red-500 hover:text-red-600 hover:bg-red-50 rounded px-2 py-1 transition"
-                >
-                  Delete
-                </button>
-              </div>
-            ))
+            (() => {
+              const glassItems = items.filter((d) => !CHARGE_LABELS.has(d.description));
+              const chargeItems = items.filter((d) => CHARGE_LABELS.has(d.description));
+              return (
+                <>
+                  {glassItems.length > 0 && (
+                    <>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 px-1 pt-2 pb-1">Glass</p>
+                      {glassItems.map((d) => (
+                        <div key={d.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 border border-slate-100">
+                          <span className="text-sm text-slate-800">{d.description}</span>
+                          <button
+                            type="button"
+                            onClick={() => deleteDescription(d.id)}
+                            className="text-xs text-red-500 hover:text-red-600 hover:bg-red-50 rounded px-2 py-1 transition"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                  {chargeItems.length > 0 && (
+                    <>
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 px-1 pt-3 pb-1">Charges</p>
+                      {chargeItems.map((d) => (
+                        <div key={d.id} className="flex items-center justify-between rounded-lg bg-amber-50 px-3 py-2 border border-amber-100">
+                          <span className="text-sm text-slate-800">{d.description}</span>
+                          <button
+                            type="button"
+                            onClick={() => deleteDescription(d.id)}
+                            className="text-xs text-red-500 hover:text-red-600 hover:bg-red-50 rounded px-2 py-1 transition"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      ))}
+                    </>
+                  )}
+                </>
+              );
+            })()
           )}
         </div>
 
