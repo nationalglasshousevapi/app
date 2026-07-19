@@ -49,8 +49,8 @@ export async function PUT(
 
   const subtotal = items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
 
-  const { cgst, sgst, igst } = computeTax(subtotal, rest.tax_type, rest.tax_rate, rest.discount_amount);
-  const total = computeTotal(subtotal, cgst, sgst, igst, rest.round_off, rest.discount_amount, rest.additional_charges);
+  const { cgst, sgst, igst } = computeTax(subtotal, rest.tax_type, rest.tax_rate, rest.discount_amount, rest.taxable_charges);
+  const total = computeTotal(subtotal, cgst, sgst, igst, rest.round_off, rest.discount_amount, rest.additional_charges, rest.taxable_charges);
 
   const { data: doc, error: docError } = await sb
     .from("documents")
@@ -78,6 +78,7 @@ export async function PUT(
       round_off: rest.round_off,
       discount_amount: rest.discount_amount || 0,
       additional_charges: rest.additional_charges ?? [],
+      taxable_charges: rest.taxable_charges ?? [],
       total_amount: total,
       remarks: rest.remarks ?? null,
       status: rest.status || "draft",

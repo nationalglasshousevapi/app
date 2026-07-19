@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { pdf } from "@react-pdf/renderer";
 import { DOC_TYPES, docTypeLabel, docTypeShort, DocType } from "@/lib/docTypes";
 import { inr } from "@/lib/format";
-import type { AdditionalCharge } from "@/lib/documents";
+import type { AdditionalCharge, TaxableCharge } from "@/lib/documents";
 import CustomerPicker from "./CustomerPicker";
 import NewCustomerModal from "./NewCustomerModal";
 import CalendarInput from "./CalendarInput";
@@ -47,6 +47,7 @@ export type DocumentFormValue = {
   round_off: number;
   discount_amount: number;
   additional_charges: AdditionalCharge[];
+  taxable_charges: TaxableCharge[];
   remarks: string;
   status: string;
   items: LineItem[];
@@ -78,6 +79,7 @@ export function blankDocument(defaultType: DocType = "invoice"): DocumentFormVal
     round_off: 0,
     discount_amount: 0,
     additional_charges: [],
+    taxable_charges: [],
     remarks: "",
     status: "draft",
     items: [{ ...EMPTY_ITEM }],
@@ -191,6 +193,16 @@ export default function DocumentForm({
       }
     }
 
+    // Deep compare taxable charges
+    const currTaxable = value.taxable_charges || [];
+    const initTaxable = initial.taxable_charges || [];
+    if (currTaxable.length !== initTaxable.length) return true;
+    for (let i = 0; i < currTaxable.length; i++) {
+      if (currTaxable[i].label !== initTaxable[i]?.label || currTaxable[i].amount !== initTaxable[i]?.amount) {
+        return true;
+      }
+    }
+
     return false;
   }, [value, initial, sameAsBilling]);
 
@@ -223,10 +235,13 @@ export default function DocumentForm({
     setShowNewCustomerModal(false);
   }
 
+  const PREDEFINED_CHARGES = ["Transport", "Labour", "Packing & Forwarding"];
+
   const totals = useMemo(() => {
     const subtotal = value.items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
     const discount = value.discount_amount || 0;
-    const taxableAmount = subtotal - discount;
+    const taxableChargesTotal = (value.taxable_charges || []).reduce((sum, c) => sum + (c.amount || 0), 0);
+    const taxableAmount = subtotal + taxableChargesTotal - discount;
     const additionalChargesTotal = (value.additional_charges || []).reduce((sum, c) => sum + (c.amount || 0), 0);
     let cgst = 0,
       sgst = 0,
@@ -238,8 +253,8 @@ export default function DocumentForm({
       igst = Math.round(taxableAmount * value.tax_rate * 100) / 100;
     }
     const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + additionalChargesTotal) * 100) / 100;
-    return { subtotal, discount, taxableAmount, cgst, sgst, igst, additionalChargesTotal, total };
-  }, [value.items, value.tax_type, value.tax_rate, value.round_off, value.discount_amount, value.additional_charges]);
+    return { subtotal, discount, taxableChargesTotal, taxableAmount, cgst, sgst, igst, additionalChargesTotal, total };
+  }, [value.items, value.tax_type, value.tax_rate, value.round_off, value.discount_amount, value.additional_charges, value.taxable_charges]);
 
   function validate(): Record<string, string> {
     const errors: Record<string, string> = {};
@@ -288,7 +303,9 @@ export default function DocumentForm({
 
     const subtotal = value.items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
     const discount = value.discount_amount || 0;
-    const taxableAmount = subtotal - discount;
+    const taxableCharges = value.taxable_charges || [];
+    const taxableChargesTotal = taxableCharges.reduce((sum, c) => sum + (c.amount || 0), 0);
+    const taxableAmount = subtotal + taxableChargesTotal - discount;
     const additionalCharges = value.additional_charges || [];
     const additionalChargesTotal = additionalCharges.reduce((sum, c) => sum + (c.amount || 0), 0);
     let cgst = 0, sgst = 0, igst = 0;
@@ -346,6 +363,7 @@ export default function DocumentForm({
         igstAmount={igst}
         roundOff={value.round_off || 0}
         additionalCharges={additionalCharges}
+        taxableCharges={taxableCharges}
         totalAmount={total}
         remarks={value.remarks || null}
       />
@@ -690,13 +708,109 @@ export default function DocumentForm({
                 </div>
               </div>
 
-              {/* Additional charges */}
+              {/* Taxable charges — quick add common charges + custom */}
               <div className="space-y-3">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Additional Charges</h3>
-                <p className="text-xs text-slate-400">Add predefined charges (Transport, Hardware, Labour) as line items in the items table above. Use this section for one-off charges like Polish, Bevel etc.</p>
+                <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Charges</h3>
 
-                {/* Additional charges */}
-                <div className="space-y-2 pt-2">
+                {/* Predefined charge quick-add buttons */}
+                <div className="flex flex-wrap gap-2">
+                  {PREDEFINED_CHARGES.map((label) => {
+                    const alreadyAdded = (value.taxable_charges || []).some((c) => c.label === label);
+                    return (
+                      <button
+                        key={label}
+                        type="button"
+                        disabled={alreadyAdded}
+                        onClick={() =>
+                          patch({
+                            taxable_charges: [
+                              ...(value.taxable_charges || []),
+                              { label, amount: 0 },
+                            ],
+                          })
+                        }
+                        className={`text-xs px-3 py-1.5 rounded-full border min-h-[32px] font-medium transition ${
+                          alreadyAdded
+                            ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                            : "bg-white text-slate-600 border-slate-200 hover:border-brand-500 hover:text-brand-700"
+                        }`}
+                      >
+                        + {label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Active taxable charges */}
+                {(value.taxable_charges || []).length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    {(value.taxable_charges || []).map((charge, idx) => (
+                      <div key={idx} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
+                        <input
+                          className="input"
+                          placeholder="Charge name"
+                          value={charge.label}
+                          onChange={(e) => {
+                            const next = [...(value.taxable_charges || [])];
+                            next[idx] = { ...next[idx], label: e.target.value };
+                            patch({ taxable_charges: next });
+                          }}
+                        />
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium pointer-events-none">₹</span>
+                          <input
+                            className="input w-28 pl-7"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0"
+                            value={charge.amount || ""}
+                            onChange={(e) => {
+                              const next = [...(value.taxable_charges || [])];
+                              next[idx] = { ...next[idx], amount: Number(e.target.value) };
+                              patch({ taxable_charges: next });
+                            }}
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            patch({
+                              taxable_charges: (value.taxable_charges || []).filter((_, i) => i !== idx),
+                            })
+                          }
+                          className="btn-danger text-xs px-2 py-1.5"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      patch({
+                        taxable_charges: [
+                          ...(value.taxable_charges || []),
+                          { label: "", amount: 0 },
+                        ],
+                      })
+                    }
+                    className="btn-secondary text-xs px-2.5 py-1"
+                  >
+                    + Add custom charge
+                  </button>
+                  <p className="text-xs text-slate-400">These are added to the taxable amount for GST calculation.</p>
+                </div>
+              </div>
+
+              {/* Additional charges — non-taxable one-offs */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Additional Charges (non-taxable)</h3>
+                <p className="text-xs text-slate-400">One-off charges like Polish, Bevel etc. These are added after tax calculation.</p>
+                <div className="space-y-2 pt-1">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Other Charges</span>
                     <button
@@ -726,18 +840,22 @@ export default function DocumentForm({
                           patch({ additional_charges: next });
                         }}
                       />
-                      <input
-                        className="input w-24"
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={charge.amount || ""}
-                        onChange={(e) => {
-                          const next = [...(value.additional_charges || [])];
-                          next[idx] = { ...next[idx], amount: Number(e.target.value) };
-                          patch({ additional_charges: next });
-                        }}
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium pointer-events-none">₹</span>
+                        <input
+                          className="input w-28 pl-7"
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          placeholder="0"
+                          value={charge.amount || ""}
+                          onChange={(e) => {
+                            const next = [...(value.additional_charges || [])];
+                            next[idx] = { ...next[idx], amount: Number(e.target.value) };
+                            patch({ additional_charges: next });
+                          }}
+                        />
+                      </div>
                       <button
                         type="button"
                         onClick={() =>
@@ -799,6 +917,12 @@ export default function DocumentForm({
                 <span className="text-slate-500">Subtotal</span>
                 <span>{inr(totals.subtotal, 2)}</span>
               </div>
+              {(value.taxable_charges || []).filter(c => c.amount > 0).map((charge, idx) => (
+                <div key={`tc-${idx}`} className="flex justify-between text-sm">
+                  <span className="text-slate-500">{charge.label}</span>
+                  <span>{inr(charge.amount, 2)}</span>
+                </div>
+              ))}
               {totals.discount > 0 && (
                 <div className="flex justify-between text-sm">
                   <span className="text-slate-500">Discount</span>
@@ -869,9 +993,18 @@ export default function DocumentForm({
                 {companyLoading ? "Loading…" : !value.id ? "Save first to preview" : "Preview PDF"}
               </button>
               {value.id && (
-                <a href={`/api/documents/${value.id}/pdf`} target="_blank" className="btn-secondary">
-                  View PDF
-                </a>
+                <>
+                  <a href={`/api/documents/${value.id}/pdf`} target="_blank" className="btn-secondary">
+                    View PDF
+                  </a>
+                  <a
+                    href={`/api/documents/${value.id}/pdf`}
+                    download={`${value.doc_number || "document"}.pdf`}
+                    className="btn-secondary"
+                  >
+                    Download PDF
+                  </a>
+                </>
               )}
               {value.id && isDirty && (
                 <span className="text-xs text-amber-600 font-medium">

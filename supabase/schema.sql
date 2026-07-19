@@ -289,3 +289,43 @@ alter table counters enable row level security;
 alter table payments enable row level security;
 alter table descriptions enable row level security;
 
+-- ========== Migration: Taxable charges for Transport/Labour/etc. ==========
+-- Adds a jsonb column to store charge-type items (Transport, Labour, Packing & Forwarding, etc.)
+-- that are added as-needed in the Tax & charges section and included in the taxable amount for GST.
+
+alter table documents add column if not exists taxable_charges jsonb not null default '[]'::jsonb;
+
+-- Move existing charge-type line items into the taxable_charges column
+do $$
+declare
+  r record;
+  charges jsonb;
+begin
+  for r in
+    select d.id as document_id,
+           jsonb_agg(
+             jsonb_build_object(
+               'label', di.description,
+               'amount', di.total
+             )
+           ) as items
+    from documents d
+    join document_items di on di.document_id = d.id
+    where di.item_type = 'charge'
+    group by d.id
+  loop
+    -- Merge with existing taxable_charges (if any)
+    select coalesce(d.taxable_charges, '[]'::jsonb) || r.items
+    into charges
+    from documents d
+    where d.id = r.document_id;
+
+    update documents
+    set taxable_charges = charges
+    where id = r.document_id;
+  end loop;
+end $$;
+
+-- Delete the moved charge items from document_items
+delete from document_items where item_type = 'charge';
+

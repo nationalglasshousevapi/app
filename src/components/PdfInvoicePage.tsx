@@ -82,13 +82,18 @@ export type AdditionalChargePdf = {
   amount: number;
 };
 
+export type TaxableChargePdf = {
+  label: string;
+  amount: number;
+};
+
 export type PdfInvoicePageProps = {
   docType: string; docNumber: string; docDate: string; orderNumber?: string | null; orderDate?: string | null;
   company: CompanyDetails;
   billTo: { name?: string | null; address?: string | null; contactPerson?: string | null; contactNumber?: string | null; email?: string | null; gst?: string | null };
   shipTo: { name?: string | null; address?: string | null; contactPerson?: string | null; contactNumber?: string | null };
   items: PdfInvoiceItem[];
-  subtotal: number; discountAmount?: number; taxType: string; taxRate: number; cgstAmount: number; sgstAmount: number; igstAmount: number; roundOff: number; additionalCharges?: AdditionalChargePdf[]; totalAmount: number; remarks?: string | null; logoSrc?: string;
+  subtotal: number; discountAmount?: number; taxType: string; taxRate: number; cgstAmount: number; sgstAmount: number; igstAmount: number; roundOff: number; additionalCharges?: AdditionalChargePdf[]; taxableCharges?: TaxableChargePdf[]; totalAmount: number; remarks?: string | null; logoSrc?: string;
 };
 
 function money(v: number) { return `₹ ${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
@@ -198,6 +203,9 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
         </View>
         <View style={styles.totCol}>
           <View style={styles.totLine}><Text style={styles.totLabel}>Subtotal</Text><Text style={styles.totValue}>{money(props.subtotal)}</Text></View>
+          {(props.taxableCharges || []).filter(c => c.amount > 0).map((charge, i) => (
+            <View key={`tc-${i}`} style={styles.totLine}><Text style={styles.totLabel}>{charge.label}</Text><Text style={styles.totValue}>{money(charge.amount)}</Text></View>
+          ))}
           {Number(props.discountAmount || 0) > 0 ? (
             <View style={styles.totLine}><Text style={styles.totLabel}>Discount</Text><Text style={[styles.totValue, { color: "#dc2626" }]}>{money(-(props.discountAmount || 0))}</Text></View>
           ) : null}

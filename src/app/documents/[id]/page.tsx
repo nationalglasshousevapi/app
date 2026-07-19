@@ -46,6 +46,7 @@ export default async function DocumentDetailPage({
     round_off: Number(doc.round_off),
     discount_amount: Number(doc.discount_amount ?? 0),
     additional_charges: doc.additional_charges ?? [],
+    taxable_charges: doc.taxable_charges ?? [],
     remarks: doc.remarks ?? "",
     status: doc.status,
     items: (items ?? []).map((it) => ({

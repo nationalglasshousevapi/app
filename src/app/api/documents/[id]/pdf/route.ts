@@ -139,6 +139,7 @@ export async function GET(
       igstAmount: Number(doc.igst_amount),
       roundOff: Number(doc.round_off),
       additionalCharges: doc.additional_charges ?? [],
+      taxableCharges: doc.taxable_charges ?? [],
       totalAmount: Number(doc.total_amount),
       remarks: doc.remarks,
     }) as any

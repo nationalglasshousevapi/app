@@ -39,13 +39,23 @@ export interface TaxBreakdown {
   igst: number;
 }
 
+export type TaxableCharge = {
+  label: string;
+  amount: number;
+};
+
+export function computeTaxableChargesTotal(charges: TaxableCharge[]): number {
+  return charges.reduce((sum, c) => sum + (c.amount || 0), 0);
+}
+
 export function computeTax(
   subtotal: number,
   taxType: string,
   taxRate: number,
   discountAmount: number = 0,
+  taxableCharges: TaxableCharge[] = [],
 ): TaxBreakdown {
-  const taxableAmount = subtotal - discountAmount;
+  const taxableAmount = subtotal + computeTaxableChargesTotal(taxableCharges) - discountAmount;
   let cgst = 0,
     sgst = 0,
     igst = 0;
@@ -75,8 +85,9 @@ export function computeTotal(
   roundOff: number,
   discountAmount: number = 0,
   additionalCharges: AdditionalCharge[] = [],
+  taxableCharges: TaxableCharge[] = [],
 ): number {
-  const taxableAmount = subtotal - discountAmount;
+  const taxableAmount = subtotal + computeTaxableChargesTotal(taxableCharges) - discountAmount;
   const extraCharges = computeAdditionalChargesTotal(additionalCharges);
   return Math.round((taxableAmount + cgst + sgst + igst + roundOff + extraCharges) * 100) / 100;
 }

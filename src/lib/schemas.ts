@@ -31,6 +31,11 @@ export const additionalChargeSchema = z.object({
   amount: z.number().min(0, "Amount cannot be negative."),
 });
 
+export const taxableChargeSchema = z.object({
+  label: z.string().min(1, "Charge label is required."),
+  amount: z.number().min(0, "Amount cannot be negative."),
+});
+
 export const createDocumentSchema = z.object({
   doc_type: docTypeSchema,
   doc_date: z.string().optional(),
@@ -52,6 +57,7 @@ export const createDocumentSchema = z.object({
   round_off: z.number().optional().default(0),
   discount_amount: z.number().min(0).optional().default(0),
   additional_charges: z.array(additionalChargeSchema).optional().default([]),
+  taxable_charges: z.array(taxableChargeSchema).optional().default([]),
   remarks: z.string().nullable().optional().default(null),
   status: z.string().optional().default("draft"),
   items: z.array(itemSchema).min(1, "Add at least one line item."),
