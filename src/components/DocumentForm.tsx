@@ -420,9 +420,9 @@ export default function DocumentForm({
   }
 
   return (
-    <><form onSubmit={save} className="space-y-6">
+    <><form onSubmit={save} className="space-y-4">
       {/* Step 1: Customer — always shown first */}
-      <div className="card p-5 md:p-6 space-y-4">
+      <div className="card p-4 md:p-6 space-y-4">
         <div className="flex items-center gap-3">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">1</span>
           <div>
@@ -495,7 +495,7 @@ export default function DocumentForm({
       {!isNewInvoice && (
         <>
           {/* Document details */}
-          <div className="card p-5 md:p-6 grid md:grid-cols-4 gap-4">
+          <div className="card p-4 md:p-6 grid md:grid-cols-4 gap-4">
             <div className="md:col-span-4 flex items-center gap-3 pb-1">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">2</span>
               <h2 className="font-bold text-slate-900 text-lg">Document details</h2>
@@ -540,7 +540,7 @@ export default function DocumentForm({
           </div>
 
           {/* Billing / Shipping details — read-only summary with optional customize */}
-          <div className="card p-5 md:p-6 space-y-4">
+          <div className="card p-4 md:p-6 space-y-4">
             <div className="flex items-center gap-3">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">3</span>
               <div className="flex-1">
@@ -677,15 +677,15 @@ export default function DocumentForm({
           </div>
 
           {/* Tax, charges, and notes */}
-          <div className="card p-5 md:p-6 grid md:grid-cols-2 gap-6">
-            <div className="space-y-5">
+          <div className="card p-4 md:p-6 grid md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">5</span>
                 <h2 className="font-bold text-slate-900 text-lg">Tax &amp; charges</h2>
               </div>
 
               {/* Tax — auto-set 18% for taxable, 0% for none */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Tax</h3>
                 <div>
                   <label className="label">Tax Type</label>
@@ -709,7 +709,7 @@ export default function DocumentForm({
               </div>
 
               {/* Taxable charges — quick add common charges + custom */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Charges</h3>
 
                 {/* Predefined charge quick-add buttons */}
@@ -807,7 +807,7 @@ export default function DocumentForm({
               </div>
 
               {/* Additional charges — non-taxable one-offs */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Additional Charges (non-taxable)</h3>
                 <p className="text-xs text-slate-400">One-off charges like Polish, Bevel etc. These are added after tax calculation.</p>
                 <div className="space-y-2 pt-1">
@@ -873,7 +873,7 @@ export default function DocumentForm({
               </div>
 
               {/* Adjustments section */}
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Adjustments</h3>
                 <div>
                   <label className="label">Discount</label>
@@ -911,7 +911,7 @@ export default function DocumentForm({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-brand-100 bg-brand-50/50 p-5 space-y-2 self-start md:sticky md:top-6">
+            <div className="rounded-2xl border border-brand-100 bg-brand-50/50 p-4 space-y-1.5 self-start md:sticky md:top-6">
               <p className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-700 mb-3">Document total</p>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-500">Subtotal</span>

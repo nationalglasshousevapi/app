@@ -59,6 +59,29 @@ body {
   }
 }
 
+/* ── Compact mode for constrained viewports (Chromebook, small laptops) ── */
+@media (max-height: 800px) {
+  .input {
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .btn, .btn-primary, .btn-secondary, .btn-danger {
+    min-height: 38px;
+    padding: 6px 14px;
+  }
+
+  .label {
+    margin-bottom: 4px;
+  }
+
+  body {
+    font-size: 15px;
+  }
+}
+
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }

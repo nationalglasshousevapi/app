@@ -435,17 +435,17 @@ export default function LineItemsEditor({
                   onChange={(e) => update(idx, { nos: Math.max(1, parseInt(e.target.value) || 1) })}
                 />
               </div>
-              <div className="col-span-1 flex items-center min-h-[48px]">
+              <div className="col-span-1 flex items-center min-h-[38px]">
                 <span className="text-sm text-slate-600">
                   {item.calculated_length > 0 ? `${item.calculated_length}"` : "—"}
                 </span>
               </div>
-              <div className="col-span-1 flex items-center min-h-[48px]">
+              <div className="col-span-1 flex items-center min-h-[38px]">
                 <span className="text-sm text-slate-600">
                   {item.calculated_width > 0 ? `${item.calculated_width}"` : "—"}
                 </span>
               </div>
-              <div className="col-span-1 flex items-center min-h-[48px]">
+              <div className="col-span-1 flex items-center min-h-[38px]">
                 <span className="text-sm font-medium text-slate-700">
                   {item.qty > 0 ? item.qty : "—"}
                 </span>
@@ -472,7 +472,7 @@ export default function LineItemsEditor({
                   ))}
                 </select>
               </div>
-              <div className="col-span-1 text-sm font-semibold text-slate-700 px-1 flex items-center min-h-[48px]">
+              <div className="col-span-1 text-sm font-semibold text-slate-700 px-1 flex items-center min-h-[38px]">
                 {inr((item.qty || 0) * (item.rate || 0), 2)}
               </div>
               <div className="col-span-1 flex items-center min-h-[48px] justify-center">
