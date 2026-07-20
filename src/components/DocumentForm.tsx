@@ -44,7 +44,6 @@ export type DocumentFormValue = {
   ship_to_contact_number: string;
   tax_type: "cgst_sgst" | "igst" | "none";
   tax_rate: number;
-  round_off: number;
   discount_amount: number;
   additional_charges: AdditionalCharge[];
   taxable_charges: TaxableCharge[];
@@ -76,7 +75,6 @@ export function blankDocument(defaultType: DocType = "invoice"): DocumentFormVal
     ship_to_contact_number: "",
     tax_type: "cgst_sgst",
     tax_rate: 0.18,
-    round_off: 0,
     discount_amount: 0,
     additional_charges: [],
     taxable_charges: [],
@@ -153,7 +151,6 @@ export default function DocumentForm({
       "ship_to_contact_number",
       "tax_type",
       "tax_rate",
-      "round_off",
       "discount_amount",
       "additional_charges",
       "additional_charges",
@@ -272,9 +269,11 @@ export default function DocumentForm({
     } else if (value.tax_type === "igst") {
       igst = Math.round(taxableAmount * value.tax_rate * 100) / 100;
     }
-    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + additionalChargesTotal) * 100) / 100;
-    return { subtotal, discount, taxableChargesTotal, taxableAmount, cgst, sgst, igst, additionalChargesTotal, total };
-  }, [value.items, value.tax_type, value.tax_rate, value.round_off, value.discount_amount, value.additional_charges, value.taxable_charges]);
+    const raw = taxableAmount + cgst + sgst + igst + additionalChargesTotal;
+    const roundOff = Math.round(raw) - raw;
+    const total = Math.round(raw);
+    return { subtotal, discount, taxableChargesTotal, taxableAmount, cgst, sgst, igst, additionalChargesTotal, roundOff, total };
+  }, [value.items, value.tax_type, value.tax_rate, value.discount_amount, value.additional_charges, value.taxable_charges]);
 
   function validate(): Record<string, string> {
     const errors: Record<string, string> = {};
@@ -335,7 +334,9 @@ export default function DocumentForm({
     } else if (value.tax_type === "igst") {
       igst = Math.round(taxableAmount * value.tax_rate * 100) / 100;
     }
-    const total = Math.round((taxableAmount + cgst + sgst + igst + (value.round_off || 0) + additionalChargesTotal) * 100) / 100;
+    const raw = taxableAmount + cgst + sgst + igst + additionalChargesTotal;
+    const roundOff = Math.round(raw) - raw;
+    const total = Math.round(raw);
 
     const pdfDoc = pdf(
       <PdfDocument
@@ -381,7 +382,7 @@ export default function DocumentForm({
         cgstAmount={cgst}
         sgstAmount={sgst}
         igstAmount={igst}
-        roundOff={value.round_off || 0}
+        roundOff={roundOff}
         additionalCharges={additionalCharges}
         taxableCharges={taxableCharges}
         totalAmount={total}
@@ -922,17 +923,6 @@ export default function DocumentForm({
                     onChange={(e) => patch({ discount_amount: Number(e.target.value) })}
                   />
                 </div>
-                <div>
-                  <label className="label">Round Off (can be negative or positive)</label>
-                  <input
-                    className="input"
-                    type="number"
-                    step="0.01"
-                    placeholder="0"
-                    value={value.round_off || ""}
-                    onChange={(e) => patch({ round_off: Number(e.target.value) })}
-                  />
-                </div>
               </div>
 
               <div>
@@ -1001,8 +991,8 @@ export default function DocumentForm({
               )}
               <div className="flex justify-between text-sm pt-2 border-t border-brand-100">
                 <span className="text-slate-500">Round Off</span>
-                <span className={value.round_off < 0 ? "text-red-600" : ""}>
-                  {value.round_off < 0 ? "" : "+"}{inr(value.round_off || 0, 2)}
+                <span className={totals.roundOff < 0 ? "text-red-600" : ""}>
+                  {totals.roundOff < 0 ? "" : "+"}{inr(totals.roundOff, 2)}
                 </span>
               </div>
               <div className="flex justify-between text-lg font-bold pt-3 border-t border-brand-100">

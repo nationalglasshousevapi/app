@@ -130,3 +130,16 @@ I've seen various components have various style like some have hard corners some
 
 1. we shouldn't have any default value for quantity, transport, labour etc? have that as 0 in placeholder etc
 2. make the description as a dropdown which we can add to as and when we go for example we have 5 mm clear glass, 5 mm mirror, 4 mm clear glass, 12 mm clear glass, 10 mm clear glass, 8 mm clear glass, 12 mm toughened glass, etc.. and we should be able to add them in the dropdown for future use. (we can have that as a table or something as a modal in either document creation or settings)
+
+---
+
+- can you keep transport and labour at the bottom after or before the tax calculations? (for both document creation and also in the invoice) which are always present, have an option to add an additional change if needed? and add that to GST calculation as well (if not already added)
+
+- work on improving the readability of the application because in a standard screen but with zoom enabled the view is very bad where the text field isn't so small that my father isn't able to see it? and the amount column is very big. also I'm suggesting we should have Rupee symbol whereever we have amount fields so that it's easy for my father to understand better etc??
+
+- have an option to download the pdf directly like we have view and had a downlod too in document creation page and also in actions for the documents
+
+---
+
+1. I wanted to see the document number in the document creation page.
+2. I also want to have an option to edit the document number when we create the document.

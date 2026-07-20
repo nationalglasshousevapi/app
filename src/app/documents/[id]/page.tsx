@@ -43,7 +43,6 @@ export default async function DocumentDetailPage({
     ship_to_contact_number: doc.ship_to_contact_number ?? "",
     tax_type: doc.tax_type,
     tax_rate: Number(doc.tax_rate),
-    round_off: Number(doc.round_off),
     discount_amount: Number(doc.discount_amount ?? 0),
     additional_charges: doc.additional_charges ?? [],
     taxable_charges: doc.taxable_charges ?? [],

@@ -77,19 +77,31 @@ export function computeAdditionalChargesTotal(charges: AdditionalCharge[]): numb
   return charges.reduce((sum, c) => sum + (c.amount || 0), 0);
 }
 
+/**
+ * Compute the round-off adjustment for standard rounding:
+ * - Fractional part < 0.50 → round down (negative adjustment)
+ * - Fractional part >= 0.50 → round up (positive adjustment)
+ */
+export function computeRoundOff(amount: number): number {
+  const rounded = Math.round(amount);
+  return rounded - amount;
+}
+
 export function computeTotal(
   subtotal: number,
   cgst: number,
   sgst: number,
   igst: number,
-  roundOff: number,
   discountAmount: number = 0,
   additionalCharges: AdditionalCharge[] = [],
   taxableCharges: TaxableCharge[] = [],
-): number {
+): { totalAmount: number; roundOff: number } {
   const taxableAmount = subtotal + computeTaxableChargesTotal(taxableCharges) - discountAmount;
   const extraCharges = computeAdditionalChargesTotal(additionalCharges);
-  return Math.round((taxableAmount + cgst + sgst + igst + roundOff + extraCharges) * 100) / 100;
+  const raw = taxableAmount + cgst + sgst + igst + extraCharges;
+  const totalAmount = Math.round(raw);
+  const roundOff = totalAmount - raw;
+  return { totalAmount, roundOff };
 }
 
 export function formatItemRows(

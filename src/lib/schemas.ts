@@ -55,7 +55,6 @@ export const createDocumentSchema = z.object({
   ship_to_contact_number: z.string().optional().default(""),
   tax_type: taxTypeSchema.optional().default("cgst_sgst"),
   tax_rate: z.number().optional().default(0.18),
-  round_off: z.number().optional().default(0),
   discount_amount: z.number().min(0).optional().default(0),
   additional_charges: z.array(additionalChargeSchema).optional().default([]),
   taxable_charges: z.array(taxableChargeSchema).optional().default([]),
