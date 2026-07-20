@@ -119,6 +119,21 @@ begin
 end;
 $$ language plpgsql;
 
+-- Peek at the next document number without incrementing the counter.
+-- Returns 0 if no counter row exists yet (meaning the next insert will get 1).
+create or replace function peek_document_number(p_doc_type text, p_financial_year text)
+returns integer as $$
+declare
+  v_number integer;
+begin
+  select last_number into v_number
+  from counters
+  where doc_type = p_doc_type and financial_year = p_financial_year;
+
+  return coalesce(v_number, 0);
+end;
+$$ language plpgsql stable;
+
 -- ========== updated_at triggers ==========
 create or replace function set_updated_at()
 returns trigger as $$

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { pdf } from "@react-pdf/renderer";
 import { DOC_TYPES, docTypeLabel, docTypeShort, DocType } from "@/lib/docTypes";
@@ -111,8 +111,28 @@ export default function DocumentForm({
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
   const [showManageDescriptions, setShowManageDescriptions] = useState(false);
   const [customizingBilling, setCustomizingBilling] = useState(false);
+  const [nextNumberLoading, setNextNumberLoading] = useState(false);
+  const docNumberEditedRef = useRef(false);
   const isNewInvoice = !initial.id && !value.customer_id;
   const router = useRouter();
+
+  // Fetch next document number for new documents
+  useEffect(() => {
+    if (value.id || docNumberEditedRef.current) return;
+    setNextNumberLoading(true);
+    fetch(`/api/documents/next-number?doc_type=${value.doc_type}&doc_date=${value.doc_date}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.next_number) {
+          patch({ doc_number: data.next_number });
+        }
+      })
+      .catch(() => {
+        // network error — user can still save, number will be generated server-side
+      })
+      .finally(() => setNextNumberLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.doc_type, value.doc_date, value.id]);
 
   const isDirty = useMemo(() => {
     const keys: (keyof DocumentFormValue)[] = [
@@ -499,10 +519,25 @@ export default function DocumentForm({
             <div className="md:col-span-4 flex items-center gap-3 pb-1">
               <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">2</span>
               <h2 className="font-bold text-slate-900 text-lg">Document details</h2>
-              {value.doc_number && (
-                <span className="ml-auto text-xs font-mono font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-full px-3 py-1">
-                  {docTypeLabel(value.doc_type)} #{value.doc_number}
-                </span>
+              {value.id ? (
+                value.doc_number && (
+                  <span className="ml-auto text-xs font-mono font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-full px-3 py-1">
+                    {docTypeLabel(value.doc_type)} #{value.doc_number}
+                  </span>
+                )
+              ) : (
+                <div className="ml-auto">
+                  <label className="text-xs text-slate-500 mb-0.5 block">Document Number</label>
+                  <input
+                    className="input text-xs font-mono font-semibold min-w-[180px]"
+                    value={value.doc_number || ""}
+                    placeholder={nextNumberLoading ? "Loading…" : "Auto-generated"}
+                    onChange={(e) => {
+                      docNumberEditedRef.current = true;
+                      patch({ doc_number: e.target.value });
+                    }}
+                  />
+                </div>
               )}
             </div>
             <div>

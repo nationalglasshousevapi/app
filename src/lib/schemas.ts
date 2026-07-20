@@ -38,6 +38,7 @@ export const taxableChargeSchema = z.object({
 
 export const createDocumentSchema = z.object({
   doc_type: docTypeSchema,
+  doc_number: z.string().optional(),
   doc_date: z.string().optional(),
   order_number: z.string().optional().default(""),
   order_date: z.string().optional().default(""),

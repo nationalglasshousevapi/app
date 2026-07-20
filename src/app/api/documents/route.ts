@@ -17,21 +17,26 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parseError(parsed.error) }, { status: 400 });
   }
 
-  const { doc_type, doc_date, items: rawItems, ...rest } = parsed.data;
+  const { doc_type, doc_number: userDocNumber, doc_date, items: rawItems, ...rest } = parsed.data;
   const sb = supabaseServer();
   const items = parseItems(rawItems);
 
   const docDate = doc_date ? new Date(doc_date) : new Date();
   const fy = financialYearFor(docDate);
 
-  // Atomic per-type-per-year numbering, e.g. INV-24-25-0071
-  const { data: seqData, error: seqError } = await sb.rpc("next_document_number", {
-    p_doc_type: doc_type,
-    p_financial_year: fy,
-  });
-  if (seqError) return NextResponse.json({ error: seqError.message }, { status: 500 });
-
-  const docNumber = `${docTypeShort(doc_type)}-${fy}-${String(seqData).padStart(4, "0")}`;
+  // Use user-provided doc_number if given, otherwise auto-generate
+  let docNumber: string;
+  if (userDocNumber) {
+    docNumber = userDocNumber;
+  } else {
+    // Atomic per-type-per-year numbering, e.g. INV-24-25-0071
+    const { data: seqData, error: seqError } = await sb.rpc("next_document_number", {
+      p_doc_type: doc_type,
+      p_financial_year: fy,
+    });
+    if (seqError) return NextResponse.json({ error: seqError.message }, { status: 500 });
+    docNumber = `${docTypeShort(doc_type)}-${fy}-${String(seqData).padStart(4, "0")}`;
+  }
 
   const subtotal = items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
 
