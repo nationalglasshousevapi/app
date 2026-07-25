@@ -34,7 +34,7 @@ export const EMPTY_ITEM: LineItem = {
   item_type: "glass",
 };
 
-const UNITS = ["sq.ft", "nos"];
+const UNITS = ["sq.ft", "rn ft", "nos"];
 
 function roundUpInches(inches: number): number {
   if (inches <= 0) return 0;
@@ -227,6 +227,8 @@ export default function LineItemsEditor({
 
     if (updated.unit === "sq.ft") {
       updated.qty = Math.round((updated.calculated_length * updated.calculated_width * nos) / 144 * 100) / 100;
+    } else if (updated.unit === "rn ft") {
+      updated.qty = Math.round(((updated.calculated_length * 2 + updated.calculated_width * 2) / 12 * nos) * 100) / 100;
     } else {
       updated.qty = nos;
     }
