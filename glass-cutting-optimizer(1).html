@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Cutting Optimizer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+  :root{
+    --navy-950:#0a1929;
+    --navy-900:#0e2338;
+    --navy-800:#13304a;
+    --navy-700:#1c4363;
+    --line-faint: rgba(158,201,232,0.08);
+    --line-mid: rgba(158,201,232,0.22);
+    --cyan: #5ec8e8;
+    --amber: #e0a13a;
+    --scrap: #e8552f;
+    --paper: #eaf2f7;
+    --paper-dim: #b7c9d6;
+    --good: #6fbf8b;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--navy-950);
+    background-image:
+      linear-gradient(var(--line-faint) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-faint) 1px, transparent 1px);
+    background-size: 24px 24px;
+    color: var(--paper);
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  .wrap{ max-width: 1220px; margin: 0 auto; padding: 28px 20px 60px; }
+
+  header{ margin-bottom: 22px; border-bottom: 1px solid var(--line-mid); padding-bottom: 16px; }
+  header .eyebrow{
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--cyan); margin: 0 0 6px;
+  }
+  header h1{ margin: 0 0 6px; font-size: 26px; font-weight: 600; letter-spacing: -0.01em; }
+  header p{ margin: 0; color: var(--paper-dim); font-size: 14px; max-width: 700px; line-height: 1.5; }
+
+  .layout{ display: grid; grid-template-columns: 360px 1fr; gap: 20px; }
+  @media (max-width: 900px){ .layout{ grid-template-columns: 1fr; } }
+
+  .panel{
+    background: var(--navy-900);
+    border: 1px solid var(--line-mid);
+    border-radius: 4px;
+    padding: 18px;
+  }
+  .panel + .panel{ margin-top: 18px; }
+  .panel h2{
+    font-family:'IBM Plex Mono', monospace;
+    font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--cyan); margin: 0 0 14px; display:flex; align-items:center; gap:8px;
+  }
+  .panel h2::after{ content:''; flex:1; height:1px; background: var(--line-mid); }
+  .panel h2 .sub{ color: var(--paper-dim); text-transform:none; letter-spacing:0; font-size:11px; }
+
+  label{ display:block; font-size: 12px; color: var(--paper-dim); margin-bottom: 4px; }
+  .row2{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .field{ margin-bottom: 12px; }
+  input[type=text], input[type=number], select{
+    width:100%; background: var(--navy-800); border: 1px solid var(--line-mid);
+    color: var(--paper); font-family:'IBM Plex Mono', monospace; font-size: 13px;
+    padding: 8px 10px; border-radius: 3px; outline:none;
+  }
+  input:focus, select:focus{ border-color: var(--cyan); }
+  .hint{ font-size: 11px; color: var(--paper-dim); opacity:0.75; margin-top:3px; }
+
+  .toggle{ display:flex; align-items:center; gap:8px; font-size:13px; color: var(--paper-dim); cursor:pointer; user-select:none; }
+  .toggle input{ accent-color: var(--cyan); width:15px; height:15px; }
+
+  table.pieces, table.stock{ width:100%; border-collapse: collapse; font-size: 12px; }
+  table.pieces th, table.stock th{
+    text-align:left; font-family:'IBM Plex Mono', monospace; font-weight:500;
+    color: var(--paper-dim); font-size: 10px; text-transform:uppercase; letter-spacing:0.06em;
+    padding: 4px 4px; border-bottom: 1px solid var(--line-mid);
+  }
+  table.pieces td, table.stock td{ padding: 4px 4px; }
+  table.pieces input, table.stock input{ padding: 5px 6px; font-size:12px; }
+  table.pieces .w-lbl{ width: 34px; }
+  table.pieces .w-qty{ width: 46px; }
+  table.stock .w-chk{ width: 24px; text-align:center; }
+  table.pieces .w-del, table.stock .w-del{ width: 24px; }
+  .del-btn{
+    background:none; border:none; color: var(--scrap); cursor:pointer; font-size:16px; line-height:1;
+    padding: 2px 4px;
+  }
+  .add-row{
+    margin-top:10px; width:100%; background: var(--navy-800); border: 1px dashed var(--line-mid);
+    color: var(--cyan); font-family:'IBM Plex Mono', monospace; font-size:12px; padding:8px;
+    border-radius:3px; cursor:pointer;
+  }
+  .add-row:hover{ border-color: var(--cyan); }
+
+  .pack-btn{
+    width:100%; margin-top: 16px; background: var(--cyan); color: var(--navy-950);
+    font-family:'Space Grotesk', sans-serif; font-weight:600; font-size:14px;
+    border:none; border-radius:3px; padding: 12px; cursor:pointer; letter-spacing:0.01em;
+  }
+  .pack-btn:hover{ filter: brightness(1.08); }
+
+  .stats{ display:grid; grid-template-columns: repeat(4,1fr); gap:10px; margin-bottom: 18px; }
+  @media (max-width:700px){ .stats{ grid-template-columns: repeat(2,1fr); } }
+  .stat{ background: var(--navy-900); border:1px solid var(--line-mid); border-radius:4px; padding: 12px 14px; }
+  .stat .num{ font-family:'IBM Plex Mono', monospace; font-size: 22px; font-weight:600; }
+  .stat .lbl{ font-size: 11px; color: var(--paper-dim); text-transform:uppercase; letter-spacing:0.06em; margin-top:2px;}
+  .stat.good .num{ color: var(--good); }
+  .stat.warn .num{ color: var(--amber); }
+  .stat.bad .num{ color: var(--scrap); }
+
+  .warning{
+    background: rgba(232,85,47,0.1); border:1px solid var(--scrap); color:#ffb9a3;
+    padding: 10px 12px; border-radius:4px; font-size:13px; margin-bottom:16px;
+  }
+
+  .sheet-block{ margin-bottom: 26px; }
+  .sheet-title{
+    font-family:'IBM Plex Mono', monospace; font-size:12px; color: var(--paper-dim);
+    display:flex; justify-content:space-between; margin-bottom:8px; letter-spacing:0.04em;
+  }
+  .sheet-title b{ color: var(--paper); }
+  svg.sheet-svg{ display:block; background: var(--navy-800); border:1px solid var(--line-mid); border-radius:3px; }
+
+  table.remnants{ width:100%; border-collapse: collapse; font-size:13px; }
+  table.remnants th{
+    text-align:left; font-family:'IBM Plex Mono', monospace; font-size:10px; text-transform:uppercase;
+    color: var(--paper-dim); letter-spacing:0.06em; padding: 6px 8px; border-bottom:1px solid var(--line-mid);
+  }
+  table.remnants td{ padding:6px 8px; font-family:'IBM Plex Mono', monospace; border-bottom: 1px solid var(--line-faint); }
+  .pill{ display:inline-block; padding:1px 7px; border-radius:10px; font-size:10px; font-family:'IBM Plex Mono',monospace; }
+  .pill.remnant{ background: rgba(224,161,58,0.18); color: var(--amber); }
+  .pill.scrap{ background: rgba(232,85,47,0.18); color: var(--scrap); }
+
+  .empty{ color: var(--paper-dim); font-size: 13px; padding: 40px 10px; text-align:center; border: 1px dashed var(--line-mid); border-radius:4px; }
+  footer{ margin-top: 26px; font-size: 11px; color: var(--paper-dim); opacity:0.7; font-family:'IBM Plex Mono',monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">Nesting &middot; Multi-sheet &middot; Waste re-nesting</p>
+    <h1>Glass Cutting Optimizer</h1>
+    <p>Picks the best of your stock sheet sizes for each cut, then tries to fit remaining pieces (or filler sizes) into every leftover strip before calling it waste. What's left over is split into <b style="color:var(--amber)">remnant</b> (still usable) and <b style="color:var(--scrap)">scrap</b>.</p>
+  </header>
+
+  <div class="layout">
+    <div class="side">
+      <div class="panel">
+        <h2>Stock sizes <span class="sub">check the ones available for this job</span></h2>
+        <table class="stock">
+          <thead><tr><th class="w-chk">On</th><th>Label</th><th>W</th><th>H</th><th class="w-del"></th></tr></thead>
+          <tbody id="stockBody"></tbody>
+        </table>
+        <button class="add-row" id="addStock">+ Add stock size</button>
+        <div class="field" style="margin-top:14px;">
+          <label>Glass thickness (mm) &mdash; label only, doesn't restrict sizes</label>
+          <select id="thickness">
+            <option>3.5</option><option>4</option><option selected>5</option><option>6</option><option>8</option><option>10</option><option>12</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Cutting settings</h2>
+        <div class="row2">
+          <div class="field"><label>Kerf / trim (in)</label><input id="kerf" type="text" value="0.25"></div>
+          <div class="field"><label>Min. usable remnant (in)</label><input id="minRemnant" type="text" value="10"></div>
+        </div>
+        <label class="toggle"><input id="allowRotate" type="checkbox" checked> Allow rotating pieces 90&deg;</label>
+      </div>
+
+      <div class="panel">
+        <h2>Cut list</h2>
+        <table class="pieces" id="piecesTable">
+          <thead><tr><th class="w-lbl">#</th><th>Width</th><th>Height</th><th class="w-qty">Qty</th><th class="w-del"></th></tr></thead>
+          <tbody id="piecesBody"></tbody>
+        </table>
+        <button class="add-row" id="addRow">+ Add piece</button>
+      </div>
+
+      <button class="pack-btn" id="packBtn">Pack sheets</button>
+    </div>
+
+    <div class="main" id="results">
+      <div class="empty">Set your stock sizes and cut list, then click Pack sheets.</div>
+    </div>
+  </div>
+
+  <footer>Engine: for each new sheet, every checked stock size — in both orientations — is tried and the one with best yield (used area minus a scrap penalty) is chosen. After the main row-pack, remaining pieces are re-tried against every leftover strip before it's scored as remnant/scrap. Heuristic, not a guaranteed global optimum.</footer>
+</div>
+
+<script>
+// ---------- dimension parsing ----------
+function parseDim(str){
+  if(str==null) return NaN;
+  str = String(str).trim();
+  if(!str) return NaN;
+  let sign = 1;
+  if(str[0]==='-'){ sign=-1; str=str.slice(1); }
+  str = str.replace(/-/g,' ');
+  const parts = str.split(/\s+/).filter(Boolean);
+  let total = 0;
+  for(const p of parts){
+    if(p.includes('/')){
+      const [n,d] = p.split('/').map(Number);
+      if(!d) return NaN;
+      total += n/d;
+    } else {
+      const v = parseFloat(p);
+      if(isNaN(v)) return NaN;
+      total += v;
+    }
+  }
+  return sign*total;
+}
+function gcdf(a,b){ return b<1e-6 ? a : gcdf(b, a%b); }
+function toFraction(val, denom=16){
+  if(val==null || isNaN(val)) return '-';
+  const whole = Math.floor(val + 1e-6);
+  let frac = val - whole;
+  let num = Math.round(frac*denom);
+  if(num===denom) return (whole+1)+'"';
+  if(num===0) return whole+'"';
+  let g = Math.round(gcdf(num,denom)) || 1;
+  const n2 = num/g, d2 = denom/g;
+  return (whole>0? whole+' ':'') + n2 + '/' + d2 + '"';
+}
+// client billing rule: round each side UP to the nearest 3" if under 24", nearest 6" if 24" or above
+function billedDim(v){
+  if(v < 24) return Math.ceil(v/3 - 1e-9)*3;
+  return Math.ceil(v/6 - 1e-9)*6;
+}
+
+// ---------- packing engine ----------
+let UID = 0;
+function expand(pieceDefs){
+  const arr = [];
+  pieceDefs.forEach(p=>{ for(let i=0;i<p.qty;i++) arr.push({id:UID++, label:p.label, w:p.w, h:p.h}); });
+  return arr;
+}
+function orientations(p, allowRotate){
+  const base = [{w:p.w,h:p.h}];
+  if(allowRotate && Math.abs(p.w-p.h)>1e-6) base.push({w:p.h,h:p.w});
+  return base;
+}
+function bestOrientationForNewShelf(piece, binW, availH, allowRotate){
+  const opts = orientations(piece, allowRotate).filter(o=>o.w<=binW+1e-6 && o.h<=availH+1e-6);
+  if(!opts.length) return null;
+  opts.sort((a,b)=>a.h-b.h);
+  return opts[0];
+}
+function fitInShelf(piece, availW, shelfH, allowRotate){
+  const opts = orientations(piece, allowRotate).filter(o=>o.w<=availW+1e-6 && o.h<=shelfH+1e-6);
+  if(!opts.length) return null;
+  opts.sort((a,b)=>b.w-a.w);
+  return opts[0];
+}
+function packOneBin(instances, binW, binH, kerf, allowRotate){
+  const placedIds = new Set();
+  const shelves = [];
+  let y = 0;
+  while(true){
+    const start = instances.find(p=>!placedIds.has(p.id));
+    if(!start) break;
+    const opt = bestOrientationForNewShelf(start, binW, binH-y, allowRotate);
+    if(!opt) break;
+    let x = 0;
+    const items = [{id:start.id, label:start.label, x, y, w:opt.w, h:opt.h}];
+    x += opt.w + kerf;
+    placedIds.add(start.id);
+    const shelfH = opt.h;
+    for(const p of instances){
+      if(placedIds.has(p.id)) continue;
+      const o = fitInShelf(p, binW-x, shelfH, allowRotate);
+      if(o){ items.push({id:p.id, label:p.label, x, y, w:o.w, h:o.h}); x += o.w+kerf; placedIds.add(p.id); }
+    }
+    shelves.push({y, height:shelfH, items, widthUsed:x-kerf});
+    y += shelfH + kerf;
+    if(y>=binH) break;
+  }
+  return {shelves, placedIds, yUsed:Math.min(y,binH)};
+}
+function classifyRects(shelves, binW, binH, yUsed){
+  const rects = [];
+  for(const shelf of shelves){
+    const leftoverW = binW - shelf.widthUsed;
+    if(leftoverW>0.01) rects.push({x:shelf.widthUsed, y:shelf.y, w:leftoverW, h:shelf.height});
+  }
+  const bottomH = binH - yUsed;
+  if(bottomH>0.01) rects.push({x:0, y:yUsed, w:binW, h:bottomH});
+  return rects;
+}
+function packSheetWithNesting(available, sheetW, sheetH, kerf, allowRotate, minRemnant){
+  const main = packOneBin(available, sheetW, sheetH, kerf, allowRotate);
+  let placedIds = new Set(main.placedIds);
+  let shelves = main.shelves.slice();
+  let remaining = available.filter(p=>!placedIds.has(p.id));
+  let rawRects = classifyRects(main.shelves, sheetW, sheetH, main.yUsed);
+  rawRects.sort((a,b)=> b.w*b.h - a.w*a.h);
+
+  const finalWaste = [];
+  for(const rect of rawRects){
+    if(remaining.length===0){ finalWaste.push(rect); continue; }
+    const sub = packOneBin(remaining, rect.w, rect.h, kerf, allowRotate);
+    if(sub.placedIds.size>0){
+      sub.shelves.forEach(sh=>{
+        shelves.push({ y: sh.y+rect.y, height: sh.height, widthUsed: sh.widthUsed,
+          items: sh.items.map(it=>({...it, x: it.x+rect.x, y: it.y+rect.y})) });
+      });
+      placedIds = new Set([...placedIds, ...sub.placedIds]);
+      remaining = remaining.filter(p=>!sub.placedIds.has(p.id));
+      const subRects = classifyRects(sub.shelves, rect.w, rect.h, sub.yUsed)
+        .map(r=>({...r, x:r.x+rect.x, y:r.y+rect.y}));
+      finalWaste.push(...subRects);
+    } else {
+      finalWaste.push(rect);
+    }
+  }
+  finalWaste.forEach(r=> r.kind = (r.w>=minRemnant && r.h>=minRemnant) ? 'remnant' : 'scrap');
+  const usedArea = shelves.reduce((a,sh)=>a+sh.items.reduce((b,it)=>b+it.w*it.h,0),0);
+  return {shelves, waste:finalWaste, placedIds, usedArea};
+}
+function packJob(pieceDefs, stockOptions, kerf, minRemnant, allowRotate){
+  UID = 0;
+  let instances = expand(pieceDefs);
+  instances.sort((a,b)=>Math.max(b.w,b.h)-Math.max(a.w,a.h));
+
+  const tooBig = instances.filter(p=>
+    !stockOptions.some(s=> orientations(p,allowRotate).some(o=>o.w<=s.w+1e-6 && o.h<=s.h+1e-6))
+  );
+  instances = instances.filter(p=>!tooBig.includes(p));
+
+  const sheets = [];
+  let safety = 0;
+  while(instances.length>0 && safety<80){
+    safety++;
+    let best = null;
+    for(const stock of stockOptions){
+      const res = packSheetWithNesting(instances, stock.w, stock.h, kerf, allowRotate, minRemnant);
+      if(res.placedIds.size===0) continue;
+      const scrapArea = res.waste.filter(w=>w.kind==='scrap').reduce((a,r)=>a+r.w*r.h,0);
+      const area = stock.w*stock.h;
+      const score = (res.usedArea - scrapArea*2) / area;
+      if(!best || score>best.score) best = {res, stock, score};
+    }
+    if(!best) break;
+    sheets.push({stock:best.stock, ...best.res});
+    instances = instances.filter(p=>!best.res.placedIds.has(p.id));
+  }
+  return {sheets, unplaced:instances, tooBig};
+}
+
+// ---------- UI: stock sizes ----------
+const stockBody = document.getElementById('stockBody');
+function addStockRow(label, w, h, checked){
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="w-chk"><input type="checkbox" class="s-chk" ${checked!==false?'checked':''}></td>
+    <td><input type="text" value="${label||''}" class="s-label"></td>
+    <td><input type="text" value="${w!=null?w:''}" class="s-w"></td>
+    <td><input type="text" value="${h!=null?h:''}" class="s-h"></td>
+    <td class="w-del"><button class="del-btn" title="remove">&times;</button></td>
+  `;
+  tr.querySelector('.del-btn').onclick = ()=> tr.remove();
+  stockBody.appendChild(tr);
+}
+document.getElementById('addStock').onclick = ()=> addStockRow();
+addStockRow('72x96', 72, 96);
+addStockRow('84x120', 84, 120);
+addStockRow('88.75x126.5', '88.75', '126.5');
+addStockRow('78.5x126.5', '78.5', '126.5');
+
+// ---------- UI: pieces table ----------
+const piecesBody = document.getElementById('piecesBody');
+let rowCounter = 0;
+function addRow(label, w, h, qty){
+  rowCounter++;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="w-lbl"><input type="text" value="${label!=null?label:rowCounter}" class="f-label"></td>
+    <td><input type="text" value="${w!=null?w:''}" class="f-w" placeholder="e.g. 74 7/8"></td>
+    <td><input type="text" value="${h!=null?h:''}" class="f-h" placeholder="e.g. 28 9/16"></td>
+    <td class="w-qty"><input type="text" value="${qty!=null?qty:1}" class="f-qty"></td>
+    <td class="w-del"><button class="del-btn" title="remove">&times;</button></td>
+  `;
+  tr.querySelector('.del-btn').onclick = ()=> tr.remove();
+  piecesBody.appendChild(tr);
+}
+document.getElementById('addRow').onclick = ()=> addRow();
+
+// ---------- rendering ----------
+function renderResults(data, minRemnant, pieceDefs){
+  const container = document.getElementById('results');
+  container.innerHTML = '';
+
+  if(data.tooBig.length){
+    const w = document.createElement('div');
+    w.className = 'warning';
+    w.textContent = `${data.tooBig.length} piece(s) don't fit any checked stock size and were skipped: ` +
+      data.tooBig.map(p=>`${p.label} (${toFraction(p.w)}×${toFraction(p.h)})`).join(', ');
+    container.appendChild(w);
+  }
+  if(data.unplaced.length){
+    const w = document.createElement('div');
+    w.className = 'warning';
+    w.textContent = `${data.unplaced.length} piece instance(s) could not be placed after 80 sheets — check inputs.`;
+    container.appendChild(w);
+  }
+  if(data.sheets.length===0){
+    const e = document.createElement('div');
+    e.className = 'empty';
+    e.textContent = 'Nothing packed yet — check stock sizes and cut list.';
+    container.appendChild(e);
+    return;
+  }
+
+  let totalUsed=0, totalRemnant=0, totalScrap=0, totalStock=0;
+  let scrapNos=0, remnantNos=0, cutNos=0;
+  data.sheets.forEach(s=>{
+    const area = s.stock.w*s.stock.h;
+    totalStock += area;
+    totalUsed += s.usedArea;
+    s.shelves.forEach(sh=> cutNos += sh.items.length);
+    s.waste.forEach(r=> {
+      if(r.kind==='remnant'){ totalRemnant += r.w*r.h; remnantNos++; }
+      else { totalScrap += r.w*r.h; scrapNos++; }
+    });
+  });
+
+  const stats = document.createElement('div');
+  stats.className = 'stats';
+  stats.innerHTML = `
+    <div class="stat"><div class="num">${data.sheets.length}</div><div class="lbl">Sheets used</div></div>
+    <div class="stat good"><div class="num">${(totalUsed/totalStock*100).toFixed(1)}%</div><div class="lbl">Yield (used area)</div></div>
+    <div class="stat warn"><div class="num">${(totalRemnant/totalStock*100).toFixed(1)}%</div><div class="lbl">Reusable remnant</div></div>
+    <div class="stat bad"><div class="num">${(totalScrap/totalStock*100).toFixed(1)}%</div><div class="lbl">True scrap</div></div>
+  `;
+  container.appendChild(stats);
+
+  // ---- material summary: what actually got cut / wasted / kept as remnant ----
+  const matPanel = document.createElement('div');
+  matPanel.className = 'panel';
+  matPanel.innerHTML = `<h2>Material summary <span class="sub">nos &amp; sq ft actually cut from the sheets</span></h2>`;
+  const matTable = document.createElement('table');
+  matTable.className = 'remnants';
+  matTable.innerHTML = `<thead><tr><th></th><th>Nos</th><th>Sq ft</th></tr></thead>`;
+  const matBody = document.createElement('tbody');
+  const rows = [
+    ['Sheets consumed', data.sheets.length, (totalStock/144).toFixed(1)],
+    ['Cut (pieces placed)', cutNos, (totalUsed/144).toFixed(1)],
+    ['Remnant (usable offcut)', remnantNos, (totalRemnant/144).toFixed(1)],
+    ['Scrap (true waste)', scrapNos, (totalScrap/144).toFixed(1)],
+  ];
+  rows.forEach(([lbl,nos,sqft])=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${lbl}</td><td>${nos}</td><td>${sqft}</td>`;
+    matBody.appendChild(tr);
+  });
+  matTable.appendChild(matBody);
+  matPanel.appendChild(matTable);
+  container.appendChild(matPanel);
+
+  // ---- client billing: chargeable size (round up: <24" to nearest 3", >=24" to nearest 6") ----
+  if(pieceDefs && pieceDefs.length){
+    const billPanel = document.createElement('div');
+    billPanel.className = 'panel';
+    billPanel.innerHTML = `<h2>Client billing <span class="sub">chargeable size &mdash; under 24" rounds to nearest 3", 24"+ rounds to nearest 6"</span></h2>`;
+    const billTable = document.createElement('table');
+    billTable.className = 'remnants';
+    billTable.innerHTML = `<thead><tr><th>#</th><th>Actual size</th><th>Billed size</th><th>Qty</th><th>Actual sq ft</th><th>Billed sq ft</th></tr></thead>`;
+    const billBody = document.createElement('tbody');
+    let totalActualSqFt=0, totalBilledSqFt=0;
+    pieceDefs.forEach(p=>{
+      const bw = billedDim(p.w), bh = billedDim(p.h);
+      const actualSqFt = (p.w*p.h/144)*p.qty;
+      const billedSqFt = (bw*bh/144)*p.qty;
+      totalActualSqFt += actualSqFt;
+      totalBilledSqFt += billedSqFt;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${p.label}</td><td>${toFraction(p.w)} × ${toFraction(p.h)}</td>
+        <td>${bw}" × ${bh}"</td><td>${p.qty}</td>
+        <td>${actualSqFt.toFixed(2)}</td><td>${billedSqFt.toFixed(2)}</td>`;
+      billBody.appendChild(tr);
+    });
+    const totalTr = document.createElement('tr');
+    totalTr.style.fontWeight='600';
+    totalTr.innerHTML = `<td colspan="4" style="text-align:right;">TOTAL</td><td>${totalActualSqFt.toFixed(1)}</td><td>${totalBilledSqFt.toFixed(1)}</td>`;
+    billBody.appendChild(totalTr);
+    billTable.appendChild(billBody);
+    billPanel.appendChild(billTable);
+
+    const note = document.createElement('div');
+    note.className = 'hint';
+    note.style.marginTop='8px';
+    note.textContent = `Billed sq ft is what the customer is charged for; sheet sq ft consumed (${(totalStock/144).toFixed(1)} sq ft) is what it actually cost in material — the gap between those two, minus scrap, is margin plus remnant kept for future jobs.`;
+    billPanel.appendChild(note);
+    container.appendChild(billPanel);
+  }
+
+  data.sheets.forEach((s, si)=>{
+    const sheetW = s.stock.w, sheetH = s.stock.h;
+    const block = document.createElement('div');
+    block.className = 'sheet-block';
+
+    const title = document.createElement('div');
+    title.className = 'sheet-title';
+    title.innerHTML = `<span>SHEET ${si+1} &middot; <b>${s.stock.label || (toFraction(sheetW)+' × '+toFraction(sheetH))}</b> (${toFraction(sheetW)} × ${toFraction(sheetH)})</span><span>${(s.usedArea/(sheetW*sheetH)*100).toFixed(1)}% used</span>`;
+    block.appendChild(title);
+
+    const maxW = 720, maxH = 480;
+    const scale = Math.min(maxW/sheetW, maxH/sheetH);
+    const svgW = sheetW*scale, svgH = sheetH*scale;
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns,'svg');
+    svg.setAttribute('class','sheet-svg');
+    svg.setAttribute('width', svgW);
+    svg.setAttribute('height', svgH);
+    svg.setAttribute('viewBox', `0 0 ${svgW} ${svgH}`);
+
+    const defs = document.createElementNS(ns,'defs');
+    const pattern = document.createElementNS(ns,'pattern');
+    const pid = 'hatch'+si;
+    pattern.setAttribute('id', pid);
+    pattern.setAttribute('width','8'); pattern.setAttribute('height','8');
+    pattern.setAttribute('patternTransform','rotate(45)');
+    pattern.setAttribute('patternUnits','userSpaceOnUse');
+    const hline = document.createElementNS(ns,'line');
+    hline.setAttribute('x1','0'); hline.setAttribute('y1','0'); hline.setAttribute('x2','0'); hline.setAttribute('y2','8');
+    hline.setAttribute('stroke','#e8552f'); hline.setAttribute('stroke-width','3'); hline.setAttribute('opacity','0.55');
+    pattern.appendChild(hline);
+    defs.appendChild(pattern);
+    svg.appendChild(defs);
+
+    const outline = document.createElementNS(ns,'rect');
+    outline.setAttribute('x',0); outline.setAttribute('y',0);
+    outline.setAttribute('width',svgW); outline.setAttribute('height',svgH);
+    outline.setAttribute('fill','none'); outline.setAttribute('stroke','#5ec8e8'); outline.setAttribute('stroke-width','1.5');
+    svg.appendChild(outline);
+
+    s.shelves.forEach(shelf=>{
+      shelf.items.forEach(it=>{
+        const rx = it.x*scale, ry = it.y*scale, rw = it.w*scale, rh = it.h*scale;
+        const g = document.createElementNS(ns,'g');
+        const r = document.createElementNS(ns,'rect');
+        r.setAttribute('x',rx); r.setAttribute('y',ry); r.setAttribute('width',rw); r.setAttribute('height',rh);
+        r.setAttribute('fill','rgba(94,200,232,0.16)');
+        r.setAttribute('stroke','#eaf2f7'); r.setAttribute('stroke-width','1');
+        g.appendChild(r);
+
+        const label = document.createElementNS(ns,'text');
+        label.setAttribute('x', rx+rw/2); label.setAttribute('y', ry+rh/2-4);
+        label.setAttribute('text-anchor','middle'); label.setAttribute('fill','#eaf2f7');
+        label.setAttribute('font-family',"'IBM Plex Mono', monospace"); label.setAttribute('font-size', Math.max(7,Math.min(13, rh*0.28, rw*0.16)));
+        label.setAttribute('font-weight','600');
+        label.textContent = '#'+it.label;
+        g.appendChild(label);
+
+        const dims = document.createElementNS(ns,'text');
+        dims.setAttribute('x', rx+rw/2); dims.setAttribute('y', ry+rh/2+12);
+        dims.setAttribute('text-anchor','middle'); dims.setAttribute('fill','#b7c9d6');
+        dims.setAttribute('font-family',"'IBM Plex Mono', monospace"); dims.setAttribute('font-size', Math.max(6,Math.min(10, rh*0.2, rw*0.12)));
+        dims.textContent = `${toFraction(it.w)}×${toFraction(it.h)}`;
+        g.appendChild(dims);
+
+        svg.appendChild(g);
+      });
+    });
+
+    s.waste.forEach(w=>{
+      const rx=w.x*scale, ry=w.y*scale, rw=w.w*scale, rh=w.h*scale;
+      const r = document.createElementNS(ns,'rect');
+      r.setAttribute('x',rx); r.setAttribute('y',ry); r.setAttribute('width',rw); r.setAttribute('height',rh);
+      if(w.kind==='remnant'){
+        r.setAttribute('fill','rgba(224,161,58,0.10)');
+        r.setAttribute('stroke','#e0a13a'); r.setAttribute('stroke-width','1.5'); r.setAttribute('stroke-dasharray','5,3');
+      } else {
+        r.setAttribute('fill', `url(#${pid})`);
+        r.setAttribute('stroke','#e8552f'); r.setAttribute('stroke-width','1');
+      }
+      svg.appendChild(r);
+
+      const sqft = (w.w*w.h/144).toFixed(1);
+      const labelText = `${w.kind.toUpperCase()} ${toFraction(w.w)}×${toFraction(w.h)} (${sqft} sf)`;
+      const shortText = `${toFraction(w.w)}×${toFraction(w.h)}`;
+      const color = w.kind==='remnant' ? '#e0a13a' : '#e8552f';
+      const t = document.createElementNS(ns,'text');
+      t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
+      t.setAttribute('fill', color);
+      t.setAttribute('font-family',"'IBM Plex Mono', monospace"); t.setAttribute('font-weight','600');
+
+      if(rw >= rh && rw > 26){
+        // landscape strip: horizontal label, full text if there's room, short text otherwise
+        t.setAttribute('x', rx+rw/2); t.setAttribute('y', ry+rh/2);
+        const fits = rw > labelText.length*5.4;
+        t.setAttribute('font-size', fits ? '9' : Math.max(6, Math.min(9, rw/ (shortText.length*0.62))) );
+        t.textContent = fits ? labelText : shortText;
+      } else if(rh > rw && rh > 26){
+        // portrait strip: rotate the label to run along the strip
+        t.setAttribute('x', rx+rw/2); t.setAttribute('y', ry+rh/2);
+        t.setAttribute('transform', `rotate(-90 ${rx+rw/2} ${ry+rh/2})`);
+        const fits = rh > labelText.length*5.4;
+        t.setAttribute('font-size', fits ? '9' : Math.max(6, Math.min(9, rh/ (shortText.length*0.62))) );
+        t.textContent = fits ? labelText : shortText;
+      } else {
+        // too small either way: tiny corner tag, allowed to slightly overflow so it stays legible
+        t.setAttribute('text-anchor','start'); t.setAttribute('dominant-baseline','hanging');
+        t.setAttribute('x', rx+1); t.setAttribute('y', ry+1);
+        t.setAttribute('font-size','6.5');
+        t.textContent = shortText;
+      }
+      svg.appendChild(t);
+    });
+
+    block.appendChild(svg);
+    container.appendChild(block);
+  });
+
+  const allRemnants = [];
+  data.sheets.forEach((s,si)=> s.waste.forEach(w=> allRemnants.push({...w, sheet: si+1, stockLabel: s.stock.label})));
+  if(allRemnants.length){
+    const panel = document.createElement('div');
+    panel.className = 'panel';
+    panel.innerHTML = `<h2>Offcut summary</h2>`;
+    const table = document.createElement('table');
+    table.className = 'remnants';
+    table.innerHTML = `<thead><tr><th>Sheet</th><th>Size</th><th>Area</th><th>Status</th></tr></thead>`;
+    const tbody = document.createElement('tbody');
+    allRemnants.sort((a,b)=> (b.w*b.h)-(a.w*a.h));
+    allRemnants.forEach(r=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>#${r.sheet} (${r.stockLabel||''})</td><td>${toFraction(r.w)} × ${toFraction(r.h)}</td><td>${(r.w*r.h/144).toFixed(1)} sq ft</td>
+        <td><span class="pill ${r.kind}">${r.kind}</span></td>`;
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    panel.appendChild(table);
+    container.appendChild(panel);
+  }
+}
+
+document.getElementById('packBtn').onclick = ()=>{
+  const kerf = parseDim(document.getElementById('kerf').value) || 0;
+  const minRemnant = parseDim(document.getElementById('minRemnant').value) || 0;
+  const allowRotate = document.getElementById('allowRotate').checked;
+
+  const stockOptions = [];
+  document.querySelectorAll('#stockBody tr').forEach(tr=>{
+    if(!tr.querySelector('.s-chk').checked) return;
+    const label = tr.querySelector('.s-label').value.trim();
+    const w = parseDim(tr.querySelector('.s-w').value);
+    const h = parseDim(tr.querySelector('.s-h').value);
+    if(!isNaN(w) && !isNaN(h) && w>0 && h>0){
+      stockOptions.push({label, w, h});
+      // also try the sheet fed sideways — a size that packs badly one way can pack well rotated
+      if(Math.abs(w-h)>1e-6) stockOptions.push({label: label+' ↻', w:h, h:w});
+    }
+  });
+  if(!stockOptions.length){
+    alert('Check at least one valid stock size.');
+    return;
+  }
+
+  const pieceDefs = [];
+  document.querySelectorAll('#piecesBody tr').forEach(tr=>{
+    const label = tr.querySelector('.f-label').value.trim() || '?';
+    const w = parseDim(tr.querySelector('.f-w').value);
+    const h = parseDim(tr.querySelector('.f-h').value);
+    const qty = parseInt(tr.querySelector('.f-qty').value,10) || 0;
+    if(isNaN(w) || isNaN(h) || qty<=0) return;
+    pieceDefs.push({label, w, h, qty});
+  });
+  if(!pieceDefs.length){
+    alert('Add at least one valid piece.');
+    return;
+  }
+
+  const data = packJob(pieceDefs, stockOptions, kerf, minRemnant, allowRotate);
+  renderResults(data, minRemnant, pieceDefs);
+};
+
+document.getElementById('packBtn').click();
+</script>
+</body>
+</html>
