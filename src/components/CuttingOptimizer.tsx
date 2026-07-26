@@ -616,38 +616,17 @@ export default function CuttingOptimizer() {
                         </div>
                         <svg
                           viewBox={`0 0 ${svgW} ${svgH}`}
-                          className="w-full bg-slate-800"
+                          className="w-full bg-white"
                           style={{ aspectRatio: `${svgW}/${svgH}`, maxHeight: maxH }}
                         >
-                          {/* Hatch pattern for scrap */}
-                          <defs>
-                            <pattern
-                              id={`hatch${si}`}
-                              width="8"
-                              height="8"
-                              patternTransform="rotate(45)"
-                              patternUnits="userSpaceOnUse"
-                            >
-                              <line
-                                x1="0"
-                                y1="0"
-                                x2="0"
-                                y2="8"
-                                stroke="#e8552f"
-                                strokeWidth="3"
-                                opacity="0.55"
-                              />
-                            </pattern>
-                          </defs>
-
                           {/* Sheet outline */}
                           <rect
                             x={0}
                             y={0}
                             width={svgW}
                             height={svgH}
-                            fill="none"
-                            stroke="#5ec8e8"
+                            fill="#f8fafc"
+                            stroke="#94a3b8"
                             strokeWidth="1.5"
                           />
 
@@ -667,15 +646,15 @@ export default function CuttingOptimizer() {
                                     y={ry}
                                     width={rw}
                                     height={rh}
-                                    fill="rgba(94,200,232,0.16)"
-                                    stroke="#eaf2f7"
+                                    fill="rgba(14,165,233,0.12)"
+                                    stroke="#0e7490"
                                     strokeWidth="1"
                                   />
                                   <text
                                     x={rx + rw / 2}
                                     y={ry + rh / 2 - 4}
                                     textAnchor="middle"
-                                    fill="#eaf2f7"
+                                    fill="#1e293b"
                                     fontFamily="monospace"
                                     fontSize={fontSize}
                                     fontWeight="600"
@@ -686,7 +665,7 @@ export default function CuttingOptimizer() {
                                     x={rx + rw / 2}
                                     y={ry + rh / 2 + 12}
                                     textAnchor="middle"
-                                    fill="#b7c9d6"
+                                    fill="#64748b"
                                     fontFamily="monospace"
                                     fontSize={dimFontSize}
                                   >
@@ -706,7 +685,7 @@ export default function CuttingOptimizer() {
                             const isRemnant = w.kind === "remnant";
                             const labelText = `${w.kind!.toUpperCase()} ${toFraction(w.w)}×${toFraction(w.h)} (${(w.w * w.h / 144).toFixed(1)} sf)`;
                             const shortText = `${toFraction(w.w)}×${toFraction(w.h)}`;
-                            const color = isRemnant ? "#e0a13a" : "#e8552f";
+                            const color = isRemnant ? "#d97706" : "#dc2626";
                             return (
                               <g key={wi}>
                                 <rect
@@ -714,10 +693,10 @@ export default function CuttingOptimizer() {
                                   y={ry}
                                   width={rw}
                                   height={rh}
-                                  fill={isRemnant ? "rgba(224,161,58,0.10)" : `url(#hatch${si})`}
+                                  fill={isRemnant ? "rgba(217,119,6,0.06)" : "rgba(220,38,38,0.06)"}
                                   stroke={color}
                                   strokeWidth={isRemnant ? 1.5 : 1}
-                                  strokeDasharray={isRemnant ? "5,3" : undefined}
+                                  strokeDasharray={isRemnant ? "5,3" : "2,2"}
                                 />
                                 {rw >= rh && rw > 26 ? (
                                   <text

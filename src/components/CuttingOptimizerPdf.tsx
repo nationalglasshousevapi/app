@@ -3,9 +3,6 @@ import {
   Page,
   View,
   Text,
-  Svg,
-  Rect,
-  Line,
   StyleSheet,
 } from "@react-pdf/renderer";
 import {
@@ -16,13 +13,8 @@ import {
 } from "@/lib/cuttingOptimizer";
 
 const colors = {
-  darkBg: "#0e2338",
-  paper: "#eaf2f7",
   paperDim: "#b7c9d6",
   cyan: "#5ec8e8",
-  amber: "#e0a13a",
-  scrap: "#e8552f",
-  navy: "#1c4363",
 };
 
 const styles = StyleSheet.create({
@@ -49,9 +41,6 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
   },
   subtitle: { fontSize: 9, color: "#6b7280", marginBottom: 4 },
-  row: { flexDirection: "row", marginBottom: 2 },
-  label: { width: 100, color: "#6b7280", fontSize: 9 },
-  value: { flex: 1, fontSize: 9, fontWeight: "bold" },
 
   statsRow: {
     flexDirection: "row",
@@ -65,7 +54,12 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   statNum: { fontSize: 16, fontWeight: "bold" },
-  statLbl: { fontSize: 7, color: "#6b7280", textTransform: "uppercase", letterSpacing: 0.5 },
+  statLbl: {
+    fontSize: 7,
+    color: "#6b7280",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
 
   table: { marginBottom: 16 },
   tableHeader: {
@@ -75,7 +69,12 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 4,
   },
-  tableHeaderCell: { fontSize: 7, fontWeight: "bold", color: "#6b7280", textTransform: "uppercase" },
+  tableHeaderCell: {
+    fontSize: 7,
+    fontWeight: "bold",
+    color: "#6b7280",
+    textTransform: "uppercase",
+  },
   tableRow: {
     flexDirection: "row",
     borderBottom: "1 solid #e5e7eb",
@@ -84,23 +83,9 @@ const styles = StyleSheet.create({
   },
   tableCell: { fontSize: 8 },
   tableCellMono: { fontSize: 8, fontFamily: "Courier" },
-
-  sheetBlock: { marginBottom: 20, pageBreakInside: "avoid" as const },
-  sheetTitle: {
-    fontSize: 8,
-    fontFamily: "Courier",
-    color: "#6b7280",
-    marginBottom: 4,
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  svgContainer: { marginBottom: 8 },
-
   footnotes: { fontSize: 7, color: "#9ca3af", marginTop: 8 },
-  pill: { fontSize: 7, fontFamily: "Courier", paddingHorizontal: 4, paddingVertical: 1 },
 });
 
-// One PDF page per sheet, plus a summary page
 export default function CuttingOptimizerPdf({
   results,
   pieces,
@@ -141,7 +126,12 @@ export default function CuttingOptimizerPdf({
   }[] = [];
   results.sheets.forEach((s, si) =>
     s.waste.forEach((w) =>
-      allRemnants.push({ ...w, kind: w.kind || "scrap", sheet: si + 1, stockLabel: s.stock.label })
+      allRemnants.push({
+        ...w,
+        kind: w.kind || "scrap",
+        sheet: si + 1,
+        stockLabel: s.stock.label,
+      })
     )
   );
   allRemnants.sort((a, b) => b.w * b.h - a.w * a.h);
@@ -153,7 +143,8 @@ export default function CuttingOptimizerPdf({
         <View style={styles.header}>
           <Text style={styles.h1}>Glass Cutting Optimizer</Text>
           <Text style={styles.subtitle}>
-            {results.sheets.length} sheet{results.sheets.length !== 1 ? "s" : ""} ·{" "}
+            {results.sheets.length} sheet
+            {results.sheets.length !== 1 ? "s" : ""} ·{" "}
             {new Date().toLocaleDateString()}
           </Text>
         </View>
@@ -253,13 +244,22 @@ export default function CuttingOptimizerPdf({
                 })
                 .concat(
                   <View style={styles.tableRow} key="total">
-                    <Text style={[styles.tableCell, { width: 270, textAlign: "right", fontWeight: "bold" }]}>
+                    <Text
+                      style={[
+                        styles.tableCell,
+                        { width: 270, textAlign: "right", fontWeight: "bold" },
+                      ]}
+                    >
                       TOTAL
                     </Text>
-                    <Text style={[styles.tableCellMono, { width: 70, fontWeight: "bold" }]}>
+                    <Text
+                      style={[styles.tableCellMono, { width: 70, fontWeight: "bold" }]}
+                    >
                       {ta.toFixed(1)}
                     </Text>
-                    <Text style={[styles.tableCellMono, { width: 70, fontWeight: "bold" }]}>
+                    <Text
+                      style={[styles.tableCellMono, { width: 70, fontWeight: "bold" }]}
+                    >
                       {tb.toFixed(1)}
                     </Text>
                   </View>
@@ -289,7 +289,15 @@ export default function CuttingOptimizerPdf({
                 <Text style={[styles.tableCellMono, { width: 70 }]}>
                   {((r.w * r.h) / 144).toFixed(1)} sf
                 </Text>
-                <Text style={[styles.tableCellMono, { width: 60, color: r.kind === "remnant" ? "#d97706" : "#dc2626" }]}>
+                <Text
+                  style={[
+                    styles.tableCellMono,
+                    {
+                      width: 60,
+                      color: r.kind === "remnant" ? "#d97706" : "#dc2626",
+                    },
+                  ]}
+                >
                   {r.kind!.toUpperCase()}
                 </Text>
               </View>
@@ -297,144 +305,93 @@ export default function CuttingOptimizerPdf({
           </View>
         )}
 
+        {/* Sheet-by-sheet breakdown */}
+        <Text style={styles.h2}>Sheet Breakdown</Text>
+        {results.sheets.map((s, si) => {
+          const sheetW = s.stock.w,
+            sheetH = s.stock.h;
+          return (
+            <View key={si} style={{ marginBottom: 14, marginTop: 8 }}>
+              <Text style={{ fontSize: 10, fontWeight: "bold", marginBottom: 4 }}>
+                Sheet {si + 1} — {s.stock.label ||
+                  `${toFraction(sheetW)} × ${toFraction(sheetH)}`}
+                {"  "}
+                <Text style={{ fontWeight: "normal", fontSize: 8, color: "#6b7280" }}>
+                  {toFraction(sheetW)} × {toFraction(sheetH)} ·{" "}
+                  {((s.usedArea / (sheetW * sheetH)) * 100).toFixed(1)}% used ·{" "}
+                  {(s.usedArea / 144).toFixed(1)} sq ft cut
+                </Text>
+              </Text>
+
+              {/* Pieces on this sheet */}
+              <View style={styles.table}>
+                <View style={styles.tableHeader}>
+                  <Text style={[styles.tableHeaderCell, { width: 40 }]}>#</Text>
+                  <Text style={[styles.tableHeaderCell, { width: 100 }]}>Size</Text>
+                  <Text style={[styles.tableHeaderCell, { width: 80 }]}>Position</Text>
+                  <Text style={[styles.tableHeaderCell, { width: 60 }]}>Area</Text>
+                </View>
+                {s.shelves.map((shelf) =>
+                  shelf.items.map((it) => (
+                    <View style={styles.tableRow} key={it.id}>
+                      <Text style={[styles.tableCellMono, { width: 40 }]}>
+                        #{it.label}
+                      </Text>
+                      <Text style={[styles.tableCellMono, { width: 100 }]}>
+                        {toFraction(it.w)} × {toFraction(it.h)}
+                      </Text>
+                      <Text style={[styles.tableCellMono, { width: 80 }]}>
+                        ({it.x.toFixed(1)}, {it.y.toFixed(1)})
+                      </Text>
+                      <Text style={[styles.tableCellMono, { width: 60 }]}>
+                        {((it.w * it.h) / 144).toFixed(2)} sf
+                      </Text>
+                    </View>
+                  ))
+                )}
+              </View>
+
+              {/* Waste on this sheet */}
+              {s.waste.length > 0 && (
+                <View style={styles.table}>
+                  <View style={styles.tableHeader}>
+                    <Text style={[styles.tableHeaderCell, { width: 120 }]}>Size</Text>
+                    <Text style={[styles.tableHeaderCell, { width: 70 }]}>Area</Text>
+                    <Text style={[styles.tableHeaderCell, { width: 60 }]}>Status</Text>
+                  </View>
+                  {s.waste.map((w, i) => (
+                    <View style={styles.tableRow} key={i}>
+                      <Text style={[styles.tableCellMono, { width: 120 }]}>
+                        {toFraction(w.w)} × {toFraction(w.h)}
+                      </Text>
+                      <Text style={[styles.tableCellMono, { width: 70 }]}>
+                        {((w.w * w.h) / 144).toFixed(2)} sf
+                      </Text>
+                      <Text
+                        style={[
+                          styles.tableCellMono,
+                          {
+                            width: 60,
+                            color: w.kind === "remnant" ? "#d97706" : "#dc2626",
+                          },
+                        ]}
+                      >
+                        {w.kind!.toUpperCase()}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+            </View>
+          );
+        })}
+
         <Text style={styles.footnotes}>
-          Engine: for each new sheet, every checked stock size — in both orientations — is tried
-          and the one with best yield (used area minus a scrap penalty) is chosen. Heuristic, not a
-          guaranteed global optimum.
+          Engine: for each new sheet, every checked stock size — in both orientations —
+          is tried and the one with best yield (used area minus a scrap penalty) is
+          chosen. Heuristic, not a guaranteed global optimum.
         </Text>
       </Page>
-
-      {/* Per-sheet pages */}
-      {results.sheets.map((s, si) => {
-        const sheetW = s.stock.w,
-          sheetH = s.stock.h;
-        const maxSvgW = 500,
-          maxSvgH = 350;
-        const scale = Math.min(maxSvgW / sheetW, maxSvgH / sheetH);
-        const svgW = sheetW * scale,
-          svgH = sheetH * scale;
-
-        return (
-          <Page size="A4" style={styles.page} key={si}>
-            <View style={styles.header}>
-              <Text style={styles.h1}>
-                Sheet {si + 1} — {s.stock.label || `${toFraction(sheetW)} × ${toFraction(sheetH)}`}
-              </Text>
-              <Text style={styles.subtitle}>
-                {toFraction(sheetW)} × {toFraction(sheetH)} ·{" "}
-                {((s.usedArea / (sheetW * sheetH)) * 100).toFixed(1)}% used ·{" "}
-                {(s.usedArea / 144).toFixed(1)} sq ft cut
-              </Text>
-            </View>
-
-            <Svg width={svgW} height={svgH} style={styles.svgContainer}>
-              {/* Sheet outline */}
-              <Rect x={0} y={0} width={svgW} height={svgH} fill={colors.darkBg} stroke={colors.cyan} strokeWidth={1.5} />
-
-              {/* Placed pieces */}
-              {s.shelves.map((shelf) =>
-                shelf.items.map((it) => {
-                  const rx = it.x * scale,
-                    ry = it.y * scale,
-                    rw = it.w * scale,
-                    rh = it.h * scale;
-                  return (
-                    <Rect
-                      key={it.id}
-                      x={rx}
-                      y={ry}
-                      width={rw}
-                      height={rh}
-                      fill="rgba(94,200,232,0.18)"
-                      stroke={colors.paper}
-                      strokeWidth={0.8}
-                    />
-                  );
-                })
-              )}
-
-              {/* Waste areas */}
-              {s.waste.map((w, wi) => {
-                const rx = w.x * scale,
-                  ry = w.y * scale,
-                  rw = w.w * scale,
-                  rh = w.h * scale;
-                const isRemnant = w.kind === "remnant";
-                return (
-                  <Rect
-                    key={`w${wi}`}
-                    x={rx}
-                    y={ry}
-                    width={rw}
-                    height={rh}
-                    fill={isRemnant ? "rgba(224,161,58,0.08)" : "rgba(232,85,47,0.15)"}
-                    stroke={isRemnant ? colors.amber : colors.scrap}
-                    strokeWidth={isRemnant ? 1.5 : 0.8}
-                    strokeDasharray={isRemnant ? "5,3" : undefined}
-                  />
-                );
-              })}
-            </Svg>
-
-            {/* Per-sheet pieces list */}
-            <View style={styles.table}>
-              <Text style={styles.h2}>Pieces on this sheet</Text>
-              <View style={styles.tableHeader}>
-                <Text style={[styles.tableHeaderCell, { width: 40 }]}>#</Text>
-                <Text style={[styles.tableHeaderCell, { width: 100 }]}>Size</Text>
-                <Text style={[styles.tableHeaderCell, { width: 80 }]}>Position</Text>
-                <Text style={[styles.tableHeaderCell, { width: 60 }]}>Area</Text>
-              </View>
-              {s.shelves.map((shelf) =>
-                shelf.items.map((it) => (
-                  <View style={styles.tableRow} key={it.id}>
-                    <Text style={[styles.tableCellMono, { width: 40 }]}>#{it.label}</Text>
-                    <Text style={[styles.tableCellMono, { width: 100 }]}>
-                      {toFraction(it.w)} × {toFraction(it.h)}
-                    </Text>
-                    <Text style={[styles.tableCellMono, { width: 80 }]}>
-                      ({it.x.toFixed(1)}, {it.y.toFixed(1)})
-                    </Text>
-                    <Text style={[styles.tableCellMono, { width: 60 }]}>
-                      {((it.w * it.h) / 144).toFixed(2)} sf
-                    </Text>
-                  </View>
-                ))
-              )}
-            </View>
-
-            {/* Per-sheet waste */}
-            {s.waste.length > 0 && (
-              <View style={styles.table}>
-                <Text style={styles.h2}>Waste on this sheet</Text>
-                <View style={styles.tableHeader}>
-                  <Text style={[styles.tableHeaderCell, { width: 120 }]}>Size</Text>
-                  <Text style={[styles.tableHeaderCell, { width: 70 }]}>Area</Text>
-                  <Text style={[styles.tableHeaderCell, { width: 60 }]}>Status</Text>
-                </View>
-                {s.waste.map((w, i) => (
-                  <View style={styles.tableRow} key={i}>
-                    <Text style={[styles.tableCellMono, { width: 120 }]}>
-                      {toFraction(w.w)} × {toFraction(w.h)}
-                    </Text>
-                    <Text style={[styles.tableCellMono, { width: 70 }]}>
-                      {((w.w * w.h) / 144).toFixed(2)} sf
-                    </Text>
-                    <Text
-                      style={[
-                        styles.tableCellMono,
-                        { width: 60, color: w.kind === "remnant" ? "#d97706" : "#dc2626" },
-                      ]}
-                    >
-                      {w.kind!.toUpperCase()}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </Page>
-        );
-      })}
     </Document>
   );
 }
