@@ -3,13 +3,14 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon } from "./icons";
+import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon, ToolIcon } from "./icons";
 
 const TABS = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/documents", label: "Documents", icon: "document" },
   { href: "/accounts", label: "Accounts", icon: "account" },
   { href: "/customers", label: "Customers", icon: "person" },
+  { href: "/tools/cutting-optimizer", label: "Cut", icon: "tool" },
 ];
 
 export default function MobileBottomNav() {
@@ -17,6 +18,7 @@ export default function MobileBottomNav() {
 
   const isActive = (href: string) => {
     if (href === "/documents") return pathname.startsWith("/documents/") || pathname === "/documents";
+    if (href === "/tools/cutting-optimizer") return pathname.startsWith("/tools/") || pathname === "/tools/cutting-optimizer";
     return pathname === href;
   };
 
@@ -44,6 +46,8 @@ export default function MobileBottomNav() {
                   <DashboardIcon className="w-5 h-5" />
                 ) : tab.icon === "account" ? (
                   <AccountIcon className="w-5 h-5" />
+                ) : tab.icon === "tool" ? (
+                  <ToolIcon className="w-5 h-5" />
                 ) : (
                   <DocumentIcon className="w-5 h-5" />
                 )}

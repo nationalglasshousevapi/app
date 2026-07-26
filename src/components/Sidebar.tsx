@@ -4,13 +4,14 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon } from "./icons";
+import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon, ToolIcon } from "./icons";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/documents", label: "All documents", icon: "document" },
   { href: "/accounts", label: "Accounts", icon: "account" },
   { href: "/customers", label: "Customers", icon: "person" },
+  { href: "/tools/cutting-optimizer", label: "Cut Optimizer", icon: "tool" },
 ];
 
 export default function Sidebar() {
@@ -97,6 +98,8 @@ export default function Sidebar() {
                   <DashboardIcon className="w-4 h-4" />
                 ) : item.icon === "account" ? (
                   <AccountIcon className="w-4 h-4" />
+                ) : item.icon === "tool" ? (
+                  <ToolIcon className="w-4 h-4" />
                 ) : (
                   <DocumentIcon className="w-4 h-4" />
                 )}
