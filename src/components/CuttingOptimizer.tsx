@@ -14,10 +14,10 @@ import { pdf } from "@react-pdf/renderer";
 import CuttingOptimizerPdf from "./CuttingOptimizerPdf";
 
 const DEFAULT_STOCK: StockSize[] = [
-  { label: "72x96", w: 72, h: 96 },
-  { label: "84x120", w: 84, h: 120 },
-  { label: "88.75x126.5", w: 88.75, h: 126.5 },
-  { label: "78.5x126.5", w: 78.5, h: 126.5 },
+  { label: "72x96", w: 72, h: 96, qty: 0 },
+  { label: "84x120", w: 84, h: 120, qty: 0 },
+  { label: "88.75x126.5", w: 88.75, h: 126.5, qty: 0 },
+  { label: "78.5x126.5", w: 78.5, h: 126.5, qty: 0 },
 ];
 
 const SEED_PIECES: PieceDef[] = [
@@ -53,11 +53,13 @@ export default function CuttingOptimizer() {
 
   // Stock row management
   const updateStock = useCallback(
-    (i: number, field: keyof StockSize, value: string) => {
+    (i: number, field: string, value: string) => {
       setStockSizes((prev) => {
-        const next = prev.map((s, j) =>
-          j === i ? { ...s, [field]: value } : s
-        );
+        const next = prev.map((s, j) => {
+          if (j !== i) return s;
+          if (field === "qty") return { ...s, qty: value === "" ? undefined : parseInt(value, 10) || 0 };
+          return { ...s, [field]: value };
+        });
         return next;
       });
     },
@@ -65,7 +67,7 @@ export default function CuttingOptimizer() {
   );
 
   const addStock = useCallback(() => {
-    setStockSizes((prev) => [...prev, { label: "", w: 0, h: 0 }]);
+    setStockSizes((prev) => [...prev, { label: "", w: 0, h: 0, qty: 0 }]);
     setStockChecked((prev) => [...prev, true]);
   }, []);
 
@@ -113,12 +115,16 @@ export default function CuttingOptimizer() {
       return;
     }
 
-    // Add rotated variants
+    // Expand stock by quantity, adding a rotated variant for each copy
     const stockOptions: StockSize[] = [];
     for (const s of validStock) {
-      stockOptions.push(s);
-      if (Math.abs(s.w - s.h) > 1e-6) {
-        stockOptions.push({ label: s.label + " ↻", w: s.h, h: s.w });
+      const copies = s.qty && s.qty > 0 ? s.qty : 99;
+      for (let c = 0; c < copies; c++) {
+        const label = s.qty && s.qty > 0 ? `${s.label} #${c + 1}` : s.label;
+        stockOptions.push({ ...s, label });
+        if (Math.abs(s.w - s.h) > 1e-6) {
+          stockOptions.push({ label: label + " ↻", w: s.h, h: s.w });
+        }
       }
     }
 
@@ -222,6 +228,7 @@ export default function CuttingOptimizer() {
                     <th className="text-left p-2">Label</th>
                     <th className="text-left p-2">W</th>
                     <th className="text-left p-2">H</th>
+                    <th className="text-left p-2" style={{width:50}}>Qty</th>
                     <th className="w-8"></th>
                   </tr>
                 </thead>
@@ -261,6 +268,14 @@ export default function CuttingOptimizer() {
                           className="input !min-h-[30px] !py-1.5 !px-2 !rounded-lg text-xs font-mono"
                           value={s.h || ""}
                           onChange={(e) => updateStock(i, "h", e.target.value)}
+                        />
+                      </td>
+                      <td className="p-2">
+                        <input
+                          className="input !min-h-[30px] !py-1 !px-2 !rounded-lg text-xs font-mono w-10"
+                          value={s.qty ?? ""}
+                          placeholder="∞"
+                          onChange={(e) => updateStock(i, "qty", e.target.value)}
                         />
                       </td>
                       <td className="p-2">

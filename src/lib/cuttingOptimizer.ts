@@ -17,6 +17,7 @@ export interface StockSize {
   label: string;
   w: number;
   h: number;
+  qty?: number; // 0 or undefined = unlimited
 }
 
 export interface PlacedItem {
