@@ -20,22 +20,7 @@ const DEFAULT_STOCK: StockSize[] = [
   { label: "78.5x126.5", w: 78.5, h: 126.5, qty: 0 },
 ];
 
-const SEED_PIECES: PieceDef[] = [
-  { label: "1", w: 74 + 7 / 8, h: 28 + 9 / 16, qty: 4 },
-  { label: "2", w: 74 + 3 / 8, h: 42 + 3 / 8, qty: 2 },
-  { label: "3", w: 23 + 13 / 16, h: 29 + 7 / 8, qty: 2 },
-  { label: "4", w: 37 + 5 / 16, h: 18 + 1 / 2, qty: 2 },
-  { label: "5", w: 86, h: 29 + 7 / 8, qty: 2 },
-  { label: "6", w: 61 + 3 / 16, h: 36 + 5 / 16, qty: 2 },
-  { label: "7", w: 62 + 1 / 4, h: 28 + 15 / 16, qty: 4 },
-  { label: "8", w: 62 + 9 / 16, h: 23 + 7 / 8, qty: 2 },
-  { label: "9", w: 86 + 7 / 16, h: 30 + 3 / 16, qty: 2 },
-  { label: "10", w: 64 + 7 / 8, h: 42 + 3 / 16, qty: 2 },
-  { label: "11", w: 82 + 15 / 16, h: 23 + 15 / 16, qty: 2 },
-  { label: "12", w: 22, h: 65 + 1 / 4, qty: 1 },
-  { label: "13", w: 21 + 3 / 16, h: 65 + 1 / 4, qty: 1 },
-  { label: "filler", w: 37 + 1 / 8, h: 12, qty: 10 },
-];
+const SEED_PIECES: PieceDef[] = [];
 
 export default function CuttingOptimizer() {
   const [stockSizes, setStockSizes] = useState<StockSize[]>(DEFAULT_STOCK);
