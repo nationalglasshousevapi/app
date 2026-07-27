@@ -82,6 +82,38 @@ body {
   }
 }
 
+/* ── Print styles ── */
+@media print {
+  @page {
+    margin: 0.5in;
+  }
+
+  body * {
+    visibility: visible !important;
+  }
+
+  /* Hide navigation, sidebar, and the left (input) panel */
+  nav, aside,
+  .grid-cols-1 > .space-y-5:first-child {
+    display: none !important;
+  }
+
+  /* Make results full width */
+  .lg\:grid-cols-\[380px_1fr\] {
+    display: block !important;
+  }
+
+  .card {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+
+  .btn-primary {
+    display: none !important;
+  }
+}
+
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }

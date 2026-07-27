@@ -10,8 +10,6 @@ import {
   billedDim,
   packJob,
 } from "@/lib/cuttingOptimizer";
-import { pdf } from "@react-pdf/renderer";
-import CuttingOptimizerPdf from "./CuttingOptimizerPdf";
 
 const DEFAULT_STOCK: StockSize[] = [
   { label: "72x96", w: 72, h: 96, qty: 0 },
@@ -35,6 +33,14 @@ export default function CuttingOptimizer() {
   const [results, setResults] = useState<PackResult | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Print / PDF — uses the browser's native print dialog
+  const handlePrint = useCallback(() => {
+    if (!results) return;
+    setExportingPdf(true);
+    // Brief delay so the button text updates before the print dialog opens
+    setTimeout(() => { window.print(); setExportingPdf(false); }, 200);
+  }, [results]);
 
   // Stock row management
   const updateStock = useCallback(
@@ -130,34 +136,6 @@ export default function CuttingOptimizer() {
     const data = packJob(validPieces, stockOptions, kerfVal, minRemnantVal, allowRotate);
     setResults(data);
   }, [stockSizes, stockChecked, pieces, kerf, minRemnant, allowRotate]);
-
-  // PDF export — strip non-serializable Set before passing to react-pdf
-  const handleExportPdf = useCallback(async () => {
-    if (!results) return;
-    setExportingPdf(true);
-    try {
-      // Deep clone to remove Sets (react-pdf can't traverse non-plain objects)
-      const cleanSheets = results.sheets.map((s) => ({
-        stock: s.stock,
-        shelves: s.shelves,
-        waste: s.waste,
-        usedArea: s.usedArea,
-      }));
-      const doc = <CuttingOptimizerPdf results={{ sheets: cleanSheets, unplaced: results.unplaced, tooBig: results.tooBig }} pieces={pieces} />;
-      const blob = await pdf(doc).toBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "cutting-optimizer.pdf";
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      console.error("PDF generation failed", e);
-      alert("PDF generation failed — see console.");
-    } finally {
-      setExportingPdf(false);
-    }
-  }, [results, pieces]);
 
   // Stats calculation
   let totalUsed = 0,
@@ -808,13 +786,13 @@ export default function CuttingOptimizer() {
                     );
                   })()}
 
-                  {/* PDF Download */}
+                  {/* Print / PDF */}
                   <button
-                    onClick={handleExportPdf}
+                    onClick={handlePrint}
                     disabled={exportingPdf}
                     className="btn-primary w-full text-base py-3"
                   >
-                    {exportingPdf ? "Generating PDF..." : "Download PDF"}
+                    {exportingPdf ? "Opening print dialog..." : "Print / Save PDF"}
                   </button>
                 </>
               )}
