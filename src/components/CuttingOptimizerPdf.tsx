@@ -5,12 +5,7 @@ import {
   Text,
   StyleSheet,
 } from "@react-pdf/renderer";
-import {
-  type PackResult,
-  type PieceDef,
-  toFraction,
-  billedDim,
-} from "@/lib/cuttingOptimizer";
+import { type PieceDef, toFraction, billedDim } from "@/lib/cuttingOptimizer";
 
 const colors = {
   paperDim: "#b7c9d6",
@@ -90,7 +85,16 @@ export default function CuttingOptimizerPdf({
   results,
   pieces,
 }: {
-  results: PackResult;
+  results: {
+    sheets: Array<{
+      stock: { label: string; w: number; h: number };
+      shelves: Array<{ y: number; height: number; widthUsed: number; items: Array<{ id: number; label: string; x: number; y: number; w: number; h: number }> }>;
+      waste: Array<{ x: number; y: number; w: number; h: number; kind?: "remnant" | "scrap" }>;
+      usedArea: number;
+    }>;
+    unplaced: Array<{ id: number; label: string; w: number; h: number }>;
+    tooBig: Array<{ id: number; label: string; w: number; h: number }>;
+  };
   pieces: PieceDef[];
 }) {
   // Calculate totals

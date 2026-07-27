@@ -131,12 +131,19 @@ export default function CuttingOptimizer() {
     setResults(data);
   }, [stockSizes, stockChecked, pieces, kerf, minRemnant, allowRotate]);
 
-  // PDF export
+  // PDF export — strip non-serializable Set before passing to react-pdf
   const handleExportPdf = useCallback(async () => {
     if (!results) return;
     setExportingPdf(true);
     try {
-      const doc = <CuttingOptimizerPdf results={results} pieces={pieces} />;
+      // Deep clone to remove Sets (react-pdf can't traverse non-plain objects)
+      const cleanSheets = results.sheets.map((s) => ({
+        stock: s.stock,
+        shelves: s.shelves,
+        waste: s.waste,
+        usedArea: s.usedArea,
+      }));
+      const doc = <CuttingOptimizerPdf results={{ sheets: cleanSheets, unplaced: results.unplaced, tooBig: results.tooBig }} pieces={pieces} />;
       const blob = await pdf(doc).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
