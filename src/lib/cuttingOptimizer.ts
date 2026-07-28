@@ -56,6 +56,44 @@ export interface PackResult {
   sheets: SheetResult[];
   unplaced: PieceInstance[];
   tooBig: PieceInstance[];
+  skippedStock: StockSize[];
+}
+
+export interface JobSettings {
+  kerf: number;
+  minRemnant: number;
+  maxHorizontalCut: number;
+  allowRotate: boolean;
+}
+
+export interface BillingRow {
+  label: string;
+  w: number;
+  h: number;
+  billedW: number;
+  billedH: number;
+  qty: number;
+  actualSqFt: number;
+  billedSqFt: number;
+}
+
+export interface BillingReport {
+  rows: BillingRow[];
+  totals: { actualSqFt: number; billedSqFt: number };
+}
+
+export interface Summary {
+  sheetsUsed: number;
+  yieldPct: number;
+  remnantPct: number;
+  scrapPct: number;
+  cutNos: number;
+  cutSqFt: number;
+  remnantNos: number;
+  remnantSqFt: number;
+  scrapNos: number;
+  scrapSqFt: number;
+  totalStockSqFt: number;
 }
 
 // ---------- Dimension helpers ----------
@@ -102,10 +140,37 @@ export function toFraction(val: number | null | undefined, denom = 16): string {
   return (whole > 0 ? whole + " " : "") + n2 + "/" + d2 + '"';
 }
 
-// Client billing rule: round each side UP to the nearest 3" if under 24", nearest 6" if 24" or above
+// ---------- Client billing ----------
 export function billedDim(v: number): number {
   if (v < 24) return Math.ceil(v / 3 - 1e-9) * 3;
   return Math.ceil(v / 6 - 1e-9) * 6;
+}
+
+export function billingReport(pieceDefs: PieceDef[]): BillingReport {
+  const rows: BillingRow[] = pieceDefs.map((p) => {
+    const bw = billedDim(p.w),
+      bh = billedDim(p.h);
+    const actualSqFt = ((p.w * p.h) / 144) * p.qty;
+    const billedSqFt = ((bw * bh) / 144) * p.qty;
+    return {
+      label: p.label,
+      w: p.w,
+      h: p.h,
+      billedW: bw,
+      billedH: bh,
+      qty: p.qty,
+      actualSqFt,
+      billedSqFt,
+    };
+  });
+  const totals = rows.reduce(
+    (a, r) => ({
+      actualSqFt: a.actualSqFt + r.actualSqFt,
+      billedSqFt: a.billedSqFt + r.billedSqFt,
+    }),
+    { actualSqFt: 0, billedSqFt: 0 }
+  );
+  return { rows, totals };
 }
 
 // ---------- Packing engine ----------
@@ -219,26 +284,9 @@ function packSheetWithNesting(
   sheetH: number,
   kerf: number,
   allowRotate: boolean,
-  minRemnant: number,
-  guillotine = false
+  minRemnant: number
 ): { shelves: Shelf[]; waste: WasteRect[]; placedIds: Set<number>; usedArea: number } {
   const main = packOneBin(available, sheetW, sheetH, kerf, allowRotate);
-
-  // Guillotine (manual cutting) mode: skip waste re-nesting.
-  // The shelf layout is already guillotine-safe — each horizontal cut spans the full
-  // sheet width, and vertical cuts only go within a shelf strip. Waste re-nesting
-  // would break the edge-to-edge cut guarantee.
-  if (guillotine) {
-    const waste = classifyRects(main.shelves, sheetW, sheetH, main.yUsed);
-    waste.forEach(
-      (r) => (r.kind = r.w >= minRemnant && r.h >= minRemnant ? "remnant" : "scrap")
-    );
-    const usedArea = main.shelves.reduce(
-      (a, sh) => a + sh.items.reduce((b, it) => b + it.w * it.h, 0),
-      0
-    );
-    return { shelves: main.shelves, waste, placedIds: main.placedIds, usedArea };
-  }
   let placedIds = new Set(main.placedIds);
   let shelves = main.shelves.slice();
   let remaining = available.filter((p) => !placedIds.has(p.id));
@@ -284,29 +332,44 @@ function packSheetWithNesting(
 
 export function packJob(
   pieceDefs: PieceDef[],
-  stockOptions: StockSize[],
-  kerf: number,
-  minRemnant: number,
-  allowRotate: boolean,
-  guillotine = false
+  stockSizesRaw: StockSize[],
+  settings: JobSettings
 ): PackResult {
+  const { kerf, minRemnant, allowRotate, maxHorizontalCut } = settings;
   UID = 0;
+
+  // Build the set of usable orientations, respecting the max horizontal cut
+  // length: only orientations whose WIDTH fits. Never rotate a sheet into
+  // an orientation that would force a stage-1 cut longer than the table.
+  const stockOptions: StockSize[] = [];
+  const skippedStock: StockSize[] = [];
+  stockSizesRaw.forEach((s) => {
+    let added = false;
+    if (s.w <= maxHorizontalCut + 1e-6) {
+      stockOptions.push({ label: s.label, w: s.w, h: s.h });
+      added = true;
+    }
+    if (Math.abs(s.w - s.h) > 1e-6 && s.h <= maxHorizontalCut + 1e-6) {
+      stockOptions.push({ label: s.label + " ↻", w: s.h, h: s.w });
+      added = true;
+    }
+    if (!added) skippedStock.push(s);
+  });
+
   let instances = expand(pieceDefs);
   instances.sort((a, b) => Math.max(b.w, b.h) - Math.max(a.w, a.h));
 
   const tooBig = instances.filter(
     (p) =>
       !stockOptions.some((s) =>
-        orientations(p, allowRotate).some(
-          (o) => o.w <= s.w + 1e-6 && o.h <= s.h + 1e-6
-        )
+        orientations(p, allowRotate).some((o) => o.w <= s.w + 1e-6 && o.h <= s.h + 1e-6)
       )
   );
   instances = instances.filter((p) => !tooBig.includes(p));
 
   const sheets: SheetResult[] = [];
   let safety = 0;
-  while (instances.length > 0 && safety < 80) {
+  while (instances.length > 0 && safety < 200) {
     safety++;
     let best: { res: SheetResult; stock: StockSize; score: number } | null = null;
     for (const stock of stockOptions) {
@@ -316,8 +379,7 @@ export function packJob(
         stock.h,
         kerf,
         allowRotate,
-        minRemnant,
-        guillotine
+        minRemnant
       );
       if (res.placedIds.size === 0) continue;
       const scrapArea = res.waste
@@ -332,5 +394,45 @@ export function packJob(
     instances = instances.filter((p) => !best.res.placedIds.has(p.id));
   }
 
-  return { sheets, unplaced: instances, tooBig };
+  return { sheets, unplaced: instances, tooBig, skippedStock };
+}
+
+export function summarize(packResult: PackResult): Summary {
+  let totalStock = 0,
+    totalUsed = 0,
+    totalRemnant = 0,
+    totalScrap = 0;
+  let cutNos = 0,
+    remnantNos = 0,
+    scrapNos = 0;
+  packResult.sheets.forEach((s) => {
+    const area = s.stock.w * s.stock.h;
+    totalStock += area;
+    totalUsed += s.usedArea;
+    s.shelves.forEach((sh) => {
+      cutNos += sh.items.length;
+    });
+    s.waste.forEach((r) => {
+      if (r.kind === "remnant") {
+        totalRemnant += r.w * r.h;
+        remnantNos++;
+      } else {
+        totalScrap += r.w * r.h;
+        scrapNos++;
+      }
+    });
+  });
+  return {
+    sheetsUsed: packResult.sheets.length,
+    yieldPct: totalStock ? (totalUsed / totalStock) * 100 : 0,
+    remnantPct: totalStock ? (totalRemnant / totalStock) * 100 : 0,
+    scrapPct: totalStock ? (totalScrap / totalStock) * 100 : 0,
+    cutNos,
+    cutSqFt: totalUsed / 144,
+    remnantNos,
+    remnantSqFt: totalRemnant / 144,
+    scrapNos,
+    scrapSqFt: totalScrap / 144,
+    totalStockSqFt: totalStock / 144,
+  };
 }

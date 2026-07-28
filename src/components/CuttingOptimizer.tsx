@@ -5,10 +5,12 @@ import {
   type PieceDef,
   type StockSize,
   type PackResult,
+  type JobSettings,
   parseDim,
   toFraction,
-  billedDim,
   packJob,
+  summarize,
+  billingReport,
 } from "@/lib/cuttingOptimizer";
 
 const DEFAULT_STOCK: StockSize[] = [
@@ -28,8 +30,7 @@ export default function CuttingOptimizer() {
   const [pieces, setPieces] = useState<PieceDef[]>(SEED_PIECES);
   const [kerf, setKerf] = useState("0.25");
   const [minRemnant, setMinRemnant] = useState("10");
-  const [allowRotate, setAllowRotate] = useState(true);
-  const [manualCutting, setManualCutting] = useState(false);
+  const [allowRotate, setAllowRotate] = useState(false);
   const [maxCutWidth, setMaxCutWidth] = useState("96");
   const [thickness, setThickness] = useState("5");
   const [results, setResults] = useState<PackResult | null>(null);
@@ -92,6 +93,7 @@ export default function CuttingOptimizer() {
   const handlePack = useCallback(() => {
     const kerfVal = parseDim(kerf) || 0;
     const minRemnantVal = parseDim(minRemnant) || 0;
+    const maxHorizontalCut = parseDim(maxCutWidth) || 96;
 
     const activeStock = stockSizes.filter((_, i) => stockChecked[i]).map((s) => ({
       ...s,
@@ -108,19 +110,6 @@ export default function CuttingOptimizer() {
       return;
     }
 
-    // Expand stock by quantity, adding a rotated variant for each copy
-    const stockOptions: StockSize[] = [];
-    for (const s of validStock) {
-      const copies = s.qty && s.qty > 0 ? s.qty : 99;
-      for (let c = 0; c < copies; c++) {
-        const label = s.qty && s.qty > 0 ? `${s.label} #${c + 1}` : s.label;
-        stockOptions.push({ ...s, label });
-        if (Math.abs(s.w - s.h) > 1e-6) {
-          stockOptions.push({ label: label + " ↻", w: s.h, h: s.w });
-        }
-      }
-    }
-
     const validPieces = pieces
       .map((p) => ({
         ...p,
@@ -135,61 +124,32 @@ export default function CuttingOptimizer() {
       return;
     }
 
-    // Manual (guillotine) mode: filter stock so horizontal cuts fit the table (w ≤ maxCutWidth)
-    let finalStockOptions = stockOptions;
-    const maxCutWidthVal = parseDim(maxCutWidth) || 96;
-    if (manualCutting) {
-      finalStockOptions = stockOptions.filter((s) => s.w <= maxCutWidthVal + 1e-6);
-    }
-
-    const data = packJob(
-      validPieces,
-      finalStockOptions,
-      kerfVal,
-      minRemnantVal,
+    const settings: JobSettings = {
+      kerf: kerfVal,
+      minRemnant: minRemnantVal,
+      maxHorizontalCut,
       allowRotate,
-      manualCutting
-    );
-    setResults(data);
-  }, [stockSizes, stockChecked, pieces, kerf, minRemnant, allowRotate, manualCutting, maxCutWidth]);
+    };
 
-  // Stats calculation
-  let totalUsed = 0,
-    totalRemnant = 0,
-    totalScrap = 0,
-    totalStock = 0;
-  let scrapNos = 0,
-    remnantNos = 0,
-    cutNos = 0;
-  if (results) {
-    results.sheets.forEach((s) => {
-      const area = s.stock.w * s.stock.h;
-      totalStock += area;
-      totalUsed += s.usedArea;
-      s.shelves.forEach((sh) => (cutNos += sh.items.length));
-      s.waste.forEach((r) => {
-        if (r.kind === "remnant") {
-          totalRemnant += r.w * r.h;
-          remnantNos++;
-        } else {
-          totalScrap += r.w * r.h;
-          scrapNos++;
-        }
-      });
-    });
-  }
+    const data = packJob(validPieces, validStock, settings);
+    setResults(data);
+  }, [stockSizes, stockChecked, pieces, kerf, minRemnant, allowRotate, maxCutWidth]);
+
+  // Stats — derived via summarize()
+  const summary = results ? summarize(results) : null;
+  const totalStockSqFt = summary ? summary.totalStockSqFt : 0;
 
   return (
     <div>
       <div className="mb-6">
         <p className="text-xs font-semibold tracking-[0.14em] uppercase text-brand-500 mb-1">
-          Nesting · Multi-sheet · Waste re-nesting
+          Two-stage guillotine · Multi-sheet · Waste re-nesting
         </p>
         <h1 className="page-title">Glass Cutting Optimizer</h1>
         <p className="page-subtitle max-w-2xl">
-          Picks the best of your stock sheet sizes for each cut, then tries to fit
-          remaining pieces (or filler sizes) into every leftover strip before calling it
-          waste. What&apos;s left over is split into{" "}
+          Two-stage guillotine packing — cuts go edge-to-edge for manual cutting. Fits
+          remaining pieces into every leftover strip before calling it waste.
+          What&apos;s left is split into{" "}
           <span className="text-amber-600 font-semibold">remnant</span> (still usable) and{" "}
           <span className="text-red-600 font-semibold">scrap</span>.
         </p>
@@ -331,27 +291,18 @@ export default function CuttingOptimizer() {
               Allow rotating pieces 90°
             </label>
 
-            <label className="flex items-center gap-2 mt-3 text-sm text-slate-600 cursor-pointer select-none">
+            <div className="mt-3">
+              <label className="label">Max cut width (in) — table limit</label>
               <input
-                type="checkbox"
-                checked={manualCutting}
-                onChange={(e) => setManualCutting(e.target.checked)}
-                className="accent-brand-500 w-4 h-4"
+                className="input !min-h-[38px] !py-1.5 font-mono"
+                value={maxCutWidth}
+                onChange={(e) => setMaxCutWidth(e.target.value)}
+                placeholder="96"
               />
-              Manual cutting mode (guillotine)
-            </label>
-
-            {manualCutting && (
-              <div className="mt-3">
-                <label className="label">Max cut width (in) — table limit</label>
-                <input
-                  className="input !min-h-[38px] !py-1.5 font-mono"
-                  value={maxCutWidth}
-                  onChange={(e) => setMaxCutWidth(e.target.value)}
-                  placeholder="96"
-                />
-              </div>
-            )}
+              <p className="text-[10px] text-slate-400 mt-1">
+                Stock sheets exceeding this width will be rotated or skipped.
+              </p>
+            </div>
           </div>
 
           {/* Cut list */}
@@ -439,6 +390,18 @@ export default function CuttingOptimizer() {
           ) : (
             <div className="space-y-5">
               {/* Warnings */}
+              {results.skippedStock && results.skippedStock.length > 0 && (
+                <div className="bg-amber-50 border border-amber-200 text-amber-700 p-3 rounded-xl text-sm">
+                  {results.skippedStock.length} stock size(s) exceed the max cut width and were
+                  skipped:{" "}
+                  {results.skippedStock
+                    .map(
+                      (s) =>
+                        `${s.label} (${toFraction(s.w)}×${toFraction(s.h)})`
+                    )
+                    .join(", ")}
+                </div>
+              )}
               {results.tooBig.length > 0 && (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm">
                   {results.tooBig.length} piece(s) don&apos;t fit any checked stock size
@@ -450,7 +413,7 @@ export default function CuttingOptimizer() {
               )}
               {results.unplaced.length > 0 && (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm">
-                  {results.unplaced.length} piece instance(s) could not be placed after 80
+                  {results.unplaced.length} piece instance(s) could not be placed after 200
                   sheets — check inputs.
                 </div>
               )}
@@ -463,19 +426,19 @@ export default function CuttingOptimizer() {
                 <>
                   {/* Stats cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <StatCard num={results.sheets.length} label="Sheets used" />
+                    <StatCard num={summary!.sheetsUsed} label="Sheets used" />
                     <StatCard
-                      num={`${((totalUsed / totalStock) * 100).toFixed(1)}%`}
+                      num={`${summary!.yieldPct.toFixed(1)}%`}
                       label="Yield (used area)"
                       color="good"
                     />
                     <StatCard
-                      num={`${((totalRemnant / totalStock) * 100).toFixed(1)}%`}
+                      num={`${summary!.remnantPct.toFixed(1)}%`}
                       label="Reusable remnant"
                       color="warn"
                     />
                     <StatCard
-                      num={`${((totalScrap / totalStock) * 100).toFixed(1)}%`}
+                      num={`${summary!.scrapPct.toFixed(1)}%`}
                       label="True scrap"
                       color="bad"
                     />
@@ -499,10 +462,10 @@ export default function CuttingOptimizer() {
                       </thead>
                       <tbody>
                         {[
-                          ["Sheets consumed", results.sheets.length, (totalStock / 144).toFixed(1)],
-                          ["Cut (pieces placed)", cutNos, (totalUsed / 144).toFixed(1)],
-                          ["Remnant (usable offcut)", remnantNos, (totalRemnant / 144).toFixed(1)],
-                          ["Scrap (true waste)", scrapNos, (totalScrap / 144).toFixed(1)],
+                          ["Sheets consumed", summary!.sheetsUsed, summary!.totalStockSqFt.toFixed(1)],
+                          ["Cut (pieces placed)", summary!.cutNos, summary!.cutSqFt.toFixed(1)],
+                          ["Remnant (usable offcut)", summary!.remnantNos, summary!.remnantSqFt.toFixed(1)],
+                          ["Scrap (true waste)", summary!.scrapNos, summary!.scrapSqFt.toFixed(1)],
                         ].map(([lbl, nos, sqft]) => (
                           <tr key={String(lbl)} className="border-b border-slate-100">
                             <td className="p-2 text-sm">{String(lbl)}</td>
@@ -536,62 +499,54 @@ export default function CuttingOptimizer() {
                         </thead>
                         <tbody>
                           {(() => {
-                            let totalActualSqFt = 0,
-                              totalBilledSqFt = 0;
-                            return pieces
-                              .filter((p) => {
-                                const pw = parseDim(String(p.w));
-                                const ph = parseDim(String(p.h));
-                                return !isNaN(pw) && !isNaN(ph) && p.qty > 0;
-                              })
-                              .map((p) => {
-                                const pw = parseDim(String(p.w));
-                                const ph = parseDim(String(p.h));
-                                const bw = billedDim(pw);
-                                const bh = billedDim(ph);
-                                const actualSqFt = ((pw * ph) / 144) * p.qty;
-                                const billedSqFt = ((bw * bh) / 144) * p.qty;
-                                totalActualSqFt += actualSqFt;
-                                totalBilledSqFt += billedSqFt;
-                                return (
-                                  <tr key={p.label} className="border-b border-slate-100">
-                                    <td className="p-2 text-sm">{p.label}</td>
-                                    <td className="p-2 font-mono text-sm">
-                                      {toFraction(pw)} × {toFraction(ph)}
-                                    </td>
-                                    <td className="p-2 font-mono text-sm">
-                                      {bw}" × {bh}"
-                                    </td>
-                                    <td className="p-2 font-mono text-sm">{p.qty}</td>
-                                    <td className="p-2 font-mono text-sm">
-                                      {actualSqFt.toFixed(2)}
-                                    </td>
-                                    <td className="p-2 font-mono text-sm">
-                                      {billedSqFt.toFixed(2)}
-                                    </td>
-                                  </tr>
-                                );
-                              })
-                              .concat(
-                                <tr key="total" className="font-semibold">
-                                  <td colSpan={4} className="p-2 text-right text-sm">
-                                    TOTAL
+                            const report = billingReport(
+                              pieces
+                                .map((p) => ({
+                                  label: p.label,
+                                  w: parseDim(String(p.w)),
+                                  h: parseDim(String(p.h)),
+                                  qty: parseInt(String(p.qty), 10) || 0,
+                                }))
+                                .filter((p) => !isNaN(p.w) && !isNaN(p.h) && p.qty > 0)
+                            );
+                            return [
+                              ...report.rows.map((r) => (
+                                <tr key={r.label} className="border-b border-slate-100">
+                                  <td className="p-2 text-sm">{r.label}</td>
+                                  <td className="p-2 font-mono text-sm">
+                                    {toFraction(r.w)} × {toFraction(r.h)}
                                   </td>
                                   <td className="p-2 font-mono text-sm">
-                                    {totalActualSqFt.toFixed(1)}
+                                    {r.billedW}" × {r.billedH}"
+                                  </td>
+                                  <td className="p-2 font-mono text-sm">{r.qty}</td>
+                                  <td className="p-2 font-mono text-sm">
+                                    {r.actualSqFt.toFixed(2)}
                                   </td>
                                   <td className="p-2 font-mono text-sm">
-                                    {totalBilledSqFt.toFixed(1)}
+                                    {r.billedSqFt.toFixed(2)}
                                   </td>
                                 </tr>
-                              );
+                              )),
+                              <tr key="total" className="font-semibold">
+                                <td colSpan={4} className="p-2 text-right text-sm">
+                                  TOTAL
+                                </td>
+                                <td className="p-2 font-mono text-sm">
+                                  {report.totals.actualSqFt.toFixed(1)}
+                                </td>
+                                <td className="p-2 font-mono text-sm">
+                                  {report.totals.billedSqFt.toFixed(1)}
+                                </td>
+                              </tr>,
+                            ];
                           })()}
                         </tbody>
                       </table>
                     </div>
                     <p className="text-xs text-slate-400 mt-2">
                       Billed sq ft is what the customer is charged for; sheet sq ft consumed
-                      ({(totalStock / 144).toFixed(1)} sq ft) is what it actually cost in
+                      ({totalStockSqFt.toFixed(1)} sq ft) is what it actually cost in
                       material — the gap between those two, minus scrap, is margin plus remnant
                       kept for future jobs.
                     </p>
@@ -599,13 +554,23 @@ export default function CuttingOptimizer() {
 
                   {/* Sheet visualizations */}
                   {results.sheets.map((s, si) => {
+                    // Always render with the longer dimension horizontal
                     const sheetW = s.stock.w;
                     const sheetH = s.stock.h;
+                    const flip = sheetH > sheetW;
+                    const dispW = flip ? sheetH : sheetW;
+                    const dispH = flip ? sheetW : sheetH;
                     const maxW = 720,
                       maxH = 480;
-                    const scale = Math.min(maxW / sheetW, maxH / sheetH);
-                    const svgW = sheetW * scale;
-                    const svgH = sheetH * scale;
+                    const scale = Math.min(maxW / dispW, maxH / dispH);
+                    const svgW = dispW * scale;
+                    const svgH = dispH * scale;
+
+                    // Helper: transform a coordinate from algorithm space to display space
+                    const tx = (x: number, y: number, w: number, h: number) =>
+                      flip
+                        ? { x: y, y: x, w: h, h: w }
+                        : { x, y, w, h };
 
                     return (
                       <div key={si} className="card overflow-hidden">
@@ -641,10 +606,11 @@ export default function CuttingOptimizer() {
                           {/* Placed pieces */}
                           {s.shelves.map((shelf) =>
                             shelf.items.map((it) => {
-                              const rx = it.x * scale,
-                                ry = it.y * scale,
-                                rw = it.w * scale,
-                                rh = it.h * scale;
+                              const d = tx(it.x, it.y, it.w, it.h);
+                              const rx = d.x * scale,
+                                ry = d.y * scale,
+                                rw = d.w * scale,
+                                rh = d.h * scale;
                               const fontSize = Math.max(7, Math.min(13, rh * 0.28, rw * 0.16));
                               const dimFontSize = Math.max(6, Math.min(10, rh * 0.2, rw * 0.12));
                               return (
@@ -686,10 +652,11 @@ export default function CuttingOptimizer() {
 
                           {/* Waste areas */}
                           {s.waste.map((w, wi) => {
-                            const rx = w.x * scale,
-                              ry = w.y * scale,
-                              rw = w.w * scale,
-                              rh = w.h * scale;
+                            const d = tx(w.x, w.y, w.w, w.h);
+                            const rx = d.x * scale,
+                              ry = d.y * scale,
+                              rw = d.w * scale,
+                              rh = d.h * scale;
                             const isRemnant = w.kind === "remnant";
                             const labelText = `${w.kind!.toUpperCase()} ${toFraction(w.w)}×${toFraction(w.h)} (${(w.w * w.h / 144).toFixed(1)} sf)`;
                             const shortText = `${toFraction(w.w)}×${toFraction(w.h)}`;
