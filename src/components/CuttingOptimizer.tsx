@@ -29,6 +29,8 @@ export default function CuttingOptimizer() {
   const [kerf, setKerf] = useState("0.25");
   const [minRemnant, setMinRemnant] = useState("10");
   const [allowRotate, setAllowRotate] = useState(true);
+  const [manualCutting, setManualCutting] = useState(false);
+  const [maxCutWidth, setMaxCutWidth] = useState("96");
   const [thickness, setThickness] = useState("5");
   const [results, setResults] = useState<PackResult | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -133,9 +135,23 @@ export default function CuttingOptimizer() {
       return;
     }
 
-    const data = packJob(validPieces, stockOptions, kerfVal, minRemnantVal, allowRotate);
+    // Manual (guillotine) mode: filter stock so horizontal cuts fit the table (w ≤ maxCutWidth)
+    let finalStockOptions = stockOptions;
+    const maxCutWidthVal = parseDim(maxCutWidth) || 96;
+    if (manualCutting) {
+      finalStockOptions = stockOptions.filter((s) => s.w <= maxCutWidthVal + 1e-6);
+    }
+
+    const data = packJob(
+      validPieces,
+      finalStockOptions,
+      kerfVal,
+      minRemnantVal,
+      allowRotate,
+      manualCutting
+    );
     setResults(data);
-  }, [stockSizes, stockChecked, pieces, kerf, minRemnant, allowRotate]);
+  }, [stockSizes, stockChecked, pieces, kerf, minRemnant, allowRotate, manualCutting, maxCutWidth]);
 
   // Stats calculation
   let totalUsed = 0,
@@ -314,6 +330,28 @@ export default function CuttingOptimizer() {
               />
               Allow rotating pieces 90°
             </label>
+
+            <label className="flex items-center gap-2 mt-3 text-sm text-slate-600 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={manualCutting}
+                onChange={(e) => setManualCutting(e.target.checked)}
+                className="accent-brand-500 w-4 h-4"
+              />
+              Manual cutting mode (guillotine)
+            </label>
+
+            {manualCutting && (
+              <div className="mt-3">
+                <label className="label">Max cut width (in) — table limit</label>
+                <input
+                  className="input !min-h-[38px] !py-1.5 font-mono"
+                  value={maxCutWidth}
+                  onChange={(e) => setMaxCutWidth(e.target.value)}
+                  placeholder="96"
+                />
+              </div>
+            )}
           </div>
 
           {/* Cut list */}

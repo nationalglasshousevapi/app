@@ -219,9 +219,26 @@ function packSheetWithNesting(
   sheetH: number,
   kerf: number,
   allowRotate: boolean,
-  minRemnant: number
+  minRemnant: number,
+  guillotine = false
 ): { shelves: Shelf[]; waste: WasteRect[]; placedIds: Set<number>; usedArea: number } {
   const main = packOneBin(available, sheetW, sheetH, kerf, allowRotate);
+
+  // Guillotine (manual cutting) mode: skip waste re-nesting.
+  // The shelf layout is already guillotine-safe — each horizontal cut spans the full
+  // sheet width, and vertical cuts only go within a shelf strip. Waste re-nesting
+  // would break the edge-to-edge cut guarantee.
+  if (guillotine) {
+    const waste = classifyRects(main.shelves, sheetW, sheetH, main.yUsed);
+    waste.forEach(
+      (r) => (r.kind = r.w >= minRemnant && r.h >= minRemnant ? "remnant" : "scrap")
+    );
+    const usedArea = main.shelves.reduce(
+      (a, sh) => a + sh.items.reduce((b, it) => b + it.w * it.h, 0),
+      0
+    );
+    return { shelves: main.shelves, waste, placedIds: main.placedIds, usedArea };
+  }
   let placedIds = new Set(main.placedIds);
   let shelves = main.shelves.slice();
   let remaining = available.filter((p) => !placedIds.has(p.id));
@@ -270,7 +287,8 @@ export function packJob(
   stockOptions: StockSize[],
   kerf: number,
   minRemnant: number,
-  allowRotate: boolean
+  allowRotate: boolean,
+  guillotine = false
 ): PackResult {
   UID = 0;
   let instances = expand(pieceDefs);
@@ -298,7 +316,8 @@ export function packJob(
         stock.h,
         kerf,
         allowRotate,
-        minRemnant
+        minRemnant,
+        guillotine
       );
       if (res.placedIds.size === 0) continue;
       const scrapArea = res.waste
