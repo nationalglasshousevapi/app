@@ -30,7 +30,7 @@ export default function CuttingOptimizer() {
   const [pieces, setPieces] = useState<PieceDef[]>(SEED_PIECES);
   const [kerf, setKerf] = useState("0.25");
   const [minRemnant, setMinRemnant] = useState("10");
-  const [allowRotate, setAllowRotate] = useState(false);
+  const [allowRotate, setAllowRotate] = useState(true);
   const [maxCutWidth, setMaxCutWidth] = useState("96");
   const [thickness, setThickness] = useState("5");
   const [results, setResults] = useState<PackResult | null>(null);
@@ -413,7 +413,7 @@ export default function CuttingOptimizer() {
               )}
               {results.unplaced.length > 0 && (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm">
-                  {results.unplaced.length} piece instance(s) could not be placed after 200
+                  {results.unplaced.length} piece instance(s) could not be placed after 400
                   sheets — check inputs.
                 </div>
               )}

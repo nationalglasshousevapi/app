@@ -48,7 +48,6 @@ export interface SheetResult {
   stock: StockSize;
   shelves: Shelf[];
   waste: WasteRect[];
-  placedIds: Set<number>;
   usedArea: number;
 }
 
@@ -335,7 +334,7 @@ export function packJob(
   stockSizesRaw: StockSize[],
   settings: JobSettings
 ): PackResult {
-  const { kerf, minRemnant, allowRotate, maxHorizontalCut } = settings;
+  const { kerf, minRemnant, allowRotate, maxHorizontalCut = 96 } = settings;
   UID = 0;
 
   // Build the set of usable orientations, respecting the max horizontal cut
@@ -368,10 +367,72 @@ export function packJob(
   instances = instances.filter((p) => !tooBig.includes(p));
 
   const sheets: SheetResult[] = [];
+  // Global remnant pool: every "remnant"-kind offcut generated on ANY committed
+  // sheet, still available to absorb pieces from LATER in the job. This is what
+  // stops a lone leftover piece from forcing open a whole new near-empty sheet
+  // when it would actually fit in a drop from three sheets ago.
+  const remnantPool: { sheetIdx: number; rect: WasteRect }[] = []; // rect is the same object living in sheets[sheetIdx].waste
+
+  function tryPoolFirst() {
+    let placedAny = true;
+    while (placedAny && instances.length > 0 && remnantPool.length > 0) {
+      placedAny = false;
+      remnantPool.sort((a, b) => b.rect.w * b.rect.h - a.rect.w * a.rect.h);
+      for (let i = 0; i < remnantPool.length; i++) {
+        if (instances.length === 0) break;
+        const entry = remnantPool[i];
+        const sub = packOneBin(instances, entry.rect.w, entry.rect.h, kerf, allowRotate);
+        if (sub.placedIds.size === 0) continue;
+
+        const sheet = sheets[entry.sheetIdx];
+        sub.shelves.forEach((sh) => {
+          sheet.shelves.push({
+            y: sh.y + entry.rect.y,
+            height: sh.height,
+            widthUsed: sh.widthUsed,
+            items: sh.items.map((it) => ({ ...it, x: it.x + entry.rect.x, y: it.y + entry.rect.y })),
+          });
+        });
+        sheet.usedArea += sub.shelves.reduce(
+          (a, sh) => a + sh.items.reduce((b, it) => b + it.w * it.h, 0),
+          0
+        );
+        instances = instances.filter((p) => !sub.placedIds.has(p.id));
+
+        const subRects = classifyRects(sub.shelves, entry.rect.w, entry.rect.h, sub.yUsed).map(
+          (r) => ({ ...r, x: r.x + entry.rect.x, y: r.y + entry.rect.y })
+        );
+        subRects.forEach(
+          (r) => (r.kind = r.w >= minRemnant && r.h >= minRemnant ? "remnant" : "scrap")
+        );
+
+        const wasteIdx = sheet.waste.indexOf(entry.rect);
+        if (wasteIdx >= 0) sheet.waste.splice(wasteIdx, 1, ...subRects);
+        remnantPool.splice(i, 1);
+        subRects.forEach((r) => {
+          if (r.kind === "remnant") remnantPool.push({ sheetIdx: entry.sheetIdx, rect: r });
+        });
+
+        placedAny = true;
+        break; // pool mutated — restart the scan
+      }
+    }
+  }
+
   let safety = 0;
-  while (instances.length > 0 && safety < 200) {
+  while (instances.length > 0 && safety < 400) {
     safety++;
-    let best: { res: SheetResult; stock: StockSize; score: number } | null = null;
+
+    // 1) Always check existing drops across every committed sheet first.
+    tryPoolFirst();
+    if (instances.length === 0) break;
+
+    // 2) Only once the pool is exhausted, open a new sheet.
+    let best: {
+      res: { shelves: Shelf[]; waste: WasteRect[]; placedIds: Set<number>; usedArea: number };
+      stock: StockSize;
+      score: number;
+    } | null = null;
     for (const stock of stockOptions) {
       const res = packSheetWithNesting(
         instances,
@@ -387,11 +448,16 @@ export function packJob(
         .reduce((a, r) => a + r.w * r.h, 0);
       const area = stock.w * stock.h;
       const score = (res.usedArea - scrapArea * 2) / area;
-      if (!best || score > best.score) best = { res: res as SheetResult, stock, score };
+      if (!best || score > best.score) best = { res, stock, score };
     }
     if (!best) break;
-    sheets.push({ ...best.res, stock: best.stock });
+    const sheet = { stock: best.stock, shelves: best.res.shelves, waste: best.res.waste.slice(), usedArea: best.res.usedArea };
+    sheets.push(sheet);
     instances = instances.filter((p) => !best.res.placedIds.has(p.id));
+    const sheetIdx = sheets.length - 1;
+    sheet.waste.forEach((r) => {
+      if (r.kind === "remnant") remnantPool.push({ sheetIdx, rect: r });
+    });
   }
 
   return { sheets, unplaced: instances, tooBig, skippedStock };
