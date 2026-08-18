@@ -9,22 +9,29 @@ const STATUS_STYLES: Record<string, string> = {
   sent: "bg-brass-50 text-brass-700",
   paid: "bg-emerald-50 text-signal-green",
   cancelled: "bg-red-50 text-signal-rust",
+  converted: "bg-indigo-50 text-indigo-600",
 };
 
 const STATUS_OPTIONS = ["draft", "sent", "paid", "cancelled"];
+const PURCHASE_STATUS_OPTIONS = ["draft", "paid"];
 
 export default function StatusBadge({
   documentId,
   currentStatus,
+  docType,
 }: {
   documentId: string;
   currentStatus: string;
+  docType?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState(currentStatus);
   const [updating, setUpdating] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  const statusOptions =
+    docType === "purchase" ? PURCHASE_STATUS_OPTIONS : STATUS_OPTIONS;
 
   useEffect(() => {
     function onClick(e: MouseEvent) {
@@ -58,16 +65,18 @@ export default function StatusBadge({
     }
   }
 
+  const isLocked = status === "converted";
+
   return (
     <div className="relative inline-block" ref={ref}>
       <button
         type="button"
-        onClick={() => setOpen(!open)}
-        disabled={updating}
+        onClick={() => !isLocked && setOpen(!open)}
+        disabled={updating || isLocked}
         className={`rounded-full px-2.5 py-1 text-xs font-medium transition cursor-pointer hover:ring-2 hover:ring-offset-1 ${
           STATUS_STYLES[status] ?? STATUS_STYLES.draft
-        } ${updating ? "opacity-60" : ""}`}
-        title="Change status"
+        } ${updating ? "opacity-60" : ""} ${isLocked ? "cursor-default hover:ring-0" : ""}`}
+        title={isLocked ? "Converted to an invoice" : "Change status"}
       >
         {status}
       </button>
@@ -80,7 +89,7 @@ export default function StatusBadge({
             exit={{ opacity: 0, y: -4, scale: 0.96 }}
             transition={{ duration: 0.12 }}
           >
-          {STATUS_OPTIONS.map((opt) => (
+          {statusOptions.map((opt) => (
             <button
               key={opt}
               type="button"

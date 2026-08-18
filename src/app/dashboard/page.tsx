@@ -53,12 +53,22 @@ async function getDashboardData() {
 
   const totalReceivable = (receivableData ?? []).reduce((s, r) => s + Number(r.balance_due), 0);
 
+  const thisMonth = new Date().toISOString().slice(0, 7);
+  const { data: purchaseData } = await sb
+    .from("documents")
+    .select("total_amount")
+    .eq("doc_type", "purchase")
+    .gte("doc_date", `${thisMonth}-01`)
+    .lte("doc_date", `${thisMonth}-31`);
+  const thisMonthPurchases = (purchaseData ?? []).reduce((s, r) => s + Number(r.total_amount), 0);
+
   return {
     totalRevenue: s?.totalRevenue ?? 0,
     thisMonthRevenue: s?.thisMonthRevenue ?? 0,
     invoiceCount: s?.invoiceCount ?? 0,
     customerCount: s?.customerCount ?? 0,
     totalReceivable,
+    thisMonthPurchases,
     monthlySeries,
     topCustomers,
     documentTypeData,
@@ -90,6 +100,9 @@ export default async function DashboardPage() {
         <StatCard label="Invoices" value={String(d.invoiceCount)} sub="Created" accent="pane" href="/documents?type=invoice" />
         <StatCard label="Customers" value={String(d.customerCount)} sub="Saved" accent="blue" href="/customers" />
         <StatCard label="Receivable" value={inr(d.totalReceivable)} sub="Outstanding" accent="brass" href="/accounts" />
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <StatCard label="Purchases (month)" value={inr(d.thisMonthPurchases)} sub="This month" accent="brass" href="/purchases" />
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   type PieceDef,
   type StockSize,
@@ -35,7 +36,90 @@ export default function CuttingOptimizer() {
   const [thickness, setThickness] = useState("5");
   const [results, setResults] = useState<PackResult | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
+  const [preloadDoc, setPreloadDoc] = useState<string | null>(null);
+  const [loadingPieces, setLoadingPieces] = useState(false);
+  const [exportingDoc, setExportingDoc] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const loadedRef = useRef(false);
+
+  // Preload pieces from a document via ?from_document=<id>
+  useEffect(() => {
+    if (loadedRef.current) return;
+    const fromDoc = searchParams.get("from_document");
+    if (!fromDoc) return;
+    loadedRef.current = true;
+    setLoadingPieces(true);
+    fetch(`/api/optimizer/pieces?id=${encodeURIComponent(fromDoc)}`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.pieces && json.pieces.length > 0) {
+          setPieces(json.pieces);
+          setPreloadDoc(json.docType ?? null);
+          // Clean the query param so re-navigating here starts fresh
+          router.replace("/tools/cutting-optimizer");
+        }
+      })
+      .catch(() => {
+        // ignore — user can still type pieces manually
+      })
+      .finally(() => setLoadingPieces(false));
+  }, [searchParams, router]);
+
+  // Create a quotation with the current pieces as line items
+  async function newQuotationFromPieces() {
+    if (exportingDoc || pieces.length === 0) return;
+    setExportingDoc(true);
+    try {
+      const items = pieces
+        .filter((p) => parseDim(String(p.w)) > 0 && parseDim(String(p.h)) > 0 && (parseInt(String(p.qty), 10) || 0) > 0)
+        .map((p) => ({
+          description: "Glass",
+          size: `${p.w} x ${p.h}`,
+          hsn_code: "7005",
+          qty: (parseDim(String(p.w)) * parseDim(String(p.h)) * (parseInt(String(p.qty), 10) || 1)) / 144,
+          unit: "sq.ft",
+          rate: 0,
+          actual_length: parseDim(String(p.w)),
+          actual_width: parseDim(String(p.h)),
+          nos: parseInt(String(p.qty), 10) || 1,
+          calculated_length: parseDim(String(p.w)),
+          calculated_width: parseDim(String(p.h)),
+          item_type: "glass",
+        }));
+      if (!items.length) {
+        alert("Add at least one valid piece first.");
+        return;
+      }
+      const res = await fetch("/api/documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          doc_type: "quotation",
+          doc_date: new Date().toISOString().slice(0, 10),
+          // Placeholder so the draft can be created; the user picks the real
+          // customer in the quotation form right after.
+          bill_to_name: "New Customer",
+          tax_type: "cgst_sgst",
+          tax_rate: 0.18,
+          status: "draft",
+          items,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok && json.document) {
+        router.push(`/documents/${json.document.id}`);
+        router.refresh();
+      } else {
+        alert(json.error || "Could not create quotation.");
+      }
+    } catch {
+      alert("Could not create quotation. Check your connection.");
+    } finally {
+      setExportingDoc(false);
+    }
+  }
 
   // Print / PDF — uses the browser's native print dialog
   const handlePrint = useCallback(() => {
@@ -373,11 +457,34 @@ export default function CuttingOptimizer() {
             </button>
           </div>
 
+          {loadingPieces && (
+            <div className="card p-4 text-sm text-slate-500 flex items-center gap-2">
+              <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              Loading pieces from document…
+            </div>
+          )}
+          {preloadDoc && (
+            <div className="bg-brand-50 border border-brand-200 text-brand-800 text-sm rounded-xl px-4 py-3">
+              Pieces loaded from the {preloadDoc}. Adjust the cut list as needed, then pack.
+            </div>
+          )}
+
           <button
             onClick={handlePack}
             className="btn-primary w-full text-base py-3"
           >
             Pack sheets
+          </button>
+
+          <button
+            onClick={newQuotationFromPieces}
+            disabled={exportingDoc}
+            className="btn-secondary w-full text-sm py-2.5"
+          >
+            {exportingDoc ? "Creating…" : "New quotation from pieces"}
           </button>
         </div>
 

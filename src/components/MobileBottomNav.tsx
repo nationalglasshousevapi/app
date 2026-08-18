@@ -3,11 +3,13 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon, ToolIcon } from "./icons";
+import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon, ToolIcon, CartIcon, GlobeIcon } from "./icons";
+import { publicWebsiteUrl } from "@/lib/website";
 
 const TABS = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/documents", label: "Documents", icon: "document" },
+  { href: "/purchases", label: "Purchases", icon: "cart" },
   { href: "/accounts", label: "Accounts", icon: "account" },
   { href: "/customers", label: "Customers", icon: "person" },
   { href: "/tools/cutting-optimizer", label: "Cut", icon: "tool" },
@@ -18,6 +20,7 @@ export default function MobileBottomNav() {
 
   const isActive = (href: string) => {
     if (href === "/documents") return pathname.startsWith("/documents/") || pathname === "/documents";
+    if (href === "/purchases") return pathname.startsWith("/purchases/") || pathname === "/purchases";
     if (href === "/tools/cutting-optimizer") return pathname.startsWith("/tools/") || pathname === "/tools/cutting-optimizer";
     return pathname === href;
   };
@@ -48,6 +51,8 @@ export default function MobileBottomNav() {
                   <AccountIcon className="w-5 h-5" />
                 ) : tab.icon === "tool" ? (
                   <ToolIcon className="w-5 h-5" />
+                ) : tab.icon === "cart" ? (
+                  <CartIcon className="w-5 h-5" />
                 ) : (
                   <DocumentIcon className="w-5 h-5" />
                 )}
@@ -77,7 +82,18 @@ export default function MobileBottomNav() {
           </Link>
         </motion.div>
 
-        <div className="min-w-[64px]" />
+        <a
+          href={publicWebsiteUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col items-center justify-center gap-0.5 min-w-[56px] h-full px-2 rounded-xl text-slate-400 hover:text-slate-600"
+          aria-label="Our website"
+        >
+          <span className="w-5 h-5 flex items-center justify-center" aria-hidden>
+            <GlobeIcon className="w-5 h-5" />
+          </span>
+          <span className="text-[10px] font-semibold leading-tight">Website</span>
+        </a>
       </div>
     </nav>
   );

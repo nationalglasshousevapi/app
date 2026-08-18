@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { docTypeLabel } from "@/lib/docTypes";
+import { docTypeLabel, canConvertToInvoice } from "@/lib/docTypes";
 import { documentShareMessage, whatsAppShareUrl } from "@/lib/whatsapp";
+import { publicWebsiteUrl } from "@/lib/website";
 import { useState } from "react";
 import ConfirmModal from "./ConfirmModal";
+import ConvertDialog from "./ConvertDialog";
 
 function Icon({ type, className = "" }: { type: string; className?: string }) {
   const cls = `inline-block align-middle ${className}`;
@@ -22,6 +24,10 @@ function Icon({ type, className = "" }: { type: string; className?: string }) {
       return <svg className={cls} viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" /></svg>;
     case "email":
       return <svg className={cls} viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" /><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" /></svg>;
+    case "cut":
+      return <svg className={cls} viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M9.707 6.707a1 1 0 00-1.414-1.414l-1.5 1.5a3 3 0 00-4.606 3.693L2 11.707V13a2 2 0 002 2h1.586l-.293.293a1 1 0 101.414 1.414l4-4a1 1 0 00-1.414-1.414l-1.5 1.5-2.793-2.793 3-3z" /><path d="M13 6a2 2 0 100-4 2 2 0 000 4zM7 12a2 2 0 100-4 2 2 0 000 4z" /></svg>;
+    case "convert":
+      return <svg className={cls} viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path fillRule="evenodd" d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" clipRule="evenodd" /><path d="M11 8a1 1 0 112 0v4.586l.793-.793a1 1 0 111.414 1.414l-2.5 2.5a1 1 0 01-1.414 0l-2.5-2.5a1 1 0 111.414-1.414l.793.793V8z" /></svg>;
     default:
       return null;
   }
@@ -34,6 +40,7 @@ export default function DocumentActions({
   customerName,
   contactNumber,
   totalAmount,
+  status,
   compact = false,
 }: {
   id: string;
@@ -42,6 +49,7 @@ export default function DocumentActions({
   customerName: string;
   contactNumber?: string | null;
   totalAmount: number;
+  status?: string;
   compact?: boolean;
 }) {
   const router = useRouter();
@@ -50,6 +58,11 @@ export default function DocumentActions({
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [emailing, setEmailing] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
+
+  const website = publicWebsiteUrl();
+  const canConvert = canConvertToInvoice(docType) && status !== "converted" && status !== "cancelled";
+  const showPlanCutting = ["quotation", "performa_invoice", "estimate", "invoice"].includes(docType);
 
   function handleDeleteClick() {
     setConfirmDelete(true);
@@ -90,8 +103,13 @@ export default function DocumentActions({
       customerName: customerName || "Customer",
       totalAmount,
       pdfUrl,
+      website,
     }),
   });
+
+  function planCutting() {
+    router.push(`/tools/cutting-optimizer?from_document=${id}`);
+  }
 
   async function duplicate() {
     if (duplicating) return;
@@ -153,6 +171,16 @@ export default function DocumentActions({
           <button onClick={() => window.open(whatsappHref, '_blank')} title="Share on WhatsApp" className={btn("", "", "text-emerald-600 hover:bg-emerald-50")}>
             <Icon type="whatsapp" />
           </button>
+          {showPlanCutting && (
+            <button onClick={planCutting} title="Plan cutting" className={btn("", "", "text-amber-600 hover:bg-amber-50")}>
+              <Icon type="cut" />
+            </button>
+          )}
+          {canConvert && (
+            <button onClick={() => setConvertOpen(true)} title="Convert to Invoice" className={btn("", "", "text-brand-600 hover:bg-brand-50")}>
+              <Icon type="convert" />
+            </button>
+          )}
           <button onClick={duplicate} disabled={duplicating} title="Duplicate" className={btn("", "", "text-slate-500 hover:bg-slate-100")}>
             {duplicating ? <span className="text-xs">…</span> : <Icon type="copy" />}
           </button>
@@ -160,6 +188,13 @@ export default function DocumentActions({
             {deleting ? <span className="text-xs">…</span> : <Icon type="delete" />}
           </button>
         </div>
+        <ConvertDialog
+          open={convertOpen}
+          documentId={id}
+          docNumber={docNumber}
+          totalAmount={totalAmount}
+          onCancel={() => setConvertOpen(false)}
+        />
         <ConfirmModal
           open={confirmDelete}
           title="Delete document"
@@ -195,10 +230,27 @@ export default function DocumentActions({
         <button onClick={duplicate} disabled={duplicating} title="Duplicate" className={btn("copy", "Copy", "btn-secondary flex-1 text-sm")}>
           {duplicating ? <span className="text-xs">…</span> : <><Icon type="copy" className="mr-1" /> Copy</>}
         </button>
+        {showPlanCutting && (
+          <button onClick={planCutting} title="Plan cutting" className={btn("cut", "Plan cutting", "btn-secondary flex-1 text-sm text-amber-700 border-amber-200")}>
+            <Icon type="cut" className="mr-1" /> Plan cutting
+          </button>
+        )}
+        {canConvert && (
+          <button onClick={() => setConvertOpen(true)} title="Convert to Invoice" className={btn("convert", "Convert to Invoice", "btn-primary flex-1 text-sm")}>
+            <Icon type="convert" className="mr-1" /> Convert to Invoice
+          </button>
+        )}
         <button onClick={handleDeleteClick} disabled={deleting} title="Delete" className={btn("delete", "Delete", "btn-secondary flex-1 text-sm text-red-600 border-red-200")}>
           {deleting ? <span className="text-xs">…</span> : <><Icon type="delete" className="mr-1" /> Delete</>}
         </button>
       </div>
+      <ConvertDialog
+        open={convertOpen}
+        documentId={id}
+        docNumber={docNumber}
+        totalAmount={totalAmount}
+        onCancel={() => setConvertOpen(false)}
+      />
       <ConfirmModal
         open={confirmDelete}
         title="Delete document"

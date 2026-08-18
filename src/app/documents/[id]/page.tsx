@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabaseServer";
 import DocumentForm, { DocumentFormValue } from "@/components/DocumentForm";
 import StatusBadge from "@/components/StatusBadge";
+import DocumentActions from "@/components/DocumentActions";
 import { docTypeLabel } from "@/lib/docTypes";
 import { formatDateReadable } from "@/lib/format";
 
@@ -78,9 +79,27 @@ export default async function DocumentDetailPage({
           <p className="page-subtitle">Created {formatDateReadable(doc.created_at)}</p>
         </div>
         <div className="shrink-0 pt-1">
-          <StatusBadge documentId={doc.id} currentStatus={doc.status} />
+          <StatusBadge documentId={doc.id} currentStatus={doc.status} docType={doc.doc_type} />
         </div>
       </div>
+      {doc.status === "converted" && doc.order_number ? (
+        <div className="bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm rounded-xl px-4 py-3">
+          This {docTypeLabel(doc.doc_type).toLowerCase()} was converted to{" "}
+          <a href={`/documents?q=${encodeURIComponent(doc.order_number)}`} className="font-semibold hover:underline">
+            {doc.order_number}
+          </a>
+          . The invoice will not reflect further changes made here.
+        </div>
+      ) : null}
+      <DocumentActions
+        id={doc.id}
+        docNumber={doc.doc_number}
+        docType={doc.doc_type}
+        customerName={doc.bill_to_name ?? ""}
+        contactNumber={doc.bill_to_contact_number}
+        totalAmount={Number(doc.total_amount)}
+        status={doc.status}
+      />
       <DocumentForm initial={initial} />
     </div>
   );

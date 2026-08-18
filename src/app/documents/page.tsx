@@ -47,7 +47,8 @@ export default async function DocumentsPage({
   // Count first so we know total pages
   let countQuery = sb
     .from("documents")
-    .select("*", { count: "exact", head: true });
+    .select("*", { count: "exact", head: true })
+    .neq("doc_type", "purchase");
 
   if (searchParams.type) countQuery = countQuery.eq("doc_type", searchParams.type);
   if (searchParams.customer_id) countQuery = countQuery.eq("customer_id", searchParams.customer_id);
@@ -69,6 +70,7 @@ export default async function DocumentsPage({
   let query = sb
     .from("documents")
     .select("id, doc_type, doc_number, doc_date, bill_to_name, bill_to_contact_number, total_amount, status, customer_id")
+    .neq("doc_type", "purchase")
     .order("doc_date", { ascending: false })
     .order("created_at", { ascending: false })
     .range(from, to);
@@ -107,6 +109,7 @@ export default async function DocumentsPage({
     "quotation",
     "performa_invoice",
     "estimate",
+    "receipt",
   ];
 
   return (
@@ -164,7 +167,7 @@ export default async function DocumentsPage({
               </div>
               <div className="text-right space-y-2">
                 <p className="font-semibold">{inr(Number(doc.total_amount))}</p>
-                <StatusBadge documentId={doc.id} currentStatus={doc.status} />
+                <StatusBadge documentId={doc.id} currentStatus={doc.status} docType={doc.doc_type} />
               </div>
             </div>
             <p className="text-xs text-slate-500">{docTypeLabel(doc.doc_type)}</p>
@@ -175,6 +178,7 @@ export default async function DocumentsPage({
               customerName={doc.bill_to_name ?? ""}
               contactNumber={doc.bill_to_contact_number}
               totalAmount={Number(doc.total_amount)}
+              status={doc.status}
             />
           </div>
         ))}
@@ -241,7 +245,7 @@ export default async function DocumentsPage({
                   )}
                 </td>
                 <td className="p-4">
-                  <StatusBadge documentId={doc.id} currentStatus={doc.status} />
+                  <StatusBadge documentId={doc.id} currentStatus={doc.status} docType={doc.doc_type} />
                 </td>
                 <td className="p-4 text-right font-semibold">
                   {inr(Number(doc.total_amount))}
@@ -254,6 +258,7 @@ export default async function DocumentsPage({
                     customerName={doc.bill_to_name ?? ""}
                     contactNumber={doc.bill_to_contact_number}
                     totalAmount={Number(doc.total_amount)}
+                    status={doc.status}
                     compact
                   />
                 </td>

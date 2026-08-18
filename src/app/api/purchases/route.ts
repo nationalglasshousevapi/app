@@ -1,0 +1,127 @@
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseServer } from "@/lib/supabaseServer";
+import { docTypeShort, financialYearFor } from "@/lib/docTypes";
+import { parseItems, computeTax, computeTotal, formatItemRows } from "@/lib/documents";
+
+// Reuse the document schema shape for purchases (supplier snapshotted into bill_to_*)
+import { createDocumentSchema, parseError } from "@/lib/schemas";
+
+const PAGE_SIZE = 50;
+
+export async function GET(req: NextRequest) {
+  const sb = supabaseServer();
+  const q = req.nextUrl.searchParams.get("q");
+  const page = Math.max(1, Number(req.nextUrl.searchParams.get("page")) || 1);
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  let countQuery = sb.from("documents").select("*", { count: "exact", head: true }).eq("doc_type", "purchase");
+  if (q?.trim()) {
+    const term = `%${q.trim()}%`;
+    countQuery = countQuery.or(`doc_number.ilike.${term},bill_to_name.ilike.${term}`);
+  }
+  const { count: totalCount } = await countQuery;
+
+  let query = sb
+    .from("documents")
+    .select("id, doc_type, doc_number, doc_date, bill_to_name, bill_to_contact_number, total_amount, status, customer_id")
+    .eq("doc_type", "purchase")
+    .order("doc_date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .range(from, to);
+  if (q?.trim()) {
+    const term = `%${q.trim()}%`;
+    query = query.or(`doc_number.ilike.${term},bill_to_name.ilike.${term}`);
+  }
+
+  const { data: purchases } = await query;
+
+  return NextResponse.json({ purchases: purchases ?? [], total: totalCount ?? 0, page, pageSize: PAGE_SIZE });
+}
+
+export async function POST(req: NextRequest) {
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid save request." }, { status: 400 });
+  }
+
+  const parsed = createDocumentSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parseError(parsed.error) }, { status: 400 });
+  }
+  if (parsed.data.doc_type !== "purchase") {
+    return NextResponse.json({ error: "doc_type must be 'purchase'" }, { status: 400 });
+  }
+
+  const { doc_type, doc_number: userDocNumber, doc_date, items: rawItems, ...rest } = parsed.data;
+  const sb = supabaseServer();
+  const items = parseItems(rawItems);
+
+  const docDate = doc_date ? new Date(doc_date) : new Date();
+  const fy = financialYearFor(docDate);
+
+  let docNumber: string;
+  if (userDocNumber) {
+    docNumber = userDocNumber;
+  } else {
+    const { data: seqData, error: seqError } = await sb.rpc("next_document_number", {
+      p_doc_type: "purchase",
+      p_financial_year: fy,
+    });
+    if (seqError) return NextResponse.json({ error: seqError.message }, { status: 500 });
+    docNumber = `${docTypeShort("purchase")}-${fy}-${String(seqData).padStart(4, "0")}`;
+  }
+
+  const subtotal = items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
+  const { cgst, sgst, igst } = computeTax(subtotal, rest.tax_type, rest.tax_rate, rest.discount_amount, rest.taxable_charges);
+  const { totalAmount: total, roundOff } = computeTotal(subtotal, cgst, sgst, igst, rest.discount_amount, rest.additional_charges, rest.taxable_charges);
+
+  const { data: doc, error: docError } = await sb
+    .from("documents")
+    .insert({
+      doc_type: "purchase",
+      doc_number: docNumber,
+      financial_year: fy,
+      doc_date: docDate.toISOString().slice(0, 10),
+      customer_id: rest.customer_id ?? null,
+      bill_to_name: rest.bill_to_name || null,
+      bill_to_address: rest.bill_to_address || null,
+      bill_to_contact_person: rest.bill_to_contact_person || null,
+      bill_to_contact_number: rest.bill_to_contact_number || null,
+      bill_to_email: rest.bill_to_email || null,
+      bill_to_gst: rest.bill_to_gst || null,
+      ship_to_name: rest.ship_to_name || rest.bill_to_name || null,
+      ship_to_address: rest.ship_to_address || rest.bill_to_address || null,
+      ship_to_contact_person: rest.ship_to_contact_person || null,
+      ship_to_contact_number: rest.ship_to_contact_number || null,
+      subtotal,
+      tax_type: rest.tax_type,
+      tax_rate: rest.tax_rate,
+      cgst_amount: cgst,
+      sgst_amount: sgst,
+      igst_amount: igst,
+      round_off: roundOff,
+      discount_amount: rest.discount_amount || 0,
+      additional_charges: rest.additional_charges ?? [],
+      taxable_charges: rest.taxable_charges ?? [],
+      total_amount: total,
+      remarks: rest.remarks ?? null,
+      status: rest.status || "draft",
+    })
+    .select()
+    .single();
+
+  if (docError) return NextResponse.json({ error: docError.message }, { status: 500 });
+
+  if (items.length) {
+    const { error: itemsError } = await sb.from("document_items").insert(formatItemRows(items, doc.id));
+    if (itemsError) {
+      await sb.from("documents").delete().eq("id", doc.id);
+      return NextResponse.json({ error: `Could not save line items: ${itemsError.message}` }, { status: 500 });
+    }
+  }
+
+  return NextResponse.json({ document: doc });
+}

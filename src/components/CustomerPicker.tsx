@@ -30,8 +30,35 @@ export default function CustomerPicker({
   const [open, setOpen] = useState(false);
   const [searching, setSearching] = useState(false);
   const [mode, setMode] = useState<"recent" | "search">("recent");
+  const [creating, setCreating] = useState(false);
   const fetchedRecent = useRef(false);
   const boxRef = useRef<HTMLDivElement>(null);
+
+  async function createCustomer() {
+    const name = query.trim();
+    if (!name || creating) return;
+    setCreating(true);
+    try {
+      const res = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, contact_number: null }),
+      });
+      const json = await res.json();
+      if (res.ok && json.customer) {
+        const c = json.customer as CustomerResult;
+        onSelect(c);
+        setQuery(c.name);
+        setOpen(false);
+      } else {
+        alert(json.error || "Could not create customer.");
+      }
+    } catch {
+      alert("Could not create customer. Check your connection.");
+    } finally {
+      setCreating(false);
+    }
+  }
 
   // Fetch recent customers on mount (once)
   useEffect(() => {
@@ -88,6 +115,7 @@ export default function CustomerPicker({
 
   const showRecent = mode === "recent" && results.length > 0 && (!query || query.length < 2);
   const showSearch = mode === "search" && results.length > 0;
+  const showCreate = mode === "search" && query.trim().length >= 2 && results.length === 0 && !searching;
 
   return (
     <div className="relative" ref={boxRef}>
@@ -99,7 +127,7 @@ export default function CustomerPicker({
         onFocus={() => results.length && setOpen(true)}
       />
       <AnimatePresence>
-        {open && (searching || showRecent || showSearch) && (
+        {open && (searching || showRecent || showSearch || showCreate) && (
           <motion.div
             className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-xl ring-1 ring-black/5 max-h-64 overflow-y-auto"
             initial={{ opacity: 0, y: -4, scale: 0.97 }}
@@ -157,6 +185,28 @@ export default function CustomerPicker({
                     </div>
                   </button>
                 ))}
+                {showCreate && (
+                  <button
+                    type="button"
+                    onClick={createCustomer}
+                    disabled={creating}
+                    className="w-full text-left px-4 py-3 hover:bg-brand-50 text-sm border-b last:border-0 border-gray-100 flex items-center gap-2"
+                  >
+                    <span className="flex items-center justify-center w-6 h-6 rounded-full bg-brand-100 text-brand-600 font-semibold">
+                      {creating ? (
+                        <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      ) : (
+                        <span className="text-base leading-none">+</span>
+                      )}
+                    </span>
+                    <span className="text-brand-700 font-medium">
+                      Create customer &quot;{query.trim()}&quot;
+                    </span>
+                  </button>
+                )}
               </>
             )}
           </motion.div>

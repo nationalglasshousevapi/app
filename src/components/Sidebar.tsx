@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon, ToolIcon } from "./icons";
+import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon, ToolIcon, CartIcon, GlobeIcon } from "./icons";
+import { publicWebsiteUrl } from "@/lib/website";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/documents", label: "All documents", icon: "document" },
+  { href: "/purchases", label: "Purchases", icon: "cart" },
   { href: "/accounts", label: "Accounts", icon: "account" },
   { href: "/customers", label: "Customers", icon: "person" },
   { href: "/tools/cutting-optimizer", label: "Cut Optimizer", icon: "tool" },
@@ -77,7 +79,8 @@ export default function Sidebar() {
         {NAV.map((item) => {
           const active =
             pathname === item.href ||
-            (item.href === "/documents" && pathname.startsWith("/documents/"));
+            (item.href === "/documents" && pathname.startsWith("/documents/")) ||
+            (item.href === "/purchases" && pathname.startsWith("/purchases/"));
           return (
             <Link
               key={item.href}
@@ -100,6 +103,8 @@ export default function Sidebar() {
                   <AccountIcon className="w-4 h-4" />
                 ) : item.icon === "tool" ? (
                   <ToolIcon className="w-4 h-4" />
+                ) : item.icon === "cart" ? (
+                  <CartIcon className="w-4 h-4" />
                 ) : (
                   <DocumentIcon className="w-4 h-4" />
                 )}
@@ -112,6 +117,18 @@ export default function Sidebar() {
 
       {/* Footer actions */}
       <div className={`p-3 border-t border-white/15 space-y-2 ${collapsed ? "flex flex-col items-center" : ""}`}>
+        <a
+          href={publicWebsiteUrl()}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`flex items-center justify-center gap-2 rounded-xl border border-white/25 text-white/75 px-3 py-3 text-sm font-semibold hover:bg-white/10 hover:text-white transition w-full ${
+            collapsed ? "" : ""
+          }`}
+          title={collapsed ? "Our website" : undefined}
+        >
+          <GlobeIcon className="w-4 h-4 shrink-0" />
+          {!collapsed && <span>Our website</span>}
+        </a>
         <Link
           href="/documents/new"
           className={`btn-primary w-full ${collapsed ? "px-3 py-3" : ""}`}

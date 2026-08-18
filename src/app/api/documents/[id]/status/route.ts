@@ -12,7 +12,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const validStatuses = ["draft", "sent", "paid", "cancelled"];
+  const validStatuses = ["draft", "sent", "paid", "cancelled", "converted"];
   if (!validStatuses.includes(body.status)) {
     return NextResponse.json({ error: `Status must be one of: ${validStatuses.join(", ")}` }, { status: 400 });
   }

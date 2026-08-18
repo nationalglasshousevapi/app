@@ -123,6 +123,8 @@ export default function PdfReceiptPage(props: PdfReceiptPageProps) {
             {props.company.phone} | {props.company.email}
             {"\n"}
             GST: {props.company.gst}
+            {"\n"}
+            {props.company.website}
           </Text>
         </View>
         <View style={styles.bankCol}>

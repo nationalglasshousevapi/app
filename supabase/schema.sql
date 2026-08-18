@@ -31,7 +31,7 @@ create table if not exists counters (
 create table if not exists documents (
   id uuid primary key default gen_random_uuid(),
   doc_type text not null check (doc_type in (
-    'invoice', 'quotation', 'performa_invoice', 'estimate', 'receipt'
+    'invoice', 'quotation', 'performa_invoice', 'estimate', 'receipt', 'purchase'
   )),
   doc_number text not null,          -- human-readable number, e.g. "24-25-071"
   financial_year text not null,      -- e.g. "24-25"
@@ -67,7 +67,7 @@ create table if not exists documents (
   total_amount numeric(12,2) not null default 0,
 
   remarks text,
-  status text not null default 'draft' check (status in ('draft', 'sent', 'paid', 'cancelled')),
+  status text not null default 'draft' check (status in ('draft', 'sent', 'paid', 'cancelled', 'converted')),
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

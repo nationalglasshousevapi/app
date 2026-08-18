@@ -549,7 +549,7 @@ export default function DocumentForm({
                 disabled={!!value.id}
                 onChange={(e) => patch({ doc_type: e.target.value as DocType })}
               >
-                {DOC_TYPES.filter((t) => t.value !== "receipt").map((t) => (
+                {DOC_TYPES.filter((t) => t.value !== "receipt" && t.value !== "purchase").map((t) => (
                   <option key={t.value} value={t.value}>
                     {t.label}
                   </option>

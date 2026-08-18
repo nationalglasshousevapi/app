@@ -4,6 +4,7 @@ export type CompanyDetails = {
   phone: string;
   email: string;
   gst: string;
+  website: string;
   bankName: string;
   bankAccountName: string;
   bankAccountNo: string;
@@ -18,6 +19,7 @@ const DEFAULT_COMPANY: CompanyDetails = {
   phone: "+91 98241 10798",
   email: "nationalglasshouse2017@gmail.com",
   gst: "24CDDPK0867R1Z2",
+  website: "https://nationalglasshousevapi.github.io/website/",
   bankName: "Axis Bank, Chala, Vapi",
   bankAccountName: "NATIONAL GLASS HOUSE",
   bankAccountNo: "917020056641652",
@@ -42,6 +44,7 @@ export function companyDetails(): CompanyDetails {
     phone: configured("COMPANY_PHONE", DEFAULT_COMPANY.phone),
     email: configured("COMPANY_EMAIL", DEFAULT_COMPANY.email),
     gst: configured("COMPANY_GST", DEFAULT_COMPANY.gst),
+    website: configured("COMPANY_WEBSITE", DEFAULT_COMPANY.website),
     bankName: configured("COMPANY_BANK_NAME", DEFAULT_COMPANY.bankName),
     bankAccountName: configured("COMPANY_BANK_ACCOUNT_NAME", DEFAULT_COMPANY.bankAccountName),
     bankAccountNo: configured("COMPANY_BANK_ACCOUNT_NO", DEFAULT_COMPANY.bankAccountNo),

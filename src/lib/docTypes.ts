@@ -3,7 +3,8 @@ export type DocType =
   | "quotation"
   | "performa_invoice"
   | "estimate"
-  | "receipt";
+  | "receipt"
+  | "purchase";
 
 export const DOC_TYPES: { value: DocType; label: string; short: string }[] = [
   { value: "invoice", label: "Invoice", short: "INV" },
@@ -11,7 +12,15 @@ export const DOC_TYPES: { value: DocType; label: string; short: string }[] = [
   { value: "performa_invoice", label: "Performa Invoice", short: "PFI" },
   { value: "estimate", label: "Estimate", short: "EST" },
   { value: "receipt", label: "Receipt", short: "RCP" },
+  { value: "purchase", label: "Purchase", short: "PUR" },
 ];
+
+// Document types that can be converted into an invoice
+export const CONVERTIBLE_TYPES: DocType[] = ["quotation", "performa_invoice", "estimate"];
+
+export function canConvertToInvoice(docType: string): boolean {
+  return (CONVERTIBLE_TYPES as string[]).includes(docType);
+}
 
 export function docTypeLabel(t: string): string {
   return DOC_TYPES.find((d) => d.value === t)?.label ?? t;

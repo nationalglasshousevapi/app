@@ -128,7 +128,7 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
       <View style={styles.companyStrip}>
         <View style={styles.companyCol}>
           <Text style={styles.companyName}>{company.name}</Text>
-          <Text style={styles.companyText}>{company.address}{"\n"}{company.phone} | {company.email}{"\n"}GST: {company.gst}</Text>
+          <Text style={styles.companyText}>{company.address}{"\n"}{company.phone} | {company.email}{"\n"}GST: {company.gst}{"\n"}{company.website}</Text>
         </View>
         <View style={styles.bankCol}>
           <Text style={styles.bankLabel}>Bank Details</Text>
