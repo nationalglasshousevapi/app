@@ -1,9 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { createCustomerSchema, parseError } from "@/lib/schemas";
+
+function sanitizeSearchTerm(raw: string): string {
+  return raw
+    .replace(/[,()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+}
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim();
   const recent = req.nextUrl.searchParams.get("recent") === "true";
+  const page = Math.max(1, parseInt(req.nextUrl.searchParams.get("page") ?? "1", 10) || 1);
+  const pageSizeRaw = parseInt(req.nextUrl.searchParams.get("page_size") ?? "50", 10);
+  const pageSize = Math.min(200, Math.max(1, Number.isNaN(pageSizeRaw) ? 50 : pageSizeRaw));
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
   const sb = supabaseServer();
 
   // Fetch balances for all customers in one shot
@@ -15,6 +29,7 @@ export async function GET(req: NextRequest) {
   );
 
   let customers: any[] = [];
+  let total: number | null = null;
 
   if (!q && recent) {
     // Top 5 most recently invoiced customers
@@ -47,22 +62,29 @@ export async function GET(req: NextRequest) {
       );
     }
   } else if (q) {
+    const safeQ = sanitizeSearchTerm(q);
+    if (!safeQ) {
+      return NextResponse.json({ customers: [], total: 0 });
+    }
     const { data, error } = await sb
       .from("customers")
       .select("*")
       .or(
-        `name.ilike.%${q}%,contact_number.ilike.%${q}%,gst.ilike.%${q}%,email.ilike.%${q}%`,
+        `name.ilike.%${safeQ}%,contact_number.ilike.%${safeQ}%,gst.ilike.%${safeQ}%,email.ilike.%${safeQ}%`,
       )
       .order("name", { ascending: true });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
     customers = data ?? [];
+    total = customers.length;
   } else {
-    const { data, error } = await sb
+    const { data, error, count } = await sb
       .from("customers")
-      .select("*")
-      .order("name", { ascending: true });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+      .select("*", { count: "exact" })
+      .order("name", { ascending: true })
+      .range(from, to);
+    if (error) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
     customers = data ?? [];
+    total = count ?? customers.length;
   }
 
   const result = customers.map((c) => ({
@@ -70,27 +92,39 @@ export async function GET(req: NextRequest) {
     balance_due: balanceMap.get(c.id) ?? 0,
   }));
 
-  return NextResponse.json({ customers: result });
+  return NextResponse.json({ customers: result, total: total ?? result.length });
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid request." }, { status: 400 });
+  }
+
+  const parsed = createCustomerSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parseError(parsed.error) }, { status: 400 });
+  }
+  const input = parsed.data;
+
   const sb = supabaseServer();
 
   const { data, error } = await sb
     .from("customers")
     .insert({
-      name: body.name,
-      address: body.address ?? null,
-      contact_person: body.contact_person ?? null,
-      contact_number: body.contact_number ?? null,
-      email: body.email ?? null,
-      gst: body.gst ?? null,
-      opening_balance: body.opening_balance ?? 0,
+      name: input.name,
+      address: input.address || null,
+      contact_person: input.contact_person || null,
+      contact_number: input.contact_number || null,
+      email: input.email || null,
+      gst: input.gst || null,
+      opening_balance: input.opening_balance,
     })
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: "Could not save customer." }, { status: 500 });
   return NextResponse.json({ customer: data });
 }

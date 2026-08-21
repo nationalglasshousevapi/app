@@ -32,14 +32,20 @@ export default function CustomersPage() {
   const [balanceData, setBalanceData] = useState<Record<string, number>>({});
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY);
   const [loading, setLoading] = useState(true);
 
-  async function load(query = "") {
+  const PAGE_SIZE = 50;
+
+  async function load(query = "", pageNum = 1) {
     setLoading(true);
     const [custRes, statsRes, ledgerRes] = await Promise.all([
-      fetch(`/api/customers${query ? `?q=${encodeURIComponent(query)}` : ""}`),
+      fetch(
+        `/api/customers?page=${pageNum}&page_size=${PAGE_SIZE}${query ? `&q=${encodeURIComponent(query)}` : ""}`,
+      ),
       fetch("/api/customers/stats"),
       fetch("/api/accounts/balances"),
     ]);
@@ -47,6 +53,8 @@ export default function CustomersPage() {
     const statsJson = await statsRes.json();
     const ledgerJson = await ledgerRes.json();
     setCustomers(custJson.customers ?? []);
+    setTotal(custJson.total ?? (custJson.customers ?? []).length);
+    setPage(pageNum);
     setInvoiceCounts(statsJson.counts ?? {});
     const bal: Record<string, number> = {};
     for (const c of ledgerJson.balances ?? []) {
@@ -61,7 +69,7 @@ export default function CustomersPage() {
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => load(q), 300);
+    const t = setTimeout(() => load(q, 1), 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
@@ -75,7 +83,7 @@ export default function CustomersPage() {
     });
     setForm(EMPTY);
     setShowForm(false);
-    load(q);
+    load(q, page);
   }
 
   async function editCustomer(id: string) {
@@ -87,7 +95,7 @@ export default function CustomersPage() {
   async function deleteCustomer(id: string) {
     if (!confirm("Delete this customer? This does not affect past documents.")) return;
     await fetch(`/api/customers/${id}`, { method: "DELETE" });
-    load(q);
+    load(q, page);
   }
 
   return (
@@ -273,13 +281,38 @@ export default function CustomersPage() {
         </table>
       </div>
 
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm text-slate-500">
+          {total} saved customer{total === 1 ? "" : "s"}
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            className="btn-secondary text-sm disabled:opacity-40"
+            disabled={page <= 1 || loading}
+            onClick={() => load(q, page - 1)}
+          >
+            Prev
+          </button>
+          <span className="text-sm text-slate-500 font-mono px-1">
+            {page} / {Math.max(1, Math.ceil(total / PAGE_SIZE))}
+          </span>
+          <button
+            className="btn-secondary text-sm disabled:opacity-40"
+            disabled={page >= Math.ceil(total / PAGE_SIZE) || loading}
+            onClick={() => load(q, page + 1)}
+          >
+            Next
+          </button>
+        </div>
+      </div>
+
       {editingCustomer && (
         <EditCustomerModal
           customer={editingCustomer}
           onClose={() => setEditingCustomer(null)}
           onSaved={() => {
             setEditingCustomer(null);
-            load(q);
+            load(q, page);
           }}
         />
       )}

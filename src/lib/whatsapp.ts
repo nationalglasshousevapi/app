@@ -26,7 +26,7 @@ export function documentShareMessage({
   docNumber: string;
   customerName: string;
   totalAmount: number;
-  pdfUrl: string;
+  pdfUrl?: string;
   website?: string;
 }) {
   const total = totalAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 });
@@ -34,7 +34,7 @@ export function documentShareMessage({
     `Dear ${customerName},\n\n` +
     `Please find your ${docTypeLabel} ${docNumber} from National Glass House.\n` +
     `Total: ₹ ${total}\n\n` +
-    `View PDF: ${pdfUrl}\n\n` +
+    (pdfUrl ? `View PDF: ${pdfUrl}\n\n` : "") +
     (website ? `${website}\n\n` : "") +
     `Thank you!`
   );

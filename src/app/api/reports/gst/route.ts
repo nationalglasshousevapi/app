@@ -6,10 +6,13 @@ export const dynamic = "force-dynamic";
 function escapeCsv(val: string | number | null | undefined): string {
   if (val == null) return "";
   const s = String(val);
-  if (s.includes(",") || s.includes('"') || s.includes("\n")) {
-    return `"${s.replace(/"/g, '""')}"`;
+  const trimmed = s.trim();
+  const dangerous = /^[=+\-@]/.test(trimmed);
+  const safe = dangerous ? `'${s}` : s;
+  if (safe.includes(",") || safe.includes('"') || safe.includes("\n")) {
+    return `"${safe.replace(/"/g, '""')}"`;
   }
-  return s;
+  return safe;
 }
 
 export async function GET(req: NextRequest) {

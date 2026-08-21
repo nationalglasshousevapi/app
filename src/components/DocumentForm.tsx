@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { pdf } from "@react-pdf/renderer";
 import { DOC_TYPES, docTypeLabel, docTypeShort, DocType } from "@/lib/docTypes";
 import { inr } from "@/lib/format";
+import { computeAdditionalChargesTotal, computeTax, computeTaxableChargesTotal, computeTotal } from "@/lib/documents";
 import type { AdditionalCharge, TaxableCharge } from "@/lib/documents";
 import CustomerPicker from "./CustomerPicker";
 import NewCustomerModal from "./NewCustomerModal";
@@ -13,6 +14,7 @@ import LineItemsEditor, { EMPTY_ITEM, LineItem } from "./LineItemsEditor";
 import ManageDescriptionsModal from "./ManageDescriptionsModal";
 import PdfDocument from "./PdfDocument";
 import type { CompanyDetails } from "@/lib/company";
+import { useDraftPersistence } from "@/lib/useDraftPersistence";
 
 type Customer = {
   id: string;
@@ -113,6 +115,13 @@ export default function DocumentForm({
   const docNumberEditedRef = useRef(false);
   const isNewInvoice = !initial.id && !value.customer_id;
   const router = useRouter();
+  const { save: saveDraft, clear: clearDraft } = useDraftPersistence<DocumentFormValue>(
+    `ngh_draft_document_${initial.doc_type}`,
+  );
+
+  useEffect(() => {
+    saveDraft(value);
+  }, [value, saveDraft]);
 
   // Fetch next document number for new documents
   useEffect(() => {
@@ -257,22 +266,24 @@ export default function DocumentForm({
   const totals = useMemo(() => {
     const subtotal = value.items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
     const discount = value.discount_amount || 0;
-    const taxableChargesTotal = (value.taxable_charges || []).reduce((sum, c) => sum + (c.amount || 0), 0);
-    const taxableAmount = subtotal + taxableChargesTotal - discount;
-    const additionalChargesTotal = (value.additional_charges || []).reduce((sum, c) => sum + (c.amount || 0), 0);
-    let cgst = 0,
-      sgst = 0,
-      igst = 0;
-    if (value.tax_type === "cgst_sgst") {
-      cgst = Math.round(((taxableAmount * value.tax_rate) / 2) * 100) / 100;
-      sgst = cgst;
-    } else if (value.tax_type === "igst") {
-      igst = Math.round(taxableAmount * value.tax_rate * 100) / 100;
-    }
-    const raw = taxableAmount + cgst + sgst + igst + additionalChargesTotal;
-    const roundOff = Math.round(raw) - raw;
-    const total = Math.round(raw);
-    return { subtotal, discount, taxableChargesTotal, taxableAmount, cgst, sgst, igst, additionalChargesTotal, roundOff, total };
+    const taxableCharges = value.taxable_charges || [];
+    const additionalCharges = value.additional_charges || [];
+    const taxableChargesTotal = computeTaxableChargesTotal(taxableCharges);
+    const additionalChargesTotal = computeAdditionalChargesTotal(additionalCharges);
+    const { cgst, sgst, igst } = computeTax(subtotal, value.tax_type, value.tax_rate, discount, taxableCharges);
+    const { totalAmount: total, roundOff } = computeTotal(subtotal, cgst, sgst, igst, discount, additionalCharges, taxableCharges);
+    return {
+      subtotal,
+      discount,
+      taxableChargesTotal,
+      taxableAmount: subtotal + taxableChargesTotal - discount,
+      cgst,
+      sgst,
+      igst,
+      additionalChargesTotal,
+      roundOff,
+      total,
+    };
   }, [value.items, value.tax_type, value.tax_rate, value.discount_amount, value.additional_charges, value.taxable_charges]);
 
   function validate(): Record<string, string> {
@@ -323,20 +334,9 @@ export default function DocumentForm({
     const subtotal = value.items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
     const discount = value.discount_amount || 0;
     const taxableCharges = value.taxable_charges || [];
-    const taxableChargesTotal = taxableCharges.reduce((sum, c) => sum + (c.amount || 0), 0);
-    const taxableAmount = subtotal + taxableChargesTotal - discount;
     const additionalCharges = value.additional_charges || [];
-    const additionalChargesTotal = additionalCharges.reduce((sum, c) => sum + (c.amount || 0), 0);
-    let cgst = 0, sgst = 0, igst = 0;
-    if (value.tax_type === "cgst_sgst") {
-      cgst = Math.round(((taxableAmount * value.tax_rate) / 2) * 100) / 100;
-      sgst = cgst;
-    } else if (value.tax_type === "igst") {
-      igst = Math.round(taxableAmount * value.tax_rate * 100) / 100;
-    }
-    const raw = taxableAmount + cgst + sgst + igst + additionalChargesTotal;
-    const roundOff = Math.round(raw) - raw;
-    const total = Math.round(raw);
+    const { cgst, sgst, igst } = computeTax(subtotal, value.tax_type, value.tax_rate, discount, taxableCharges);
+    const { totalAmount: total, roundOff } = computeTotal(subtotal, cgst, sgst, igst, discount, additionalCharges, taxableCharges);
 
     const pdfDoc = pdf(
       <PdfDocument
@@ -432,6 +432,7 @@ export default function DocumentForm({
         doc_number: doc.doc_number,
       }));
       setSaveSuccess(doc.doc_number);
+      clearDraft();
       router.refresh();
     } catch {
       setSaveError("Unable to reach the server. Check your connection and try again.");

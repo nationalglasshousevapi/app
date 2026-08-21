@@ -39,28 +39,75 @@ async function getDashboardData() {
     .sort((a, b) => b.count - a.count)
     .map(({ type, count }) => ({ name: docTypeLabel(type), value: count, type }));
 
-  const { data: recentInvoices } = await sb
-    .from("documents")
-    .select("id, doc_type, doc_number, doc_date, bill_to_name, total_amount, bill_to_contact_number")
-    .eq("doc_type", "invoice")
-    .order("doc_date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(5);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const thisMonth = new Date().toISOString().slice(0, 7);
 
-  const { data: receivableData } = await sb
-    .from("customer_ledger_view")
-    .select("balance_due");
+  const [
+    recentInvoicesResult,
+    receivableResult,
+    debtorsResult,
+    todayPaymentsResult,
+    purchaseResult,
+    expenseResult,
+  ] = await Promise.all([
+    sb
+      .from("documents")
+      .select("id, doc_type, doc_number, doc_date, bill_to_name, total_amount, bill_to_contact_number")
+      .eq("doc_type", "invoice")
+      .order("doc_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(5),
+    sb.from("customer_ledger_view").select("balance_due"),
+    sb
+      .from("customer_ledger_view")
+      .select("*")
+      .gt("balance_due", 0)
+      .order("balance_due", { ascending: false })
+      .limit(6),
+    sb.from("payments").select("amount").eq("payment_date", dateStr),
+    sb
+      .from("documents")
+      .select("total_amount")
+      .eq("doc_type", "purchase")
+      .gte("doc_date", `${thisMonth}-01`)
+      .lte("doc_date", `${thisMonth}-31`),
+    sb
+      .from("expenses")
+      .select("amount")
+      .gte("expense_date", `${thisMonth}-01`)
+      .lte("expense_date", `${thisMonth}-31`),
+  ]);
+
+  const { data: recentInvoices } = recentInvoicesResult;
+  const { data: receivableData } = receivableResult;
+  const { data: debtors } = debtorsResult;
+  const { data: todayPayments } = todayPaymentsResult;
+  const { data: purchaseData } = purchaseResult;
+  const { data: expenseData } = expenseResult;
 
   const totalReceivable = (receivableData ?? []).reduce((s, r) => s + Number(r.balance_due), 0);
-
-  const thisMonth = new Date().toISOString().slice(0, 7);
-  const { data: purchaseData } = await sb
-    .from("documents")
-    .select("total_amount")
-    .eq("doc_type", "purchase")
-    .gte("doc_date", `${thisMonth}-01`)
-    .lte("doc_date", `${thisMonth}-31`);
+  const todayCollections = (todayPayments ?? []).reduce((s, r) => s + Number(r.amount), 0);
   const thisMonthPurchases = (purchaseData ?? []).reduce((s, r) => s + Number(r.total_amount), 0);
+  const thisMonthExpenses = (expenseData ?? []).reduce((s, r) => s + Number(r.amount), 0);
+
+  // Top debtors + how old their oldest unpaid invoice is (depends on debtor ids)
+  const debtorIds = (debtors ?? []).map((d) => d.customer_id);
+  const oldestOpen: Record<string, string> = {};
+  if (debtorIds.length) {
+    const { data: openInvoices } = await sb
+      .from("documents")
+      .select("customer_id, doc_date")
+      .eq("doc_type", "invoice")
+      .in("status", ["draft", "sent"])
+      .in("customer_id", debtorIds)
+      .order("doc_date");
+    for (const inv of openInvoices ?? []) {
+      if (!inv.customer_id) continue;
+      if (!oldestOpen[inv.customer_id] || inv.doc_date < oldestOpen[inv.customer_id]) {
+        oldestOpen[inv.customer_id] = inv.doc_date;
+      }
+    }
+  }
 
   return {
     totalRevenue: s?.totalRevenue ?? 0,
@@ -68,7 +115,15 @@ async function getDashboardData() {
     invoiceCount: s?.invoiceCount ?? 0,
     customerCount: s?.customerCount ?? 0,
     totalReceivable,
+    todayCollections,
     thisMonthPurchases,
+    thisMonthExpenses,
+    debtors: (debtors ?? []).map((d) => ({
+      customerId: d.customer_id as string,
+      name: d.customer_name as string,
+      balanceDue: Number(d.balance_due),
+      oldestInvoiceDate: oldestOpen[d.customer_id] ?? null,
+    })),
     monthlySeries,
     topCustomers,
     documentTypeData,
@@ -88,10 +143,22 @@ export default async function DashboardPage() {
           </p>
           <h1 className="page-title mb-0">Dashboard</h1>
         </div>
-        <Link href="/documents/new" className="btn-primary w-full sm:w-auto">
-          <span className="text-lg leading-none">+</span>
-          Create document
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <Link href="/cash-sale" className="btn-primary w-full sm:w-auto">
+            <span className="text-lg leading-none">+</span>
+            Quick cash sale
+          </Link>
+          <Link href="/documents/new" className="btn-secondary w-full sm:w-auto text-center">
+            Create document
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard label="Collected today" value={inr(d.todayCollections)} sub="Payments received" accent="teal" href="/daybook" />
+        <StatCard label="Expenses (month)" value={inr(d.thisMonthExpenses)} sub="This month" accent="blue" href="/expenses" />
+        <StatCard label="Purchases (month)" value={inr(d.thisMonthPurchases)} sub="This month" accent="brass" href="/purchases" />
+        <StatCard label="Day book" value={formatDateShort(new Date())} sub="Everything today" accent="pane" href="/daybook" />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -101,9 +168,49 @@ export default async function DashboardPage() {
         <StatCard label="Customers" value={String(d.customerCount)} sub="Saved" accent="blue" href="/customers" />
         <StatCard label="Receivable" value={inr(d.totalReceivable)} sub="Outstanding" accent="brass" href="/accounts" />
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <StatCard label="Purchases (month)" value={inr(d.thisMonthPurchases)} sub="This month" accent="brass" href="/purchases" />
-      </div>
+
+      {d.debtors.length > 0 && (
+        <div className="card p-5 md:p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display font-bold text-ink">Who owes money</h2>
+              <p className="text-sm text-slate-500 font-body">Top outstanding balances &amp; how long they&apos;ve been open</p>
+            </div>
+            <Link href="/accounts" className="text-sm font-semibold text-brand-500 hover:underline font-body whitespace-nowrap">
+              All accounts
+            </Link>
+          </div>
+          <ul className="divide-y divide-slate-100">
+            {d.debtors.map((debtor) => {
+              const days = debtor.oldestInvoiceDate
+                ? Math.max(0, Math.floor((Date.now() - new Date(debtor.oldestInvoiceDate).getTime()) / 86400000))
+                : null;
+              const aging = days === null ? null : days > 90 ? "text-red-600 bg-red-50" : days > 30 ? "text-amber-700 bg-amber-50" : "text-slate-500 bg-slate-100";
+              return (
+                <li key={debtor.customerId}>
+                  <Link
+                    href={`/accounts/${debtor.customerId}`}
+                    className="flex items-center justify-between gap-3 py-3 hover:bg-slate-50/60 rounded-lg px-2 -mx-2 transition"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm text-ink truncate">{debtor.name}</p>
+                      <p className="text-xs text-slate-400">Oldest unpaid invoice: {debtor.oldestInvoiceDate ? formatDateShort(debtor.oldestInvoiceDate) : "—"}</p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      {aging && (
+                        <span className={`text-[11px] font-semibold px-2 py-1 rounded-full ${aging}`}>
+                          {days} day{days === 1 ? "" : "s"}
+                        </span>
+                      )}
+                      <span className="font-mono font-bold text-ink">{inr(debtor.balanceDue)}</span>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <div className="grid md:grid-cols-2 gap-6">
         <div className="card p-5 md:p-6">

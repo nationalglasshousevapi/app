@@ -80,7 +80,7 @@ export default async function CustomerDetailPage({
   // Fetch documents for this customer
   let docQuery = sb
     .from("documents")
-    .select("id, doc_type, doc_number, doc_date, total_amount, status, discount_amount, transport_charges, packing_forwarding_charges, cgst_amount, sgst_amount, igst_amount, subtotal")
+    .select("id, doc_type, doc_number, doc_date, total_amount, status, discount_amount, taxable_charges, cgst_amount, sgst_amount, igst_amount, subtotal")
     .eq("customer_id", id)
     .order("doc_date", { ascending: false })
     .order("created_at", { ascending: false });

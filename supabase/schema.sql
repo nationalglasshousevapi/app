@@ -344,3 +344,31 @@ end $$;
 -- Delete the moved charge items from document_items
 delete from document_items where item_type = 'charge';
 
+-- ========== Expenses (shop outflows: material, labour, rent, etc.) ==========
+create table if not exists expenses (
+  id uuid primary key default gen_random_uuid(),
+  expense_date date not null default current_date,
+  category text not null default 'other' check (category in (
+    'material', 'labour', 'transport', 'rent_utilities', 'office', 'other'
+  )),
+  description text,
+  amount numeric(12,2) not null check (amount > 0),
+  payment_mode text not null default 'cash' check (payment_mode in (
+    'cash', 'bank_transfer', 'upi', 'cheque', 'adjustment'
+  )),
+  reference_number text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_expenses_date on expenses (expense_date);
+
+alter table expenses enable row level security;
+
+drop trigger if exists trg_expenses_updated on expenses;
+create trigger trg_expenses_updated before update on expenses
+  for each row execute function set_updated_at();
+
+-- Allow payments without a linked customer (walk-in cash sale)
+alter table payments alter column customer_id drop not null;
+

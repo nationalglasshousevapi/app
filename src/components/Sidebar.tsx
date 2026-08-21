@@ -4,14 +4,17 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon, ToolIcon, CartIcon, GlobeIcon } from "./icons";
+import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon, ToolIcon, CartIcon, GlobeIcon, CashIcon, BookIcon } from "./icons";
 import { publicWebsiteUrl } from "@/lib/website";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
+  { href: "/cash-sale", label: "Quick cash sale", icon: "cash" },
   { href: "/documents", label: "All documents", icon: "document" },
   { href: "/purchases", label: "Purchases", icon: "cart" },
   { href: "/accounts", label: "Accounts", icon: "account" },
+  { href: "/expenses", label: "Expenses", icon: "cash" },
+  { href: "/daybook", label: "Day book", icon: "book" },
   { href: "/customers", label: "Customers", icon: "person" },
   { href: "/tools/cutting-optimizer", label: "Cut Optimizer", icon: "tool" },
 ];
@@ -105,6 +108,10 @@ export default function Sidebar() {
                   <ToolIcon className="w-4 h-4" />
                 ) : item.icon === "cart" ? (
                   <CartIcon className="w-4 h-4" />
+                ) : item.icon === "cash" ? (
+                  <CashIcon className="w-4 h-4" />
+                ) : item.icon === "book" ? (
+                  <BookIcon className="w-4 h-4" />
                 ) : (
                   <DocumentIcon className="w-4 h-4" />
                 )}
@@ -117,6 +124,19 @@ export default function Sidebar() {
 
       {/* Footer actions */}
       <div className={`p-3 border-t border-white/15 space-y-2 ${collapsed ? "flex flex-col items-center" : ""}`}>
+        <a
+          href="/api/export"
+          download
+          className={`flex items-center justify-center gap-2 rounded-xl border border-white/25 text-white/75 px-3 py-3 text-sm font-semibold hover:bg-white/10 hover:text-white transition w-full`}
+          title={collapsed ? "Export data" : undefined}
+        >
+          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          {!collapsed && <span>Export data</span>}
+        </a>
         <a
           href={publicWebsiteUrl()}
           target="_blank"

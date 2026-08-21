@@ -18,6 +18,8 @@ function Icon({ type, className = "" }: { type: string; className?: string }) {
       return <svg className={cls} viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm7 0l3 3h-3V4z" clipRule="evenodd" /></svg>;
     case "whatsapp":
       return <svg className={cls} viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M10 1.5C5.58 1.5 2 5.08 2 9.5c0 1.88.63 3.62 1.69 5L2.5 18.5l4.24-1.08A8 8 0 0010 17.5c4.42 0 8-3.58 8-8s-3.58-8-8-8zm3.68 11.1c-.15.43-.88.82-1.46.82-1.4 0-3.57-.97-4.7-2.04C5.65 9.6 5.06 8.23 5 7.55c0-.58.43-.95.66-1.12.12-.09.26-.14.35-.14s.18 0 .25.01c.08.01.18-.03.28.26.1.28.36.98.39 1.05.04.07.06.15.02.24-.04.09-.06.13-.14.22-.07.09-.16.19-.23.27-.06.08-.14.17-.06.34.08.16.38.64.82 1.04.56.52 1.04.7 1.22.77.18.07.28.06.38-.04.1-.1.44-.48.57-.64.12-.16.25-.14.42-.08.17.06.1.1 1.27.67.31.15.52.22.58.34.08.13.03.48-.17.83-.22.35-.42.47-.7.55z" /></svg>;
+    case "link":
+      return <svg className={cls} viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" /><path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" /></svg>;
     case "copy":
       return <svg className={cls} viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M8 3a1 1 0 011-1h2a1 1 0 110 2H9a1 1 0 01-1-1z" /><path d="M6 3a2 2 0 00-2 2v11a2 2 0 002 2h8a2 2 0 002-2V5a2 2 0 00-2-2 3 3 0 01-3 3H9a3 3 0 01-3-3z" /></svg>;
     case "delete":
@@ -59,6 +61,7 @@ export default function DocumentActions({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [emailing, setEmailing] = useState(false);
   const [convertOpen, setConvertOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   const website = publicWebsiteUrl();
   const canConvert = canConvertToInvoice(docType) && status !== "converted" && status !== "cancelled";
@@ -90,22 +93,45 @@ export default function DocumentActions({
     }
   }
 
-  const pdfUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/api/documents/${id}/pdf`
-      : `/api/documents/${id}/pdf`;
+  async function fetchShareUrl(): Promise<string | null> {
+    try {
+      const res = await fetch(`/api/documents/${id}/share-link`, { method: "POST" });
+      if (!res.ok) return null;
+      const json = await res.json();
+      return json.url ?? null;
+    } catch {
+      return null;
+    }
+  }
 
-  const whatsappHref = whatsAppShareUrl({
-    phone: contactNumber,
-    text: documentShareMessage({
+  async function shareWhatsApp() {
+    const shareUrl = await fetchShareUrl();
+    const text = documentShareMessage({
       docTypeLabel: docTypeLabel(docType),
       docNumber,
       customerName: customerName || "Customer",
       totalAmount,
-      pdfUrl,
+      pdfUrl: shareUrl ?? undefined,
       website,
-    }),
-  });
+    });
+    window.open(whatsAppShareUrl({ phone: contactNumber, text }), "_blank");
+  }
+
+  async function copyShareLink() {
+    const shareUrl = await fetchShareUrl();
+    if (!shareUrl) {
+      alert("Could not generate share link. Please try again.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+    } catch {
+      alert("Could not copy link. Please copy it manually: " + shareUrl);
+      return;
+    }
+    setCopiedLink(true);
+    setTimeout(() => setCopiedLink(false), 2000);
+  }
 
   function planCutting() {
     router.push(`/tools/cutting-optimizer?from_document=${id}`);
@@ -168,8 +194,11 @@ export default function DocumentActions({
           <button onClick={sendEmail} disabled={emailing} title="Email to customer" className={btn("", "", "text-blue-600 hover:bg-blue-50")}>
             {emailing ? <span className="text-xs">…</span> : <Icon type="email" />}
           </button>
-          <button onClick={() => window.open(whatsappHref, '_blank')} title="Share on WhatsApp" className={btn("", "", "text-emerald-600 hover:bg-emerald-50")}>
+          <button onClick={shareWhatsApp} title="Share on WhatsApp" className={btn("", "", "text-emerald-600 hover:bg-emerald-50")}>
             <Icon type="whatsapp" />
+          </button>
+          <button onClick={copyShareLink} title={copiedLink ? "Copied" : "Copy share link"} className={btn("", "", copiedLink ? "text-emerald-600 hover:bg-emerald-50" : "text-slate-500 hover:bg-slate-100")}>
+            {copiedLink ? <span className="text-xs">✓</span> : <Icon type="link" />}
           </button>
           {showPlanCutting && (
             <button onClick={planCutting} title="Plan cutting" className={btn("", "", "text-amber-600 hover:bg-amber-50")}>
@@ -224,8 +253,11 @@ export default function DocumentActions({
         <button onClick={sendEmail} disabled={emailing} title="Email to customer" className={btn("email", "Email", "btn-secondary flex-1 text-sm text-blue-600 border-blue-200")}>
           {emailing ? <span className="text-xs">…</span> : <><Icon type="email" className="mr-1" /> Email</>}
         </button>
-        <button onClick={() => window.open(whatsappHref, '_blank')} title="Share on WhatsApp" className={btn("whatsapp", "WhatsApp", "btn-secondary flex-1 text-sm text-emerald-700 border-emerald-200")}>
+        <button onClick={shareWhatsApp} title="Share on WhatsApp" className={btn("whatsapp", "WhatsApp", "btn-secondary flex-1 text-sm text-emerald-700 border-emerald-200")}>
           <Icon type="whatsapp" className="mr-1" /> WhatsApp
+        </button>
+        <button onClick={copyShareLink} title="Copy share link" className={btn("link", copiedLink ? "Copied" : "Copy link", `btn-secondary flex-1 text-sm ${copiedLink ? "text-emerald-700 border-emerald-200" : ""}`)}>
+          {copiedLink ? "Copied" : <><Icon type="link" className="mr-1" /> Copy link</>}
         </button>
         <button onClick={duplicate} disabled={duplicating} title="Duplicate" className={btn("copy", "Copy", "btn-secondary flex-1 text-sm")}>
           {duplicating ? <span className="text-xs">…</span> : <><Icon type="copy" className="mr-1" /> Copy</>}

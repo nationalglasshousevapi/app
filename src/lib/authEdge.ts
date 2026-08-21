@@ -18,16 +18,32 @@ async function hmac(value: string, secret: string): Promise<string> {
     .join("");
 }
 
-export async function signToken(secret: string): Promise<string> {
-  const value = "authenticated";
+export async function signToken(
+  secret: string,
+  expiresInDays = 30
+): Promise<string> {
+  const exp = Math.floor(Date.now() / 1000) + expiresInDays * 24 * 60 * 60;
+  const value = `authenticated.${exp}`;
   const sig = await hmac(value, secret);
   return `${value}.${sig}`;
 }
 
 export async function verifyToken(token: string, secret: string): Promise<boolean> {
-  const idx = token.lastIndexOf(".");
-  if (idx === -1) return false;
-  const value = token.slice(0, idx);
+  const sigIdx = token.lastIndexOf(".");
+  if (sigIdx === -1) return false;
+  const value = token.slice(0, sigIdx);
+  const providedSig = token.slice(sigIdx + 1);
+  const parts = value.split(".");
+  if (parts.length !== 2 || parts[0] !== "authenticated") return false;
+  const exp = Number(parts[1]);
+  if (!Number.isInteger(exp) || exp <= Math.floor(Date.now() / 1000)) {
+    return false;
+  }
   const expected = await hmac(value, secret);
-  return token.slice(idx + 1) === expected;
+  if (providedSig.length !== expected.length) return false;
+  let diff = 0;
+  for (let i = 0; i < expected.length; i++) {
+    diff |= providedSig.charCodeAt(i) ^ expected.charCodeAt(i);
+  }
+  return diff === 0;
 }

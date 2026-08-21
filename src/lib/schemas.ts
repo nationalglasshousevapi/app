@@ -68,6 +68,68 @@ export const createDocumentSchema = z.object({
 
 export const updateDocumentSchema = createDocumentSchema.omit({ doc_type: true });
 
+export const paymentModeSchema = z.enum(["cash", "bank_transfer", "upi", "cheque", "adjustment"]);
+
+// Quick cash sale: a walk-in/counter invoice that is paid immediately.
+export const createCashSaleSchema = z.object({
+  customer_id: z.string().uuid().nullable().optional(),
+  customer_name: z.string().optional().default(""),
+  customer_phone: z.string().optional().default(""),
+  doc_date: z.string().optional(),
+  tax_type: taxTypeSchema.optional().default("cgst_sgst"),
+  discount_amount: z.number().min(0).optional().default(0),
+  taxable_charges: z.array(taxableChargeSchema).optional().default([]),
+  remarks: z.string().nullable().optional().default(null),
+  items: z.array(itemSchema).min(1, "Add at least one line item."),
+  payment_mode: paymentModeSchema.optional().default("cash"),
+  reference_number: z.string().optional().default(""),
+});
+
+export const expenseCategorySchema = z.enum([
+  "material",
+  "labour",
+  "transport",
+  "rent_utilities",
+  "office",
+  "other",
+]);
+
+export const createExpenseSchema = z.object({
+  expense_date: z.string().optional(),
+  category: expenseCategorySchema.optional().default("other"),
+  description: z.string().optional().default(""),
+  amount: z.number().positive("Amount must be greater than 0."),
+  payment_mode: paymentModeSchema.optional().default("cash"),
+  reference_number: z.string().optional().default(""),
+});
+
+export const updateExpenseSchema = createExpenseSchema.partial();
+
+export const createPaymentSchema = z.object({
+  customer_id: z.string().uuid().nullable().optional(),
+  payment_date: z.string().optional(),
+  amount: z.number().positive("Amount must be greater than 0."),
+  payment_mode: paymentModeSchema.optional().default("cash"),
+  reference_number: z.string().optional().default(""),
+  document_id: z.string().uuid().nullable().optional(),
+  notes: z.string().nullable().optional(),
+  generate_receipt: z.boolean().optional().default(false),
+});
+
+export const updatePaymentSchema = createPaymentSchema.partial();
+
+export const createCustomerSchema = z.object({
+  name: z.string().min(1, "Customer name is required."),
+  address: z.string().optional(),
+  contact_person: z.string().optional(),
+  contact_number: z.string().optional(),
+  email: z.string().optional(),
+  gst: z.string().optional(),
+  opening_balance: z.number().min(0, "Opening balance cannot be negative.").optional().default(0),
+});
+
+export const updateCustomerSchema = createCustomerSchema.partial();
+
 export function parseError(error: unknown): string {
   if (error instanceof z.ZodError) {
     return fromError(error).toString();

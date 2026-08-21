@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DEFAULT_HSN_CODE } from "@/lib/company";
 import { computeTax, computeTotal } from "@/lib/documents";
 import { inr } from "@/lib/format";
+import { useDraftPersistence } from "@/lib/useDraftPersistence";
 
 export type PurchaseItem = {
   description: string;
@@ -53,11 +54,43 @@ export function blankPurchase(): PurchaseFormValue {
 
 const UNITS = ["sq.ft", "rn ft", "nos", "pcs"];
 
+const DRAFT_KEY = "ngh_draft_purchase";
+
+function isBlankPurchase(v: PurchaseFormValue): boolean {
+  const b = blankPurchase();
+  return (
+    !v.supplier_name &&
+    !v.supplier_address &&
+    !v.supplier_contact_person &&
+    !v.supplier_contact_number &&
+    !v.supplier_gst &&
+    v.tax_type === b.tax_type &&
+    v.remarks === b.remarks &&
+    (v.status === "draft" || !v.status) &&
+    v.items.every((it) => !it.description.trim() && !(it.qty > 0))
+  );
+}
+
 export default function PurchaseForm({ initial }: { initial: PurchaseFormValue }) {
   const [value, setValue] = useState<PurchaseFormValue>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const router = useRouter();
+  const { existing: draft, save: saveDraft, clear: clearDraft } = useDraftPersistence<PurchaseFormValue>(DRAFT_KEY);
+
+  useEffect(() => {
+    if (value.id || bannerDismissed) return;
+    if (!isBlankPurchase(value)) saveDraft(value);
+  }, [value, value.id, bannerDismissed, saveDraft]);
+
+  const resumableDraft = draft && !isBlankPurchase(draft.data) ? draft : null;
+
+  function restoreDraft(d: PurchaseFormValue) {
+    setValue((v) => ({ ...d, id: v.id, doc_number: v.doc_number }));
+    clearDraft();
+    setBannerDismissed(true);
+  }
 
   function patch(p: Partial<PurchaseFormValue>) {
     setValue((v) => ({ ...v, ...p }));
@@ -128,6 +161,7 @@ export default function PurchaseForm({ initial }: { initial: PurchaseFormValue }
       });
       const json = await res.json();
       if (res.ok && json.document) {
+        clearDraft();
         router.push(`/purchases/${json.document.id}`);
         router.refresh();
       } else {
@@ -142,6 +176,30 @@ export default function PurchaseForm({ initial }: { initial: PurchaseFormValue }
 
   return (
     <div className="space-y-5">
+      {resumableDraft && !bannerDismissed && !value.id && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm">
+          <span className="text-amber-900 font-medium">
+            Resume unsaved purchase from {new Date(resumableDraft.savedAt).toLocaleString()}?
+          </span>
+          <span className="flex items-center gap-2">
+            <button
+              onClick={() => restoreDraft(resumableDraft.data)}
+              className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700"
+            >
+              Restore
+            </button>
+            <button
+              onClick={() => {
+                clearDraft();
+                setBannerDismissed(true);
+              }}
+              className="rounded-lg border border-amber-300 px-3 py-1.5 text-xs font-semibold text-amber-800 hover:bg-amber-100"
+            >
+              Discard
+            </button>
+          </span>
+        </div>
+      )}
       <div className="card p-5 space-y-4">
         <h2 className="label">Supplier</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

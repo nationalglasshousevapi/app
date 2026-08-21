@@ -4,14 +4,18 @@ import { SESSION_COOKIE, verifyToken } from "@/lib/authEdge";
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Always allow the login page and its API route through.
-  if (pathname === "/login" || pathname.startsWith("/api/auth/login")) {
+  // Always allow the login page, its API route, and public share links through.
+  if (
+    pathname === "/login" ||
+    pathname.startsWith("/api/auth/login") ||
+    pathname.startsWith("/api/public")
+  ) {
     return NextResponse.next();
   }
 
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   const secret = process.env.SESSION_SECRET ?? "";
-  const ok = token ? await verifyToken(token, secret) : false;
+  const ok = secret.length > 0 && token ? await verifyToken(token, secret) : false;
 
   if (!ok) {
     const url = req.nextUrl.clone();
