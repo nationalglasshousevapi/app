@@ -38,8 +38,9 @@ test_output.pdf
 dotenv-*.tgz
 docs/
 AGENTS.md
-CLAUDE.md
 .commandcode/
+.agents/
+supabase/.temp/
 
 # typescript
 *.tsbuildinfo

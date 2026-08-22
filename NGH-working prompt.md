@@ -145,3 +145,42 @@ I've seen various components have various style like some have hard corners some
 2. I also want to have an option to edit the document number when we create the document.
 
 ---
+this was my father's calculation 
+1. 88.75 x 126  x 2 sheets
+  - no 1 - 4 pcs
+  - no 3 - 2 pcs
+2. 88.75 x 126
+  - no 2 - 2pcs
+3. 88.75 x 126
+  - no 5 - 2 pcs
+  - no 7 - 3 pcs
+4. 88.75 x 126
+  - no 9 - 2 pcs
+  - no 10 - 2 pcs
+5. 72 x 96
+  - no 12 - 1 pcs
+  - no 13 - 1 pcs
+  - no 7 - 1 pcs
+6. 72 x 96
+  - no 11 - 2 pcs
+  - no 8 - 1 pcs
+7. 88.74 x 126
+  - no 6 - 2 pcs
+  - no 8 - 1 pcs
+
+---
+
+The size isn't displayed within the sheet so can't view remanent
+I would like to know what's the sizes that we calculated to the client i.e under 24" multiple of 3 and above 24" multiple of 6 etc that is what we calculate and charge for for the customer
+how much did we actually cut from the sheets - nos & sq.ft
+how much did was wasted -  nos & sq.ft
+how much is remanent - nos & sq.ft
+
+
+This will enable him to calculate the actual amount of materials used and how much did we make from this client sizes etc.
+
+---
+we are using manual method for cutting the sheets. can we update the optimizer so we optimize the sheets to cut in a way that we don't cut horizontal + vertical etc sizes.
+Also we can't cut sheet horizontally with sizes above 96" as we can't keep that on the table and cut.
+
+can we consider this when optimizing?
