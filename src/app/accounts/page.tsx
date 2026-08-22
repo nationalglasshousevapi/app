@@ -14,22 +14,11 @@ export default async function AccountsPage() {
     .select("*")
     .order("balance_due", { ascending: false });
 
-  // Fetch invoice counts per customer (select only the FK column to keep
-  // the payload minimal — no full rows are pulled to the client/server)
-  const { data: invoiceCounts } = await sb
-    .from("documents")
-    .select("customer_id")
-    .eq("doc_type", "invoice")
-    .neq("status", "cancelled");
-
-  const countMap: Record<string, number> = {};
-  for (const row of invoiceCounts ?? []) {
-    countMap[row.customer_id] = (countMap[row.customer_id] ?? 0) + 1;
-  }
-
+  // Invoice counts come straight from customer_ledger_view (see migration
+  // 0004). Fall back to 0 if the migration hasn't been applied yet.
   const combined = (customers ?? []).map((c) => ({
     ...c,
-    invoice_count: countMap[c.customer_id] ?? 0,
+    invoice_count: (c as { invoice_count?: number }).invoice_count ?? 0,
   }));
 
   return (

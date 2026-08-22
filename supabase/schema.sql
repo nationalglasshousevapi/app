@@ -198,6 +198,7 @@ select
   c.opening_balance,
   coalesce(inv.total_invoiced, 0) as total_invoiced,
   coalesce(pay.total_paid, 0) as total_paid,
+  coalesce(cnt.invoice_count, 0) as invoice_count,
   (c.opening_balance + coalesce(inv.total_invoiced, 0) - coalesce(pay.total_paid, 0)) as balance_due
 from customers c
 left join (
@@ -210,7 +211,13 @@ left join (
   select customer_id, sum(amount) as total_paid
   from payments
   group by customer_id
-) pay on pay.customer_id = c.id;
+) pay on pay.customer_id = c.id
+left join (
+  select customer_id, count(*) as invoice_count
+  from documents
+  where doc_type = 'invoice' and status != 'cancelled'
+  group by customer_id
+) cnt on cnt.customer_id = c.id;
 
 -- ========== Dashboard aggregation ==========
 -- Returns all dashboard data in a single query for efficiency.
