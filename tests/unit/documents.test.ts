@@ -103,7 +103,7 @@ describe("documents lib", () => {
   describe("formatItemRows", () => {
     it("computes total = qty * rate rounded to 2dp and sets position", () => {
       const rows = formatItemRows(
-        [{ description: "A", size: "2x2", hsn_code: "7005", qty: 3, unit: "sq.ft", rate: 10, actual_length: 24, actual_width: 24, nos: 1, calculated_length: 24, calculated_width: 24, item_type: "glass" }],
+        [{ description: "A", size: "2x2", hsn_code: "7005", qty: 3, unit: "sq.ft", rate: 10, actual_length: 24, actual_width: 24, nos: 1, calculated_length: 24, calculated_width: 24, item_type: "glass", thickness: 6, width_mm: 183, length_mm: 244, pcs: 26 }],
         "doc-1",
       );
       expect(rows[0]).toMatchObject({
