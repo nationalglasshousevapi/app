@@ -69,6 +69,14 @@ create table if not exists documents (
   remarks text,
   status text not null default 'draft' check (status in ('draft', 'sent', 'paid', 'cancelled', 'converted')),
 
+  -- Purchase invoice metadata (null for sales docs)
+  irn text,
+  ack_number text,
+  ack_date date,
+  place_of_supply text,
+  bilty_number text,
+  vehicle_number text,
+
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -96,7 +104,12 @@ create table if not exists document_items (
   calculated_length numeric(8,2) default 0,
   calculated_width numeric(8,2) default 0,
   -- Item type: 'glass' (with dimensions) or 'charge' (flat amount)
-  item_type text not null default 'glass' check (item_type in ('glass', 'charge'))
+  item_type text not null default 'glass' check (item_type in ('glass', 'charge')),
+  -- Purchase dimensions (informational; amount = qty × rate, thickness not used in math)
+  thickness numeric(6,2),
+  length_mm numeric(8,2),
+  width_mm numeric(8,2),
+  pcs integer
 );
 
 create index if not exists idx_items_document on document_items (document_id);
@@ -380,4 +393,32 @@ create trigger trg_expenses_updated before update on expenses
 
 -- Allow payments without a linked customer (walk-in cash sale)
 alter table payments alter column customer_id drop not null;
+
+-- ========== Suppliers ==========
+create table if not exists suppliers (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  address text,
+  contact_person text,
+  contact_number text,
+  email text,
+  gst text,
+  bank_name text,
+  bank_account_no text,
+  bank_ifsc text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_suppliers_name on suppliers using gin (to_tsvector('simple', name));
+
+drop trigger if exists trg_suppliers_updated on suppliers;
+create trigger trg_suppliers_updated before update on suppliers
+  for each row execute function set_updated_at();
+
+alter table suppliers enable row level security;
+
+create index if not exists idx_documents_supplier_gst_doc_number
+  on documents (bill_to_gst, doc_number)
+  where doc_type = 'purchase';
 

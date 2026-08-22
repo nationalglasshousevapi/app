@@ -27,6 +27,10 @@ export const itemSchema = z.object({
   calculated_length: z.number().min(0).optional().default(0),
   calculated_width: z.number().min(0).optional().default(0),
   item_type: z.enum(["glass", "charge"]).optional().default("glass"),
+  thickness: z.number().min(0).optional().default(0),
+  length_mm: z.number().min(0).optional().default(0),
+  width_mm: z.number().min(0).optional().default(0),
+  pcs: z.number().int().min(0).optional().default(0),
 });
 
 export const additionalChargeSchema = z.object({
@@ -63,6 +67,12 @@ export const createDocumentSchema = z.object({
   taxable_charges: z.array(taxableChargeSchema).optional().default([]),
   remarks: z.string().nullable().optional().default(null),
   status: z.string().optional().default("draft"),
+  irn: z.string().nullable().optional().default(null),
+  ack_number: z.string().nullable().optional().default(null),
+  ack_date: z.string().nullable().optional().default(null),
+  place_of_supply: z.string().nullable().optional().default(null),
+  bilty_number: z.string().nullable().optional().default(null),
+  vehicle_number: z.string().nullable().optional().default(null),
   items: z.array(itemSchema).min(1, "Add at least one line item."),
 });
 
@@ -129,6 +139,15 @@ export const createCustomerSchema = z.object({
 });
 
 export const updateCustomerSchema = createCustomerSchema.partial();
+
+export const createSupplierSchema = z.object({
+  name: z.string().min(1, "Supplier name is required."),
+  address: z.string().optional().default(""),
+  contact_person: z.string().optional().default(""),
+  contact_number: z.string().optional().default(""),
+  email: z.string().optional().default(""),
+  gst: z.string().optional().default(""),
+});
 
 export function parseError(error: unknown): string {
   if (error instanceof z.ZodError) {

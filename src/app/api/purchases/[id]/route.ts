@@ -87,6 +87,12 @@ export async function PUT(
       total_amount: total,
       remarks: rest.remarks ?? null,
       status: rest.status || "draft",
+      irn: rest.irn ?? null,
+      ack_number: rest.ack_number ?? null,
+      ack_date: rest.ack_date || null,
+      place_of_supply: rest.place_of_supply ?? null,
+      bilty_number: rest.bilty_number ?? null,
+      vehicle_number: rest.vehicle_number ?? null,
     })
     .eq("id", params.id)
     .select()

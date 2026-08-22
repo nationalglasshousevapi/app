@@ -86,7 +86,7 @@ export interface DocumentShipToFields {
 
 export type StoredTotals = DocumentTotals;
 
-export interface CopyableItemRow {
+export type CopyableItemRow = {
   description: unknown;
   size: unknown;
   hsn_code: unknown;
@@ -99,7 +99,11 @@ export interface CopyableItemRow {
   nos?: unknown;
   calculated_length?: unknown;
   calculated_width?: unknown;
-}
+  thickness?: unknown;
+  length_mm?: unknown;
+  width_mm?: unknown;
+  pcs?: unknown;
+};
 
 export function buildCopiedItemRows(
   sourceItems: CopyableItemRow[],
@@ -120,6 +124,10 @@ export function buildCopiedItemRows(
     nos: it.nos || 1,
     calculated_length: it.calculated_length || 0,
     calculated_width: it.calculated_width || 0,
+    thickness: it.thickness ?? null,
+    length_mm: it.length_mm ?? null,
+    width_mm: it.width_mm ?? null,
+    pcs: it.pcs ?? null,
   }));
 }
 
@@ -139,6 +147,12 @@ export interface CreateDocumentRecordInput {
   taxable_charges?: TaxableCharge[] | null;
   remarks?: string | null;
   status?: string;
+  irn?: string | null;
+  ack_number?: string | null;
+  ack_date?: string | null;
+  place_of_supply?: string | null;
+  bilty_number?: string | null;
+  vehicle_number?: string | null;
   items?: ParsedItem[];
   stored_totals?: StoredTotals;
   copied_items?: CopyableItemRow[];
@@ -221,6 +235,12 @@ export async function createDocumentRecord(
       total_amount: money.total_amount,
       remarks: input.remarks ?? null,
       status: input.status || "draft",
+      irn: orNull(input.irn ?? undefined),
+      ack_number: orNull(input.ack_number ?? undefined),
+      ack_date: orNull(input.ack_date ?? undefined),
+      place_of_supply: orNull(input.place_of_supply ?? undefined),
+      bilty_number: orNull(input.bilty_number ?? undefined),
+      vehicle_number: orNull(input.vehicle_number ?? undefined),
     })
     .select()
     .single();

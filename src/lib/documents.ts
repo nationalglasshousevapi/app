@@ -11,6 +11,11 @@ export interface ParsedItem {
   calculated_length: number;
   calculated_width: number;
   item_type: "glass" | "charge";
+  // Purchase-only dimensions (informational; amount = qty × rate)
+  thickness: number;
+  length_mm: number;
+  width_mm: number;
+  pcs: number;
 }
 
 export function parseItems(rawItems: unknown[]): ParsedItem[] {
@@ -29,6 +34,10 @@ export function parseItems(rawItems: unknown[]): ParsedItem[] {
       calculated_length: Number(row.calculated_length ?? 0),
       calculated_width: Number(row.calculated_width ?? 0),
       item_type: (row.item_type as string) === "charge" ? "charge" : "glass",
+      thickness: Number(row.thickness ?? 0),
+      length_mm: Number(row.length_mm ?? 0),
+      width_mm: Number(row.width_mm ?? 0),
+      pcs: Number(row.pcs ?? 0),
     };
   });
 }
@@ -124,5 +133,9 @@ export function formatItemRows(
     calculated_length: it.calculated_length || 0,
     calculated_width: it.calculated_width || 0,
     item_type: it.item_type || "glass",
+    thickness: it.thickness || null,
+    length_mm: it.length_mm || null,
+    width_mm: it.width_mm || null,
+    pcs: it.pcs || null,
   }));
 }

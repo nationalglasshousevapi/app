@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { DEFAULT_HSN_CODE } from "@/lib/company";
 import { computeTax, computeTotal } from "@/lib/documents";
 import { inr } from "@/lib/format";
+import SupplierPicker from "@/components/SupplierPicker";
 import { useDraftPersistence } from "@/lib/useDraftPersistence";
 
 export type PurchaseItem = {
@@ -14,6 +15,10 @@ export type PurchaseItem = {
   qty: number;
   unit: string;
   rate: number;
+  thickness?: number;
+  width_mm?: number;
+  length_mm?: number;
+  pcs?: number;
 };
 
 export type PurchaseFormValue = {
@@ -25,6 +30,12 @@ export type PurchaseFormValue = {
   supplier_contact_person: string;
   supplier_contact_number: string;
   supplier_gst: string;
+  irn: string;
+  ack_number: string;
+  ack_date: string;
+  place_of_supply: string;
+  bilty_number: string;
+  vehicle_number: string;
   tax_type: "cgst_sgst" | "igst" | "none";
   tax_rate: number;
   remarks: string;
@@ -44,15 +55,21 @@ export function blankPurchase(): PurchaseFormValue {
     supplier_contact_person: "",
     supplier_contact_number: "",
     supplier_gst: "",
+    irn: "",
+    ack_number: "",
+    ack_date: "",
+    place_of_supply: "",
+    bilty_number: "",
+    vehicle_number: "",
     tax_type: "cgst_sgst",
     tax_rate: 0.18,
     remarks: "",
     status: "draft",
-    items: [{ description: "", size: "", hsn_code: DEFAULT_HSN_CODE, qty: 0, unit: "sq.ft", rate: 0 }],
+    items: [{ description: "", size: "", hsn_code: DEFAULT_HSN_CODE, qty: 0, unit: "mts", rate: 0 }],
   };
 }
 
-const UNITS = ["sq.ft", "rn ft", "nos", "pcs"];
+const UNITS = ["mts", "sq.ft", "rn ft", "nos", "pcs"];
 
 const DRAFT_KEY = "ngh_draft_purchase";
 
@@ -64,6 +81,11 @@ function isBlankPurchase(v: PurchaseFormValue): boolean {
     !v.supplier_contact_person &&
     !v.supplier_contact_number &&
     !v.supplier_gst &&
+    !v.irn &&
+    !v.ack_number &&
+    !v.place_of_supply &&
+    !v.bilty_number &&
+    !v.vehicle_number &&
     v.tax_type === b.tax_type &&
     v.remarks === b.remarks &&
     (v.status === "draft" || !v.status) &&
@@ -71,7 +93,7 @@ function isBlankPurchase(v: PurchaseFormValue): boolean {
   );
 }
 
-export default function PurchaseForm({ initial }: { initial: PurchaseFormValue }) {
+export default function PurchaseForm({ initial, scanFile }: { initial: PurchaseFormValue; scanFile?: File | null }) {
   const [value, setValue] = useState<PurchaseFormValue>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -106,7 +128,7 @@ export default function PurchaseForm({ initial }: { initial: PurchaseFormValue }
   function addItem() {
     setValue((v) => ({
       ...v,
-      items: [...v.items, { description: "", size: "", hsn_code: DEFAULT_HSN_CODE, qty: 0, unit: "sq.ft", rate: 0 }],
+      items: [...v.items, { description: "", size: "", hsn_code: DEFAULT_HSN_CODE, qty: 0, unit: "mts", rate: 0 }],
     }));
   }
 
@@ -144,6 +166,12 @@ export default function PurchaseForm({ initial }: { initial: PurchaseFormValue }
         tax_rate: value.tax_rate,
         remarks: value.remarks || null,
         status: value.status || "draft",
+        irn: value.irn || null,
+        ack_number: value.ack_number || null,
+        ack_date: value.ack_date || null,
+        place_of_supply: value.place_of_supply || null,
+        bilty_number: value.bilty_number || null,
+        vehicle_number: value.vehicle_number || null,
         items: value.items.map((it) => ({
           description: it.description,
           size: it.size,
@@ -151,6 +179,10 @@ export default function PurchaseForm({ initial }: { initial: PurchaseFormValue }
           qty: it.qty,
           unit: it.unit,
           rate: it.rate,
+          thickness: it.thickness || 0,
+          width_mm: it.width_mm || 0,
+          length_mm: it.length_mm || 0,
+          pcs: it.pcs || 0,
         })),
       };
       const url = value.id ? `/api/purchases/${value.id}` : "/api/purchases";
@@ -161,6 +193,15 @@ export default function PurchaseForm({ initial }: { initial: PurchaseFormValue }
       });
       const json = await res.json();
       if (res.ok && json.document) {
+        if (scanFile && !value.id) {
+          try {
+            const fd = new FormData();
+            fd.append("file", scanFile);
+            await fetch(`/api/purchases/${json.document.id}/scan`, { method: "POST", body: fd });
+          } catch {
+            // Scan storage is best-effort; never block the entry itself.
+          }
+        }
         clearDraft();
         router.push(`/purchases/${json.document.id}`);
         router.refresh();
@@ -202,6 +243,21 @@ export default function PurchaseForm({ initial }: { initial: PurchaseFormValue }
       )}
       <div className="card p-5 space-y-4">
         <h2 className="label">Supplier</h2>
+        <div>
+          <label className="label">Saved supplier</label>
+          <SupplierPicker
+            initialName={value.id ? value.supplier_name : undefined}
+            onSelect={(s) =>
+              patch({
+                supplier_name: s.name,
+                supplier_address: s.address ?? "",
+                supplier_contact_person: s.contact_person ?? "",
+                supplier_contact_number: s.contact_number ?? "",
+                supplier_gst: s.gst ?? "",
+              })
+            }
+          />
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="label">Supplier name *</label>
@@ -230,6 +286,40 @@ export default function PurchaseForm({ initial }: { initial: PurchaseFormValue }
         </div>
       </div>
 
+      <div className="card p-5 space-y-4">
+        <h2 className="label">Invoice Details</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="label">Supplier invoice no.</label>
+            <input className="input" value={value.doc_number || ""} placeholder="e.g. MGW/26-27/0554" onChange={(e) => patch({ doc_number: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Place of supply</label>
+            <input className="input" value={value.place_of_supply} onChange={(e) => patch({ place_of_supply: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">IRN</label>
+            <input className="input" value={value.irn} onChange={(e) => patch({ irn: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Ack no.</label>
+            <input className="input" value={value.ack_number} onChange={(e) => patch({ ack_number: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Ack date</label>
+            <input type="date" className="input" value={value.ack_date} onChange={(e) => patch({ ack_date: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Bilty / LR no.</label>
+            <input className="input" value={value.bilty_number} onChange={(e) => patch({ bilty_number: e.target.value })} />
+          </div>
+          <div>
+            <label className="label">Vehicle no.</label>
+            <input className="input" value={value.vehicle_number} onChange={(e) => patch({ vehicle_number: e.target.value })} />
+          </div>
+        </div>
+      </div>
+
       <div className="card p-5">
         <h2 className="label mb-3">Items</h2>
         <div className="overflow-x-auto">
@@ -237,11 +327,13 @@ export default function PurchaseForm({ initial }: { initial: PurchaseFormValue }
             <thead>
               <tr className="text-left text-xs font-semibold text-slate-500 border-b border-slate-100">
                 <th className="p-2">Description</th>
-                <th className="p-2">Size</th>
                 <th className="p-2">HSN</th>
-                <th className="p-2">Qty</th>
-                <th className="p-2">Unit</th>
-                <th className="p-2">Rate</th>
+                <th className="p-2">Thk (mm)</th>
+                <th className="p-2">Wid (mm)</th>
+                <th className="p-2">Len (mm)</th>
+                <th className="p-2">Pcs</th>
+                <th className="p-2">Qty (Mts)</th>
+                <th className="p-2">Rate (/MM)</th>
                 <th className="p-2 text-right">Amount</th>
                 <th className="p-2"></th>
               </tr>
@@ -249,17 +341,26 @@ export default function PurchaseForm({ initial }: { initial: PurchaseFormValue }
             <tbody>
               {value.items.map((it, i) => (
                 <tr key={i} className="border-b border-slate-100">
-                  <td className="p-2">
+                  <td className="p-2 min-w-[140px]">
                     <input className="input !min-h-[30px] !py-1.5 text-xs" value={it.description} onChange={(e) => patchItem(i, { description: e.target.value })} />
                   </td>
                   <td className="p-2">
-                    <input className="input !min-h-[30px] !py-1.5 text-xs" value={it.size} onChange={(e) => patchItem(i, { size: e.target.value })} />
+                    <input className="input !min-h-[30px] !py-1.5 text-xs w-20" value={it.hsn_code} onChange={(e) => patchItem(i, { hsn_code: e.target.value })} />
                   </td>
                   <td className="p-2">
-                    <input className="input !min-h-[30px] !py-1.5 text-xs" value={it.hsn_code} onChange={(e) => patchItem(i, { hsn_code: e.target.value })} />
+                    <input type="number" min="0" step="any" className="input !min-h-[30px] !py-1.5 text-xs w-16" value={it.thickness || ""} placeholder="0" onChange={(e) => patchItem(i, { thickness: parseFloat(e.target.value) || 0 })} />
                   </td>
                   <td className="p-2">
-                    <input type="number" min="0" step="any" className="input !min-h-[30px] !py-1.5 text-xs" value={it.qty || ""} placeholder="0" onChange={(e) => patchItem(i, { qty: parseFloat(e.target.value) || 0 })} />
+                    <input type="number" min="0" step="any" className="input !min-h-[30px] !py-1.5 text-xs w-16" value={it.width_mm || ""} placeholder="0" onChange={(e) => patchItem(i, { width_mm: parseFloat(e.target.value) || 0 })} />
+                  </td>
+                  <td className="p-2">
+                    <input type="number" min="0" step="any" className="input !min-h-[30px] !py-1.5 text-xs w-16" value={it.length_mm || ""} placeholder="0" onChange={(e) => patchItem(i, { length_mm: parseFloat(e.target.value) || 0 })} />
+                  </td>
+                  <td className="p-2">
+                    <input type="number" min="0" step="1" className="input !min-h-[30px] !py-1.5 text-xs w-14" value={it.pcs || ""} placeholder="0" onChange={(e) => patchItem(i, { pcs: parseInt(e.target.value) || 0 })} />
+                  </td>
+                  <td className="p-2">
+                    <input type="number" min="0" step="any" className="input !min-h-[30px] !py-1.5 text-xs w-24" value={it.qty || ""} placeholder="0" onChange={(e) => patchItem(i, { qty: parseFloat(e.target.value) || 0 })} />
                   </td>
                   <td className="p-2">
                     <select className="input !min-h-[30px] !py-1.5 text-xs" value={it.unit} onChange={(e) => patchItem(i, { unit: e.target.value })}>
@@ -269,7 +370,7 @@ export default function PurchaseForm({ initial }: { initial: PurchaseFormValue }
                     </select>
                   </td>
                   <td className="p-2">
-                    <input type="number" min="0" step="any" className="input !min-h-[30px] !py-1.5 text-xs" value={it.rate || ""} placeholder="0" onChange={(e) => patchItem(i, { rate: parseFloat(e.target.value) || 0 })} />
+                    <input type="number" min="0" step="any" className="input !min-h-[30px] !py-1.5 text-xs w-20" value={it.rate || ""} placeholder="0" onChange={(e) => patchItem(i, { rate: parseFloat(e.target.value) || 0 })} />
                   </td>
                   <td className="p-2 text-right font-mono text-xs whitespace-nowrap">
                     {inr((it.qty || 0) * (it.rate || 0), 2)}

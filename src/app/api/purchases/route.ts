@@ -58,6 +58,25 @@ export async function POST(req: NextRequest) {
   const { doc_type, doc_number: userDocNumber, doc_date, items: rawItems, ...rest } = parsed.data;
   const sb = supabaseServer();
 
+  // Duplicate guard: same supplier GST + supplier invoice number must not be
+  // claimed twice for input tax credit.
+  if (rest.bill_to_gst && userDocNumber) {
+    const { data: dup } = await sb
+      .from("documents")
+      .select("id")
+      .eq("doc_type", "purchase")
+      .neq("status", "cancelled")
+      .eq("bill_to_gst", rest.bill_to_gst)
+      .eq("doc_number", userDocNumber)
+      .limit(1);
+    if (dup?.length) {
+      return NextResponse.json(
+        { error: "A purchase from this supplier with the same invoice number already exists.", duplicate_id: dup[0].id },
+        { status: 409 },
+      );
+    }
+  }
+
   try {
     const { document } = await createDocumentRecord(sb, {
       doc_type,
@@ -87,6 +106,12 @@ export async function POST(req: NextRequest) {
       taxable_charges: rest.taxable_charges,
       remarks: rest.remarks,
       status: rest.status,
+      irn: rest.irn,
+      ack_number: rest.ack_number,
+      ack_date: rest.ack_date,
+      place_of_supply: rest.place_of_supply,
+      bilty_number: rest.bilty_number,
+      vehicle_number: rest.vehicle_number,
       items: parseItems(rawItems),
     });
     return NextResponse.json({ document });

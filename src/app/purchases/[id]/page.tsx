@@ -26,6 +26,11 @@ export default async function PurchaseDetailPage({
     .eq("document_id", params.id)
     .order("position", { ascending: true });
 
+  const { data: scanFiles } = await sb.storage
+    .from("purchase-scans")
+    .list(params.id, { limit: 1, search: "original" });
+  const hasScan = Boolean(scanFiles?.some((f) => f.name.startsWith("original.")));
+
   const initial: PurchaseFormValue = {
     id: doc.id,
     doc_number: doc.doc_number,
@@ -35,6 +40,12 @@ export default async function PurchaseDetailPage({
     supplier_contact_person: doc.bill_to_contact_person ?? "",
     supplier_contact_number: doc.bill_to_contact_number ?? "",
     supplier_gst: doc.bill_to_gst ?? "",
+    irn: doc.irn ?? "",
+    ack_number: doc.ack_number ?? "",
+    ack_date: doc.ack_date ?? "",
+    place_of_supply: doc.place_of_supply ?? "",
+    bilty_number: doc.bilty_number ?? "",
+    vehicle_number: doc.vehicle_number ?? "",
     tax_type: doc.tax_type,
     tax_rate: Number(doc.tax_rate),
     remarks: doc.remarks ?? "",
@@ -44,8 +55,12 @@ export default async function PurchaseDetailPage({
       size: it.size ?? "",
       hsn_code: it.hsn_code ?? "",
       qty: Number(it.qty),
-      unit: it.unit ?? "sq.ft",
+      unit: it.unit ?? "mts",
       rate: Number(it.rate),
+      thickness: Number(it.thickness ?? 0),
+      width_mm: Number(it.width_mm ?? 0),
+      length_mm: Number(it.length_mm ?? 0),
+      pcs: Number(it.pcs ?? 0),
     })),
   };
 
@@ -71,6 +86,11 @@ export default async function PurchaseDetailPage({
         <a href={`/api/purchases/${doc.id}/pdf`} download={`${doc.doc_number}.pdf`} className="btn-secondary text-sm">
           Download PDF
         </a>
+        {hasScan && (
+          <Link href={`/api/purchases/${doc.id}/scan`} target="_blank" className="btn-secondary text-sm">
+            📷 Original scan
+          </Link>
+        )}
       </div>
       <PurchaseForm initial={initial} />
     </div>

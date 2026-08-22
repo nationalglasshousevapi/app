@@ -53,9 +53,14 @@ export default async function PurchasesPage({
               : `${(purchases ?? []).length} of ${totalCount ?? 0} purchases`}
           </p>
         </div>
-        <Link href="/purchases/new" className="btn-primary w-full sm:w-auto">
-          + New purchase
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Link href="/purchases/scan" className="btn-secondary w-full sm:w-auto">
+            📷 Scan invoice
+          </Link>
+          <Link href="/purchases/new" className="btn-primary w-full sm:w-auto">
+            + New purchase
+          </Link>
+        </div>
       </div>
 
       <PurchaseSearch initialQuery={searchParams.q ?? ""} />

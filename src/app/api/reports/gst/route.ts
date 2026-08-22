@@ -19,9 +19,15 @@ export async function GET(req: NextRequest) {
   const sb = supabaseServer();
 
   const month = req.nextUrl.searchParams.get("month") ?? "";
-  const reportType = req.nextUrl.searchParams.get("type") ?? "invoice"; // invoice | hsn
+  const reportType = req.nextUrl.searchParams.get("type") ?? "invoice"; // invoice | hsn | purchase | purchase_hsn | summary
   const fromParam = req.nextUrl.searchParams.get("from") ?? "";
   const toParam = req.nextUrl.searchParams.get("to") ?? "";
+
+  const side: "sales" | "purchase" =
+    reportType === "purchase" || reportType === "purchase_hsn" || reportType === "summary"
+      ? "purchase"
+      : "sales";
+  const docTypeFilter = side === "sales" ? "invoice" : "purchase";
 
   // Build date range: prefer explicit from/to, then month
   let fromDate: string;
@@ -39,25 +45,70 @@ export async function GET(req: NextRequest) {
     toDate = "2099-12-31";
   }
 
-  // Fetch all invoices in range with bill_to GST
-  const { data: invoices } = await sb
+  // Fetch all invoices/purchases in range
+  let docQuery = sb
     .from("documents")
     .select("id, doc_number, doc_date, bill_to_name, bill_to_gst, bill_to_address, subtotal, tax_type, tax_rate, cgst_amount, sgst_amount, igst_amount, total_amount")
-    .eq("doc_type", "invoice")
+    .eq("doc_type", docTypeFilter)
     .gte("doc_date", fromDate)
     .lte("doc_date", toDate)
     .order("doc_date", { ascending: true });
+  if (side === "purchase") {
+    // Only confirmed entries feed input tax credit claims.
+    docQuery = docQuery.neq("status", "draft").neq("status", "cancelled");
+  }
+  const { data: invoices } = await docQuery;
+
+  const reportLabel = fromParam && toParam ? `${fromParam}_${toParam}` : month || "all";
+
+  if (reportType === "summary") {
+    const outputTax = (invoices ?? []).reduce(
+      (s, d) => s + Number(d.cgst_amount) + Number(d.sgst_amount) + Number(d.igst_amount),
+      0,
+    );
+    const taxableSales = (invoices ?? []).reduce((s, d) => s + Number(d.subtotal), 0);
+
+    let purchaseQuery = sb
+      .from("documents")
+      .select("id, cgst_amount, sgst_amount, igst_amount, subtotal")
+      .eq("doc_type", "purchase")
+      .gte("doc_date", fromDate)
+      .lte("doc_date", toDate)
+      .neq("status", "draft")
+      .neq("status", "cancelled");
+    const { data: purchases } = await purchaseQuery;
+    const inputCredit = (purchases ?? []).reduce(
+      (s, d) => s + Number(d.cgst_amount) + Number(d.sgst_amount) + Number(d.igst_amount),
+      0,
+    );
+    const taxablePurchases = (purchases ?? []).reduce((s, d) => s + Number(d.subtotal), 0);
+
+    const label = fromParam && toParam ? `${fromParam} to ${toParam}` : month || "all";    const lines = [
+      `GST Summary,${escapeCsv(label)}`,
+      "",
+      "Metric,Amount (INR)",
+      `Total Sales (taxable),${taxableSales.toFixed(2)}`,
+      `Output Tax,${outputTax.toFixed(2)}`,
+      `Total Purchases (taxable),${taxablePurchases.toFixed(2)}`,
+      `Input Tax Credit,${inputCredit.toFixed(2)}`,
+      `Net GST Payable,${(outputTax - inputCredit).toFixed(2)}`,
+    ];
+    return new NextResponse(lines.join("\n"), {
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="gst-summary-${reportLabel}.csv"`,
+      },
+    });
+  }
 
   if (!invoices?.length) {
-    return new NextResponse("No invoices found for the selected period.", {
+    return new NextResponse("No documents found for the selected period.", {
       status: 404,
       headers: { "Content-Type": "text/plain" },
     });
   }
 
-  const reportLabel = fromParam && toParam ? `${fromParam}_${toParam}` : month || "all";
-
-  if (reportType === "hsn") {
+  if (reportType === "hsn" || reportType === "purchase_hsn") {
     // Fetch line items for all invoices
     const ids = invoices.map((inv) => inv.id);
     const { data: items } = await sb
@@ -143,8 +194,10 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Invoice-level GSTR-1
-  const header = "GSTIN of Recipient,Bill To Name,Invoice Number,Invoice Date,Invoice Value,Taxable Value,CGST Amount,SGST Amount,IGST Amount,Tax Type";
+  // Document-level GST CSV (GSTR-1 for sales / ITC register for purchases)
+  const header = side === "sales"
+    ? "GSTIN of Recipient,Bill To Name,Invoice Number,Invoice Date,Invoice Value,Taxable Value,CGST Amount,SGST Amount,IGST Amount,Tax Type"
+    : "GSTIN of Supplier,Supplier Name,Supplier Invoice Number,Invoice Date,Invoice Value,Taxable Value,CGST Amount,SGST Amount,IGST Amount,Tax Type";
   const rows = (invoices ?? []).map((inv) =>
     [
       escapeCsv(inv.bill_to_gst),
@@ -162,10 +215,19 @@ export async function GET(req: NextRequest) {
 
   const csv = [header, ...rows].join("\n");
 
+  const filenamePrefix =
+    reportType === "purchase"
+      ? "purchase-gst-"
+      : side === "sales" && reportType === "hsn"
+        ? "gstr1-hsn-"
+        : reportType === "purchase_hsn"
+          ? "purchase-hsn-"
+          : "gstr1-invoices-";
+
   return new NextResponse(csv, {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="gstr1-invoices-${reportLabel}.csv"`,
+      "Content-Disposition": `attachment; filename="${filenamePrefix}${reportLabel}.csv"`,
     },
   });
 }

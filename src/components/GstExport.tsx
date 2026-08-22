@@ -4,7 +4,7 @@ import { useState } from "react";
 import CalendarInput from "@/components/CalendarInput";
 
 type PeriodType = "monthly" | "yearly" | "range";
-type ReportType = "invoice" | "hsn";
+type ReportType = "invoice" | "hsn" | "purchase" | "purchase_hsn" | "summary";
 
 export default function GstExport() {
   const now = new Date();
@@ -55,7 +55,8 @@ export default function GstExport() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      const filename = `gst-report-${periodType === "monthly" ? month : periodType === "yearly" ? year : `${fromDate}_${toDate}`}.csv`;
+      const period = periodType === "monthly" ? month : periodType === "yearly" ? year : `${fromDate}_${toDate}`;
+      const filename = `${type}-report-${period}.csv`;
       a.download = filename;
       document.body.appendChild(a);
       a.click();
@@ -77,7 +78,7 @@ export default function GstExport() {
   return (
     <div className="card p-5 md:p-6">
       <h2 className="font-display font-bold text-ink">GST Report</h2>
-      <p className="text-sm text-slate-500 font-body mt-1">Download GSTR-1 CSV</p>
+      <p className="text-sm text-slate-500 font-body mt-1">GSTR-1, purchase ITC register &amp; net GST summary</p>
 
       {/* Period type tabs */}
       <div className="mt-4 flex gap-1 p-1 bg-slate-100 rounded-lg w-fit">
@@ -138,14 +139,17 @@ export default function GstExport() {
         )}
 
         <div className="flex-1">
-          <label className="block text-xs font-semibold text-slate-500 mb-1">Format</label>
+          <label className="block text-xs font-semibold text-slate-500 mb-1">Report</label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value as ReportType)}
             className="input w-full"
           >
-            <option value="invoice">Invoice-wise</option>
-            <option value="hsn">HSN-wise</option>
+            <option value="invoice">Sales — Invoice-wise (GSTR-1)</option>
+            <option value="hsn">Sales — HSN-wise</option>
+            <option value="purchase">Purchases — Invoice-wise (ITC)</option>
+            <option value="purchase_hsn">Purchases — HSN-wise</option>
+            <option value="summary">GST Summary — Net payable</option>
           </select>
         </div>
 

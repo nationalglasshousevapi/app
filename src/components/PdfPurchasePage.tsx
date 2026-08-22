@@ -61,6 +61,9 @@ export type PdfPurchaseItem = {
   unit?: string | null;
   rate: number;
   total: number;
+  thickness?: number | null;
+  width_mm?: number | null;
+  length_mm?: number | null;
 };
 
 export type PdfPurchasePageProps = {
@@ -73,7 +76,13 @@ export type PdfPurchasePageProps = {
     contactPerson?: string | null;
     contactNumber?: string | null;
     gst?: string | null;
+    placeOfSupply?: string | null;
   };
+  irn?: string | null;
+  ackNumber?: string | null;
+  ackDate?: string | null;
+  biltyNumber?: string | null;
+  vehicleNumber?: string | null;
   items: PdfPurchaseItem[];
   subtotal: number;
   taxType: string;
@@ -160,27 +169,54 @@ export default function PdfPurchasePage(props: PdfPurchasePageProps) {
           </Text>
         ) : null}
         {supplier.gst ? <Text style={styles.supplierText}>GST: {supplier.gst}</Text> : null}
+        {supplier.placeOfSupply ? <Text style={styles.supplierText}>Place of Supply: {supplier.placeOfSupply}</Text> : null}
       </View>
+
+      {(props.irn || props.ackNumber || props.biltyNumber || props.vehicleNumber) ? (
+        <View style={[styles.companyStrip, { marginBottom: 10 }]}>
+          <View style={styles.companyCol}>
+            <Text style={styles.companyName}>E-Invoice & Logistics</Text>
+            <Text style={styles.companyText}>
+              {[
+                props.irn ? `IRN: ${props.irn}` : null,
+                props.ackNumber ? `Ack No: ${props.ackNumber}` : null,
+                props.ackDate ? `Ack Date: ${fdate(props.ackDate)}` : null,
+              ].filter(Boolean).join("  |  ") || "\u00a0"}
+              {"\n"}
+              {[
+                props.biltyNumber ? `Bilty/LR No: ${props.biltyNumber}` : null,
+                props.vehicleNumber ? `Vehicle No: ${props.vehicleNumber}` : null,
+              ].filter(Boolean).join("  |  ") || "\u00a0"}
+            </Text>
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.tableWrap}>
         <View style={styles.tableHead}>
           <Text style={[styles.headCell, styles.colDesc]}>DESCRIPTION</Text>
-          <Text style={[styles.headCell, styles.colSize]}>SIZE</Text>
+          <Text style={[styles.headCell, styles.colSize]}>THK / SIZE (MM)</Text>
           <Text style={[styles.headCell, styles.colHsn]}>HSN</Text>
           <Text style={[styles.headCell, styles.colQty]}>QTY</Text>
           <Text style={[styles.headCell, styles.colRate]}>RATE</Text>
           <Text style={[styles.headCell, styles.colAmount]}>AMOUNT</Text>
         </View>
-        {props.items.map((item, i) => (
-          <View key={`r-${i}`} style={[styles.row, i % 2 ? styles.rowAlt : {}]}>
-            <Text style={[styles.cell, styles.colDesc]}>{item.description}</Text>
-            <Text style={[styles.cell, styles.colSize]}>{item.size || "—"}</Text>
-            <Text style={[styles.cell, styles.colHsn]}>{item.hsn_code || "—"}</Text>
-            <Text style={[styles.cell, styles.colQty]}>{item.qty} {item.unit || ""}</Text>
-            <Text style={[styles.cell, styles.colRate]}>{money(item.rate)}</Text>
-            <Text style={[styles.cell, styles.colAmount]}>{money(item.total)}</Text>
-          </View>
-        ))}
+        {props.items.map((item, i) => {
+          const dimParts = [
+            item.thickness ? `${item.thickness}mm` : null,
+            item.width_mm && item.length_mm ? `${item.width_mm}×${item.length_mm}` : null,
+          ].filter(Boolean);
+          return (
+            <View key={`r-${i}`} style={[styles.row, i % 2 ? styles.rowAlt : {}]}>
+              <Text style={[styles.cell, styles.colDesc]}>{item.description}</Text>
+              <Text style={[styles.cell, styles.colSize]}>{dimParts.join(" · ") || item.size || "—"}</Text>
+              <Text style={[styles.cell, styles.colHsn]}>{item.hsn_code || "—"}</Text>
+              <Text style={[styles.cell, styles.colQty]}>{item.qty} {item.unit || ""}</Text>
+              <Text style={[styles.cell, styles.colRate]}>{money(item.rate)}</Text>
+              <Text style={[styles.cell, styles.colAmount]}>{money(item.total)}</Text>
+            </View>
+          );
+        })}
         <View style={styles.spacer} />
       </View>
 
