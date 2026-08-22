@@ -2,6 +2,9 @@
 --
 -- Lets the Accounts page show each customer's invoice count straight from
 -- the view instead of fetching every invoice row and counting in JS.
+--
+-- NOTE: invoice_count must stay the LAST column — Postgres only allows
+-- appending new columns via CREATE OR REPLACE VIEW.
 
 create or replace view customer_ledger_view as
 select
@@ -10,8 +13,8 @@ select
   c.opening_balance,
   coalesce(inv.total_invoiced, 0) as total_invoiced,
   coalesce(pay.total_paid, 0) as total_paid,
-  coalesce(cnt.invoice_count, 0) as invoice_count,
-  (c.opening_balance + coalesce(inv.total_invoiced, 0) - coalesce(pay.total_paid, 0)) as balance_due
+  (c.opening_balance + coalesce(inv.total_invoiced, 0) - coalesce(pay.total_paid, 0)) as balance_due,
+  coalesce(cnt.invoice_count, 0) as invoice_count
 from customers c
 left join (
   select customer_id, sum(total_amount) as total_invoiced
