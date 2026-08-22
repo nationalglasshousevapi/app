@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "@/lib/toast";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { docTypeLabel, canConvertToInvoice } from "@/lib/docTypes";
@@ -84,10 +85,10 @@ export default function DocumentActions({
         }
       } else {
         const json = await res.json();
-        alert(json.error || "Could not delete document.");
+        toast.error(json.error || "Could not delete document.");
       }
     } catch {
-      alert("Could not delete. Check your connection.");
+      toast.error("Could not delete. Check your connection.");
     } finally {
       setDeleting(false);
     }
@@ -120,13 +121,13 @@ export default function DocumentActions({
   async function copyShareLink() {
     const shareUrl = await fetchShareUrl();
     if (!shareUrl) {
-      alert("Could not generate share link. Please try again.");
+      toast.error("Could not generate share link. Please try again.");
       return;
     }
     try {
       await navigator.clipboard.writeText(shareUrl);
     } catch {
-      alert("Could not copy link. Please copy it manually: " + shareUrl);
+      toast.error("Could not copy link. Please copy it manually: " + shareUrl);
       return;
     }
     setCopiedLink(true);
@@ -151,10 +152,10 @@ export default function DocumentActions({
         router.push(`/documents/${json.document.id}`);
         router.refresh();
       } else {
-        alert(json.error || "Could not duplicate. Please try again.");
+        toast.error(json.error || "Could not duplicate. Please try again.");
       }
     } catch {
-      alert("Could not duplicate. Check your connection.");
+      toast.error("Could not duplicate. Check your connection.");
     } finally {
       setDuplicating(false);
     }
@@ -167,12 +168,12 @@ export default function DocumentActions({
       const res = await fetch(`/api/documents/${id}/email`, { method: "POST" });
       const json = await res.json();
       if (res.ok) {
-        alert("Invoice sent to customer's email.");
+        toast.success("Invoice sent to customer's email.");
       } else {
-        alert(json.error || "Could not send email.");
+        toast.error(json.error || "Could not send email.");
       }
     } catch {
-      alert("Could not send email. Check your connection.");
+      toast.error("Could not send email. Check your connection.");
     } finally {
       setEmailing(false);
     }

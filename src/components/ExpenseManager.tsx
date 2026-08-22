@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "@/lib/toast";
 import { useEffect, useMemo, useState } from "react";
 import { PAYMENT_MODES } from "@/lib/paymentModes";
 import { inr, formatDateShort } from "@/lib/format";
@@ -56,10 +57,13 @@ export default function ExpenseManager() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  async function load() {
+  async function load(targetMonth: string) {
     setLoading(true);
     try {
-      const res = await fetch("/api/expenses");
+      // Only fetch the selected month's rows from the server
+      const res = await fetch(
+        `/api/expenses?from_date=${targetMonth}-01&to_date=${targetMonth}-31`,
+      );
       const json = await res.json();
       setExpenses(json.expenses ?? []);
     } catch {
@@ -70,8 +74,8 @@ export default function ExpenseManager() {
   }
 
   useEffect(() => {
-    load();
-  }, []);
+    load(month);
+  }, [month]);
 
   const monthExpenses = useMemo(
     () => expenses.filter((e) => e.expense_date.startsWith(month)),
@@ -126,10 +130,11 @@ export default function ExpenseManager() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to save expense.");
+      toast.success(editingId ? "Expense updated." : "Expense added.");
       setShowForm(false);
       setEditingId(null);
       setForm(emptyForm());
-      await load();
+      await load(month);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save expense.");
     } finally {
@@ -143,8 +148,9 @@ export default function ExpenseManager() {
       const res = await fetch(`/api/expenses/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete.");
       setExpenses((prev) => prev.filter((e) => e.id !== id));
+      toast.success("Expense deleted.");
     } catch {
-      alert("Could not delete the expense.");
+      toast.error("Could not delete the expense.");
     }
   }
 

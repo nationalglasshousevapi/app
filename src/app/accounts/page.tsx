@@ -14,10 +14,11 @@ export default async function AccountsPage() {
     .select("*")
     .order("balance_due", { ascending: false });
 
-  // Fetch invoice counts per customer
+  // Fetch invoice counts per customer (select only the FK column to keep
+  // the payload minimal — no full rows are pulled to the client/server)
   const { data: invoiceCounts } = await sb
     .from("documents")
-    .select("customer_id, id")
+    .select("customer_id")
     .eq("doc_type", "invoice")
     .neq("status", "cancelled");
 

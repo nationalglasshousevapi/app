@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -80,15 +79,10 @@ export default function StatusBadge({
       >
         {status}
       </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            className="absolute z-50 mt-1 min-w-[140px] bg-white border border-slate-200 rounded-lg shadow-xl ring-1 ring-black/5 overflow-hidden"
-            initial={{ opacity: 0, y: -4, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.96 }}
-            transition={{ duration: 0.12 }}
-          >
+      {open && (
+        <div
+          className="absolute z-50 mt-1 min-w-[140px] bg-white border border-slate-200 rounded-lg shadow-xl ring-1 ring-black/5 overflow-hidden anim-drop-in"
+        >
           {statusOptions.map((opt) => (
             <button
               key={opt}
@@ -117,9 +111,8 @@ export default function StatusBadge({
               )}
             </button>
           ))}
-        </motion.div>
+        </div>
       )}
-    </AnimatePresence>
     </div>
   );
 }

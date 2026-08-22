@@ -118,6 +118,22 @@ body {
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* ── Lightweight drop-in animation (toasts, dropdowns) ── */
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.anim-drop-in {
+  animation: toast-enter 0.18s ease-out;
+}
+
 /* ── Hide number input spinners ── */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {

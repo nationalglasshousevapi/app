@@ -1,5 +1,6 @@
 import { supabaseServer } from "@/lib/supabaseServer";
 import StatCard from "@/components/StatCard";
+import LazyMount from "@/components/LazyMount";
 import RevenueChart from "@/components/RevenueChart";
 import DocumentTypeChart from "@/components/DocumentTypeChart";
 import TopCustomersChart from "@/components/TopCustomersChart";
@@ -219,7 +220,9 @@ export default async function DashboardPage() {
             <p className="text-sm text-slate-500 font-body">Last 12 months</p>
           </div>
           {d.monthlySeries.length ? (
-            <RevenueChart data={d.monthlySeries} />
+            <LazyMount minHeight={280}>
+              <RevenueChart data={d.monthlySeries} />
+            </LazyMount>
           ) : (
             <p className="text-sm text-slate-400 py-10 text-center font-body">
               No invoices yet &mdash; create your first one to see sales here.
@@ -233,7 +236,9 @@ export default async function DashboardPage() {
               <h2 className="font-display font-bold text-ink">Documents by type</h2>
               <p className="text-sm text-slate-500 font-body">Distribution across all types</p>
             </div>
-            <DocumentTypeChart data={d.documentTypeData} />
+            <LazyMount minHeight={280}>
+              <DocumentTypeChart data={d.documentTypeData} />
+            </LazyMount>
           </div>
         ) : null}
       </div>
@@ -310,7 +315,9 @@ export default async function DashboardPage() {
             <p className="text-sm text-slate-500 font-body">By revenue</p>
           </div>
           {d.topCustomers.length ? (
-            <TopCustomersChart data={d.topCustomers} />
+            <LazyMount minHeight={280}>
+              <TopCustomersChart data={d.topCustomers} />
+            </LazyMount>
           ) : (
             <p className="text-sm text-slate-400 py-6 text-center font-body">No data yet.</p>
           )}

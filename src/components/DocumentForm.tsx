@@ -2,8 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { pdf } from "@react-pdf/renderer";
-import { DOC_TYPES, docTypeLabel, docTypeShort, DocType } from "@/lib/docTypes";
+import { DOC_TYPES, docTypeLabel, DocType } from "@/lib/docTypes";
 import { inr } from "@/lib/format";
 import { computeAdditionalChargesTotal, computeTax, computeTaxableChargesTotal, computeTotal } from "@/lib/documents";
 import type { AdditionalCharge, TaxableCharge } from "@/lib/documents";
@@ -12,9 +11,8 @@ import NewCustomerModal from "./NewCustomerModal";
 import CalendarInput from "./CalendarInput";
 import LineItemsEditor, { EMPTY_ITEM, LineItem } from "./LineItemsEditor";
 import ManageDescriptionsModal from "./ManageDescriptionsModal";
-import PdfDocument from "./PdfDocument";
-import type { CompanyDetails } from "@/lib/company";
 import { useDraftPersistence } from "@/lib/useDraftPersistence";
+import { useUnsavedGuard } from "@/lib/useUnsavedGuard";
 
 type Customer = {
   id: string;
@@ -92,6 +90,9 @@ export default function DocumentForm({
   initial: DocumentFormValue;
 }) {
   const [value, setValue] = useState<DocumentFormValue>(initial);
+  // Baseline for dirty tracking — updated after a successful save so the
+  // unsaved-changes guard doesn't nag right after saving.
+  const [baseline, setBaseline] = useState<DocumentFormValue>(initial);
   const [sameAsBilling, setSameAsBilling] = useState(() => {
     return (
       !initial.id ||
@@ -105,8 +106,6 @@ export default function DocumentForm({
   const [saveError, setSaveError] = useState("");
   const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [company, setCompany] = useState<CompanyDetails | null>(null);
-  const [companyLoading, setCompanyLoading] = useState(false);
   const [customerPickerKey, setCustomerPickerKey] = useState(0);
   const [showNewCustomerModal, setShowNewCustomerModal] = useState(false);
   const [showManageDescriptions, setShowManageDescriptions] = useState(false);
@@ -168,18 +167,18 @@ export default function DocumentForm({
     ];
 
     for (const key of keys) {
-      if (value[key] !== initial[key]) {
+      if (value[key] !== baseline[key]) {
         return true;
       }
     }
 
-    if (value.items.length !== initial.items.length) {
+    if (value.items.length !== baseline.items.length) {
       return true;
     }
 
     for (let i = 0; i < value.items.length; i++) {
       const v = value.items[i];
-      const init = initial.items[i];
+      const init = baseline.items[i];
       if (!init) return true;
       if (
         v.description !== init.description ||
@@ -199,19 +198,19 @@ export default function DocumentForm({
       }
     }
 
-    const initialSameAsBilling = !initial.id || (
-      initial.ship_to_name === initial.bill_to_name &&
-      initial.ship_to_address === initial.bill_to_address &&
-      initial.ship_to_contact_person === initial.bill_to_contact_person &&
-      initial.ship_to_contact_number === initial.bill_to_contact_number
+    const baselineSameAsBilling = !baseline.id || (
+      baseline.ship_to_name === baseline.bill_to_name &&
+      baseline.ship_to_address === baseline.bill_to_address &&
+      baseline.ship_to_contact_person === baseline.bill_to_contact_person &&
+      baseline.ship_to_contact_number === baseline.bill_to_contact_number
     );
-    if (sameAsBilling !== initialSameAsBilling) {
+    if (sameAsBilling !== baselineSameAsBilling) {
       return true;
     }
 
     // Deep compare additional charges
     const currCharges = value.additional_charges || [];
-    const initCharges = initial.additional_charges || [];
+    const initCharges = baseline.additional_charges || [];
     if (currCharges.length !== initCharges.length) return true;
     for (let i = 0; i < currCharges.length; i++) {
       if (currCharges[i].label !== initCharges[i]?.label || currCharges[i].amount !== initCharges[i]?.amount) {
@@ -221,7 +220,7 @@ export default function DocumentForm({
 
     // Deep compare taxable charges
     const currTaxable = value.taxable_charges || [];
-    const initTaxable = initial.taxable_charges || [];
+    const initTaxable = baseline.taxable_charges || [];
     if (currTaxable.length !== initTaxable.length) return true;
     for (let i = 0; i < currTaxable.length; i++) {
       if (currTaxable[i].label !== initTaxable[i]?.label || currTaxable[i].amount !== initTaxable[i]?.amount) {
@@ -230,7 +229,9 @@ export default function DocumentForm({
     }
 
     return false;
-  }, [value, initial, sameAsBilling]);
+  }, [value, baseline, sameAsBilling]);
+
+  useUnsavedGuard(isDirty && !saving);
 
   function patch(p: Partial<DocumentFormValue>) {
     setValue((v) => ({ ...v, ...p }));
@@ -313,85 +314,6 @@ export default function DocumentForm({
     });
   }
 
-  async function previewPdf() {
-    if (companyLoading) return;
-    setCompanyLoading(true);
-    let c = company;
-    if (!c) {
-      try {
-        const res = await fetch("/api/company");
-        c = await res.json();
-        setCompany(c);
-      } catch {
-        alert("Could not load company details for preview.");
-        setCompanyLoading(false);
-        return;
-      }
-    }
-    setCompanyLoading(false);
-    if (!c) return;
-
-    const subtotal = value.items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
-    const discount = value.discount_amount || 0;
-    const taxableCharges = value.taxable_charges || [];
-    const additionalCharges = value.additional_charges || [];
-    const { cgst, sgst, igst } = computeTax(subtotal, value.tax_type, value.tax_rate, discount, taxableCharges);
-    const { totalAmount: total, roundOff } = computeTotal(subtotal, cgst, sgst, igst, discount, additionalCharges, taxableCharges);
-
-    const pdfDoc = pdf(
-      <PdfDocument
-        docType={value.doc_type}
-        docNumber={value.doc_number || `${docTypeShort(value.doc_type)}-DRAFT`}
-        docDate={value.doc_date}
-        orderNumber={value.order_number || null}
-        orderDate={value.order_date || null}
-        company={c}
-        billTo={{
-          name: value.bill_to_name,
-          address: value.bill_to_address || null,
-          contactPerson: value.bill_to_contact_person || null,
-          contactNumber: value.bill_to_contact_number || null,
-          email: value.bill_to_email || null,
-          gst: value.bill_to_gst || null,
-        }}
-        shipTo={{
-          name: value.ship_to_name || null,
-          address: value.ship_to_address || null,
-          contactPerson: value.ship_to_contact_person || null,
-          contactNumber: value.ship_to_contact_number || null,
-        }}
-        items={value.items.map((it) => ({
-          description: it.description,
-          size: it.size || null,
-          hsn_code: it.hsn_code || null,
-          qty: it.qty || 0,
-          unit: it.unit || null,
-          rate: it.rate || 0,
-          total: Math.round((it.qty || 0) * (it.rate || 0) * 100) / 100,
-          actual_length: it.actual_length || 0,
-          actual_width: it.actual_width || 0,
-          nos: it.nos || 1,
-          calculated_length: it.calculated_length || 0,
-          calculated_width: it.calculated_width || 0,
-          item_type: it.item_type || "glass",
-        }))}
-        subtotal={subtotal}
-        discountAmount={discount}
-        taxType={value.tax_type}
-        taxRate={value.tax_rate}
-        cgstAmount={cgst}
-        sgstAmount={sgst}
-        igstAmount={igst}
-        roundOff={roundOff}
-        additionalCharges={additionalCharges}
-        taxableCharges={taxableCharges}
-        totalAmount={total}
-        remarks={value.remarks || null}
-      />
-    );
-    const blob = await pdfDoc.toBlob();
-    window.open(URL.createObjectURL(blob), "_blank");
-  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -431,6 +353,7 @@ export default function DocumentForm({
         id: doc.id,
         doc_number: doc.doc_number,
       }));
+      setBaseline({ ...payload, id: doc.id, doc_number: doc.doc_number });
       setSaveSuccess(doc.doc_number);
       clearDraft();
       router.refresh();
@@ -1009,19 +932,15 @@ export default function DocumentForm({
               {saving ? "Saving…" : value.id ? "Save changes" : `Save ${docTypeLabel(value.doc_type)}`}
             </button>
             <div className="flex items-center gap-3 flex-wrap">
-              <button
-                type="button"
-                onClick={previewPdf}
-                disabled={!value.id || companyLoading || !value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)}
-                className="btn-secondary"
-                title={!value.id ? "Save the document first to preview PDF" : (!value.bill_to_name.trim() || value.items.some((it) => !it.description.trim() || it.qty <= 0 || it.rate < 0)) ? "Fill required fields first" : "Preview as PDF"}
-              >
-                {companyLoading ? "Loading…" : !value.id ? "Save first to preview" : "Preview PDF"}
-              </button>
-              {value.id && (
+              {value.id ? (
                 <>
-                  <a href={`/api/documents/${value.id}/pdf`} target="_blank" className="btn-secondary">
-                    View PDF
+                  <a
+                    href={`/api/documents/${value.id}/pdf`}
+                    target="_blank"
+                    className="btn-secondary"
+                    title="Preview as PDF (renders server-side)"
+                  >
+                    Preview PDF
                   </a>
                   <a
                     href={`/api/documents/${value.id}/pdf`}
@@ -1031,6 +950,15 @@ export default function DocumentForm({
                     Download PDF
                   </a>
                 </>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="btn-secondary"
+                  title="Save the document first to preview PDF"
+                >
+                  Save first to preview
+                </button>
               )}
               {value.id && isDirty && (
                 <span className="text-xs text-amber-600 font-medium">

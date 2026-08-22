@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [password, setPassword] = useState("");
@@ -32,11 +33,12 @@ export default function LoginPage() {
   return (
     <form onSubmit={handleSubmit} className="card p-8 w-full max-w-sm space-y-6">
       <div className="flex flex-col items-center text-center">
-        <img
+        <Image
           src="/logo.png"
           alt="National Glass House Logo"
           width={180}
           height={54}
+          priority
           className="object-contain mb-3"
         />
         <h1 className="font-display text-xl font-bold text-ink">National Glass House</h1>

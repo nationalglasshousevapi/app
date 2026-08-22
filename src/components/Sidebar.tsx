@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon, ToolIcon, CartIcon, GlobeIcon, CashIcon, BookIcon } from "./icons";
 import { publicWebsiteUrl } from "@/lib/website";
+import Image from "next/image";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
@@ -52,7 +53,7 @@ export default function Sidebar() {
       {/* Logo + toggle button row */}
       <div className={`flex items-center p-4 md:py-5 ${collapsed ? "justify-center flex-col gap-3" : "justify-between gap-2"}`}>
         {!collapsed && (
-          <img
+          <Image
             src="/logo.png"
             alt="National Glass House Logo"
             width={100}

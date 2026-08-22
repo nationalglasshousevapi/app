@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "@/lib/toast";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -89,7 +90,7 @@ export default function CuttingOptimizer() {
           item_type: "glass",
         }));
       if (!items.length) {
-        alert("Add at least one valid piece first.");
+        toast.error("Add at least one valid piece first.");
         return;
       }
       const res = await fetch("/api/documents", {
@@ -112,10 +113,10 @@ export default function CuttingOptimizer() {
         router.push(`/documents/${json.document.id}`);
         router.refresh();
       } else {
-        alert(json.error || "Could not create quotation.");
+        toast.error(json.error || "Could not create quotation.");
       }
     } catch {
-      alert("Could not create quotation. Check your connection.");
+      toast.error("Could not create quotation. Check your connection.");
     } finally {
       setExportingDoc(false);
     }
@@ -190,7 +191,7 @@ export default function CuttingOptimizer() {
     );
 
     if (!validStock.length) {
-      alert("Check at least one valid stock size.");
+      toast.error("Check at least one valid stock size.");
       return;
     }
 
@@ -204,7 +205,7 @@ export default function CuttingOptimizer() {
       .filter((p) => !isNaN(p.w) && !isNaN(p.h) && p.qty > 0);
 
     if (!validPieces.length) {
-      alert("Add at least one valid piece.");
+      toast.error("Add at least one valid piece.");
       return;
     }
 

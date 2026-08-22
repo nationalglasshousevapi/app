@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "@/lib/toast";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -106,7 +107,7 @@ export default function BatchDownloadPanel() {
         URL.revokeObjectURL(blobUrl);
       })
       .catch((err) => {
-        alert(err.message || "Could not download PDF.");
+        toast.error(err.message || "Could not download PDF.");
       })
       .finally(() => {
         setDownloading(false);

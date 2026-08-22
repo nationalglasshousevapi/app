@@ -1,5 +1,6 @@
 "use client";
 
+import { toast } from "@/lib/toast";
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -51,10 +52,10 @@ export default function CustomerPicker({
         setQuery(c.name);
         setOpen(false);
       } else {
-        alert(json.error || "Could not create customer.");
+        toast.error(json.error || "Could not create customer.");
       }
     } catch {
-      alert("Could not create customer. Check your connection.");
+      toast.error("Could not create customer. Check your connection.");
     } finally {
       setCreating(false);
     }

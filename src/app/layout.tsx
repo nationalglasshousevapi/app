@@ -4,7 +4,7 @@ import { Space_Grotesk, Inter, IBM_Plex_Mono } from "next/font/google";
 import { isAuthenticated } from "@/lib/auth";
 import Sidebar from "@/components/Sidebar";
 import MobileBottomNav from "@/components/MobileBottomNav";
-import PageTransition from "@/components/PageTransition";
+import Toaster from "@/components/Toaster";
 
 const fontDisplay = Space_Grotesk({
   subsets: ["latin"],
@@ -47,7 +47,7 @@ export default async function RootLayout({
           <div className="min-h-screen md:flex">
             <Sidebar />
             <main className="flex-1 p-5 md:p-8 lg:p-10 max-w-7xl mx-auto w-full pb-24 md:pb-0">
-              <PageTransition>{children}</PageTransition>
+              {children}
             </main>
             <MobileBottomNav />
           </div>
