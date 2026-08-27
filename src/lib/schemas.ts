@@ -80,7 +80,8 @@ export const updateDocumentSchema = createDocumentSchema.omit({ doc_type: true }
 
 export const paymentModeSchema = z.enum(["cash", "bank_transfer", "upi", "cheque", "adjustment"]);
 
-// Quick cash sale: a walk-in/counter invoice that is paid immediately.
+// Quick cash sale: counter invoice with partial / advance payment support.
+// Customer name required when no customer_id (enforced in API). Paid can be 0 (full credit).
 export const createCashSaleSchema = z.object({
   customer_id: z.string().uuid().nullable().optional(),
   customer_name: z.string().optional().default(""),
@@ -93,6 +94,7 @@ export const createCashSaleSchema = z.object({
   items: z.array(itemSchema).min(1, "Add at least one line item."),
   payment_mode: paymentModeSchema.optional().default("cash"),
   reference_number: z.string().optional().default(""),
+  amount_paid: z.number().min(0, "Paid amount cannot be negative.").optional().default(0),
 });
 
 export const expenseCategorySchema = z.enum([

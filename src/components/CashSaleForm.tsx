@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import CustomerPicker, { type CustomerResult } from "./CustomerPicker";
 import { DEFAULT_HSN_CODE } from "@/lib/company";
@@ -34,6 +34,7 @@ type CashSaleDraft = {
   paymentMode: string;
   referenceNumber: string;
   remarks: string;
+  amountPaid: number;
 };
 
 const DRAFT_KEY = "ngh_draft_cash_sale";
@@ -47,7 +48,8 @@ function isBlankSale(d: CashSaleDraft): boolean {
     !d.discountAmount &&
     d.paymentMode === "cash" &&
     !d.referenceNumber.trim() &&
-    !d.remarks.trim()
+    !d.remarks.trim() &&
+    !d.amountPaid
   );
 }
 
@@ -64,6 +66,8 @@ export default function CashSaleForm() {
   const [paymentMode, setPaymentMode] = useState("cash");
   const [referenceNumber, setReferenceNumber] = useState("");
   const [remarks, setRemarks] = useState("");
+  const [amountPaid, setAmountPaid] = useState(0);
+  const hasEditedPaidRef = useRef(false);
   const [savedDescriptions, setSavedDescriptions] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -78,9 +82,19 @@ export default function CashSaleForm() {
   }, []);
 
   useEffect(() => {
-    const snapshot = { customer, walkInName, items, taxType, discountAmount, paymentMode, referenceNumber, remarks };
+    const snapshot = {
+      customer,
+      walkInName,
+      items,
+      taxType,
+      discountAmount,
+      paymentMode,
+      referenceNumber,
+      remarks,
+      amountPaid,
+    };
     if (!isBlankSale(snapshot)) saveDraft(snapshot);
-  }, [customer, walkInName, items, taxType, discountAmount, paymentMode, referenceNumber, remarks, saveDraft]);
+  }, [customer, walkInName, items, taxType, discountAmount, paymentMode, referenceNumber, remarks, amountPaid, saveDraft]);
 
   function restoreDraft(d: CashSaleDraft) {
     setCustomer(d.customer);
@@ -91,6 +105,8 @@ export default function CashSaleForm() {
     setPaymentMode(d.paymentMode || "cash");
     setReferenceNumber(d.referenceNumber || "");
     setRemarks(d.remarks || "");
+    setAmountPaid(d.amountPaid || 0);
+    hasEditedPaidRef.current = true;
     clearDraft();
     setBannerDismissed(true);
   }
@@ -110,6 +126,17 @@ export default function CashSaleForm() {
     [subtotal, cgst, sgst, discountAmount],
   );
 
+  const balanceDue = useMemo(() => Math.max(0, totalAmount - (amountPaid || 0)), [totalAmount, amountPaid]);
+  const isOverPaid = (amountPaid || 0) > totalAmount;
+
+  // Auto-default paid to total when total is first computed or when user hasn't manually edited.
+  // This gives quick full-paid behavior but still allows 0 / partial.
+  useEffect(() => {
+    if (!hasEditedPaidRef.current && totalAmount > 0) {
+      setAmountPaid(totalAmount);
+    }
+  }, [totalAmount]);
+
   function patchItem(i: number, p: Partial<SaleItem>) {
     setItems((prev) => prev.map((it, j) => (j === i ? { ...it, ...p } : it)));
   }
@@ -122,10 +149,19 @@ export default function CashSaleForm() {
       return;
     }
     if (!customer && !walkInName.trim()) {
-      setError("Pick a customer or enter a walk-in name (or leave 'Walk-in Customer').");
+      setError("Customer name is required. Pick a customer or enter a name (e.g. Ramesh).");
       return;
     }
-    if ((paymentMode === "bank_transfer" || paymentMode === "cheque") && !referenceNumber.trim()) {
+    const paid = amountPaid || 0;
+    if (paid < 0) {
+      setError("Paid amount cannot be negative.");
+      return;
+    }
+    if (paid > totalAmount) {
+      setError(`Paid (${inr(paid, 2)}) cannot exceed total (${inr(totalAmount, 2)}).`);
+      return;
+    }
+    if (paid > 0 && (paymentMode === "bank_transfer" || paymentMode === "cheque") && !referenceNumber.trim()) {
       setError("Reference number is required for bank transfer / cheque.");
       return;
     }
@@ -137,7 +173,7 @@ export default function CashSaleForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customer_id: customer?.id ?? null,
-          customer_name: customer ? customer.name : walkInName.trim() || "Walk-in Customer",
+          customer_name: customer ? customer.name : walkInName.trim(),
           customer_phone: customer?.contact_number ?? "",
           doc_date: docDate,
           tax_type: taxType,
@@ -145,6 +181,7 @@ export default function CashSaleForm() {
           remarks: remarks || null,
           payment_mode: paymentMode,
           reference_number: referenceNumber,
+          amount_paid: paid,
           items: validItems,
         }),
       });
@@ -161,6 +198,16 @@ export default function CashSaleForm() {
     } finally {
       setSaving(false);
     }
+  }
+
+  const paymentLabel = SALE_MODES.find((m) => m.value === paymentMode)?.label ?? paymentMode;
+  let ctaLabel: string;
+  if (amountPaid === 0) {
+    ctaLabel = `Create order • ${inr(totalAmount, 2)} due on collection`;
+  } else if ((amountPaid || 0) < totalAmount) {
+    ctaLabel = `Create order • Paid ${inr(amountPaid || 0, 2)} • Balance ${inr(balanceDue, 2)}`;
+  } else {
+    ctaLabel = `Complete sale & record ${paymentMode === "cash" ? "cash" : paymentLabel.toLowerCase()} payment`;
   }
 
   return (
@@ -191,7 +238,10 @@ export default function CashSaleForm() {
       )}
       {/* Customer */}
       <div className="card p-5 space-y-4">
-        <h2 className="label">Customer</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="label !mb-0">Customer *</h2>
+          <span className="text-xs text-slate-500">Required for advance/balance tracking</span>
+        </div>
         {customer ? (
           <div className="flex items-center justify-between rounded-xl bg-brand-50 border border-brand-100 px-4 py-3">
             <div>
@@ -211,13 +261,17 @@ export default function CashSaleForm() {
           <>
             <CustomerPicker onSelect={setCustomer} />
             <div>
-              <label className="label">Or walk-in name</label>
+              <label className="label">New customer name *</label>
               <input
                 className="input"
-                placeholder="Leave blank for Walk-in Customer"
+                placeholder="e.g. Ramesh (will be created if not found)"
                 value={walkInName}
                 onChange={(e) => setWalkInName(e.target.value)}
+                required
               />
+              <p className="text-xs text-slate-500 mt-1">
+                No GST needed. A customer record will be created automatically so you can track balance later.
+              </p>
             </div>
           </>
         )}
@@ -294,35 +348,10 @@ export default function CashSaleForm() {
 
       {/* Payment */}
       <div className="card p-5 space-y-4">
-        <h2 className="label">Payment received</h2>
-        <div className="flex flex-wrap gap-2">
-          {SALE_MODES.map((m) => (
-            <button
-              key={m.value}
-              onClick={() => setPaymentMode(m.value)}
-              className={`px-4 py-2.5 rounded-xl text-sm font-semibold border transition ${
-                paymentMode === m.value
-                  ? "bg-brand-600 text-white border-brand-600"
-                  : "bg-white text-slate-600 border-slate-200 hover:border-brand-300"
-              }`}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
-        {(paymentMode === "bank_transfer" || paymentMode === "cheque" || paymentMode === "upi") && (
-          <div>
-            <label className="label">Reference number{paymentMode === "upi" ? " (optional)" : ""}</label>
-            <input className="input" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} />
-          </div>
-        )}
-        <div>
-          <label className="label">Remarks</label>
-          <input className="input" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
-        </div>
+        <h2 className="label">Payment</h2>
 
         {/* Totals */}
-        <div className="border-t border-slate-100 pt-4 space-y-2">
+        <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
             <span className="text-slate-500">Subtotal</span>
             <span className="font-mono font-semibold">{inr(subtotal, 2)}</span>
@@ -354,17 +383,125 @@ export default function CashSaleForm() {
             <span className="font-mono font-semibold">{inr(cgst + sgst, 2)}</span>
           </div>
           <div className="flex items-center justify-between border-t border-slate-100 pt-2">
-            <span className="font-bold">Total to collect</span>
+            <span className="font-bold">Total</span>
             <span className="text-xl font-bold font-mono text-brand-600">{inr(totalAmount, 2)}</span>
           </div>
+        </div>
+
+        {/* Paid / Balance */}
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Paid now *</label>
+              <input
+                type="number"
+                min="0"
+                max={totalAmount}
+                step="any"
+                className={`input font-mono text-right ${isOverPaid ? "!border-red-400 !bg-red-50" : ""}`}
+                value={amountPaid === 0 ? "0" : amountPaid || ""}
+                placeholder="0"
+                onChange={(e) => {
+                  hasEditedPaidRef.current = true;
+                  const v = parseFloat(e.target.value);
+                  setAmountPaid(Number.isNaN(v) ? 0 : v);
+                }}
+                onFocus={(e) => e.target.select()}
+              />
+              <div className="flex gap-1 mt-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    hasEditedPaidRef.current = true;
+                    setAmountPaid(0);
+                  }}
+                  className="text-xs px-2 py-1 rounded-full border border-slate-200 bg-white hover:border-brand-300"
+                >
+                  No advance
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    hasEditedPaidRef.current = true;
+                    setAmountPaid(totalAmount);
+                  }}
+                  className="text-xs px-2 py-1 rounded-full border border-slate-200 bg-white hover:border-brand-300"
+                >
+                  Full paid
+                </button>
+                {totalAmount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      hasEditedPaidRef.current = true;
+                      setAmountPaid(Math.round(totalAmount / 2));
+                    }}
+                    className="text-xs px-2 py-1 rounded-full border border-slate-200 bg-white hover:border-brand-300"
+                  >
+                    50%
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-col justify-between">
+              <div>
+                <label className="label">Balance due</label>
+                <div className={`rounded-lg px-3 py-2.5 text-right font-mono font-bold text-lg border ${balanceDue === 0 ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-amber-50 border-amber-200 text-amber-800"} ${isOverPaid ? "!bg-red-50 !border-red-200 !text-red-700" : ""}`}>
+                  {inr(balanceDue, 2)}
+                </div>
+              </div>
+              {isOverPaid && <p className="text-xs text-red-600 mt-1">Paid exceeds total. Reduce paid amount.</p>}
+              {!isOverPaid && balanceDue === 0 && totalAmount > 0 && amountPaid > 0 && (
+                <p className="text-xs text-emerald-600 mt-1">Fully paid — no balance.</p>
+              )}
+              {!isOverPaid && balanceDue > 0 && balanceDue < totalAmount && (
+                <p className="text-xs text-amber-700 mt-1">Advance collected — {inr(balanceDue, 2)} to collect on delivery.</p>
+              )}
+              {!isOverPaid && (amountPaid || 0) === 0 && totalAmount > 0 && (
+                <p className="text-xs text-slate-600 mt-1">No advance — full amount due on collection.</p>
+              )}
+            </div>
+          </div>
+
+          {((amountPaid || 0) > 0) && (
+            <div className="pt-2 border-t border-slate-200 space-y-3">
+              <p className="text-xs font-semibold text-slate-600">How was advance paid? (only when Paid &gt; 0)</p>
+              <div className="flex flex-wrap gap-2">
+                {SALE_MODES.map((m) => (
+                  <button
+                    key={m.value}
+                    onClick={() => setPaymentMode(m.value)}
+                    className={`px-4 py-2 rounded-xl text-sm font-semibold border transition ${
+                      paymentMode === m.value
+                        ? "bg-brand-600 text-white border-brand-600"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-brand-300"
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              {(paymentMode === "bank_transfer" || paymentMode === "cheque" || paymentMode === "upi") && (
+                <div>
+                  <label className="label">Reference number{paymentMode === "upi" ? " (optional)" : ""}</label>
+                  <input className="input" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder={paymentMode === "upi" ? "UPI ref (optional)" : "Cheque / transfer ref"} />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <label className="label">Remarks</label>
+          <input className="input" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="e.g. Advance for order, collect in 2 days" />
         </div>
       </div>
 
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
 
       <div className="sticky bottom-20 md:bottom-4 z-10">
-        <button onClick={save} disabled={saving} className="btn-primary w-full text-base">
-          {saving ? "Saving…" : `Complete sale & record ${paymentMode === "cash" ? "cash" : SALE_MODES.find((m) => m.value === paymentMode)?.label.toLowerCase()} payment`}
+        <button onClick={save} disabled={saving || isOverPaid} className="btn-primary w-full text-base disabled:opacity-60">
+          {saving ? "Saving…" : ctaLabel}
         </button>
       </div>
     </div>
