@@ -23,6 +23,7 @@ interface LedgerEntry {
   credit: number;
   balance: number;
   refId?: string;
+  isOrder?: boolean;
   paymentDetails?: PaymentDetails;
 }
 
@@ -68,6 +69,9 @@ export default function LedgerTable({ entries, customerId, openingBalance, custo
                     </Link>
                   ) : (
                     <span className="capitalize">{entry.description}</span>
+                  )}
+                  {entry.type === "invoice" && entry.isOrder && (
+                    <span className="ml-1 text-xs text-slate-400">Order</span>
                   )}
                   {entry.type === "payment" && (
                     <span className="ml-1 text-xs text-slate-400">Payment</span>

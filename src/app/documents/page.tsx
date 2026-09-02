@@ -106,6 +106,7 @@ export default async function DocumentsPage({
 
   const types = [
     "invoice",
+    "order",
     "quotation",
     "performa_invoice",
     "estimate",

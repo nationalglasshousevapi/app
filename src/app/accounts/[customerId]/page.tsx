@@ -41,7 +41,7 @@ export default async function CustomerLedgerPage({
       .from("documents")
       .select("total_amount")
       .eq("customer_id", customerId)
-      .eq("doc_type", "invoice")
+      .in("doc_type", ["invoice", "order"])
       .neq("status", "cancelled")
       .lt("doc_date", fromDate);
 
@@ -56,12 +56,12 @@ export default async function CustomerLedgerPage({
     openingAtStart = openingAtStart + preInvTotal - prePayTotal;
   }
 
-  // Fetch invoices (filtered by date range if set)
+  // Fetch invoices + orders (filtered by date range if set)
   let invoiceQuery = sb
     .from("documents")
     .select("id, doc_date, doc_number, total_amount")
     .eq("customer_id", customerId)
-    .eq("doc_type", "invoice")
+    .in("doc_type", ["invoice", "order"])
     .neq("status", "cancelled");
 
   if (fromDate) invoiceQuery = invoiceQuery.gte("doc_date", fromDate);
@@ -91,6 +91,7 @@ export default async function CustomerLedgerPage({
     credit: number;
     balance: number;
     refId?: string;
+    isOrder?: boolean;
     paymentDetails?: {
       id: string;
       payment_date: string;
@@ -130,6 +131,7 @@ export default async function CustomerLedgerPage({
         credit: 0,
         balance: runningBalance,
         refId: inv.id,
+        isOrder: inv.doc_type === "order",
       });
       i++;
     } else if (payments?.[j]) {

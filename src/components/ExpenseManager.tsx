@@ -257,11 +257,15 @@ export default function ExpenseManager() {
             </div>
             {(form.payment_mode === "bank_transfer" || form.payment_mode === "cheque") && (
               <div className="sm:col-span-2">
-                <label className="label">Reference number</label>
+                <label className="label">
+                  Reference number{" "}
+                  <span className="text-slate-400 font-normal">(optional)</span>
+                </label>
                 <input
                   className="input"
                   value={form.reference_number ?? ""}
                   onChange={(e) => setForm({ ...form, reference_number: e.target.value })}
+                  placeholder="Cheque no, UTR, ref (optional)"
                 />
               </div>
             )}

@@ -20,7 +20,7 @@ export async function GET(
     .from("documents")
     .select("total_amount")
     .eq("customer_id", id)
-    .eq("doc_type", "invoice")
+    .in("doc_type", ["invoice", "order"])
     .neq("status", "cancelled");
 
   const { data: payments } = await sb

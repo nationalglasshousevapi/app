@@ -66,7 +66,7 @@ export default function DocumentActions({
 
   const website = publicWebsiteUrl();
   const canConvert = canConvertToInvoice(docType) && status !== "converted" && status !== "cancelled";
-  const showPlanCutting = ["quotation", "performa_invoice", "estimate", "invoice"].includes(docType);
+  const showPlanCutting = ["quotation", "performa_invoice", "estimate", "invoice", "order"].includes(docType);
 
   function handleDeleteClick() {
     setConfirmDelete(true);
@@ -222,6 +222,7 @@ export default function DocumentActions({
           open={convertOpen}
           documentId={id}
           docNumber={docNumber}
+          docType={docType}
           totalAmount={totalAmount}
           onCancel={() => setConvertOpen(false)}
         />
@@ -281,6 +282,7 @@ export default function DocumentActions({
         open={convertOpen}
         documentId={id}
         docNumber={docNumber}
+        docType={docType}
         totalAmount={totalAmount}
         onCancel={() => setConvertOpen(false)}
       />

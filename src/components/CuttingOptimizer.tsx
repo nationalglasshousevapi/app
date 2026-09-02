@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "@/lib/toast";
+import { docTypeLabel } from "@/lib/docTypes";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -469,7 +470,7 @@ export default function CuttingOptimizer() {
           )}
           {preloadDoc && (
             <div className="bg-brand-50 border border-brand-200 text-brand-800 text-sm rounded-xl px-4 py-3">
-              Pieces loaded from the {preloadDoc}. Adjust the cut list as needed, then pack.
+              Pieces loaded from the {docTypeLabel(preloadDoc)}. Adjust the cut list as needed, then pack.
             </div>
           )}
 

@@ -27,7 +27,10 @@ export async function GET(req: NextRequest) {
     reportType === "purchase" || reportType === "purchase_hsn" || reportType === "summary"
       ? "purchase"
       : "sales";
-  const docTypeFilter = side === "sales" ? "invoice" : "purchase";
+  // Sales reports cover invoices + orders (cash sales start as orders and only
+  // become invoices when converted). GST-registered customers still need an
+  // invoice, so this simply includes the paperwork trail.
+  const docTypeFilter = side === "sales" ? ["invoice", "order"] : ["purchase"];
 
   // Build date range: prefer explicit from/to, then month
   let fromDate: string;
@@ -49,7 +52,7 @@ export async function GET(req: NextRequest) {
   let docQuery = sb
     .from("documents")
     .select("id, doc_number, doc_date, bill_to_name, bill_to_gst, bill_to_address, subtotal, tax_type, tax_rate, cgst_amount, sgst_amount, igst_amount, total_amount")
-    .eq("doc_type", docTypeFilter)
+    .in("doc_type", docTypeFilter)
     .gte("doc_date", fromDate)
     .lte("doc_date", toDate)
     .order("doc_date", { ascending: true });
@@ -58,6 +61,7 @@ export async function GET(req: NextRequest) {
     docQuery = docQuery.neq("status", "draft").neq("status", "cancelled");
   }
   const { data: invoices } = await docQuery;
+  // Sales reports: invoices + orders (orders are the pre-invoice cash sale paperwork)
 
   const reportLabel = fromParam && toParam ? `${fromParam}_${toParam}` : month || "all";
 

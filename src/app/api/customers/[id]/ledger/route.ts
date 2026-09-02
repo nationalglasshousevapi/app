@@ -17,12 +17,12 @@ export async function GET(
 
   if (custError) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
-  // Fetch invoices for this customer
+  // Fetch invoices + orders for this customer
   const { data: invoices } = await sb
     .from("documents")
-    .select("id, doc_date, doc_number, total_amount, status")
+    .select("id, doc_date, doc_number, total_amount, status, doc_type")
     .eq("customer_id", id)
-    .eq("doc_type", "invoice")
+    .in("doc_type", ["invoice", "order"])
     .neq("status", "cancelled")
     .order("doc_date", { ascending: true });
 

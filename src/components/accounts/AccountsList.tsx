@@ -151,7 +151,7 @@ export default function AccountsList({ customers }: Props) {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-brand-700">{c.customer_name}</p>
-                  <p className="text-xs text-slate-400">{c.invoice_count} invoice{c.invoice_count !== 1 ? "s" : ""}</p>
+                  <p className="text-xs text-slate-400">{c.invoice_count} invoice{c.invoice_count !== 1 ? "s" : ""} / order{c.invoice_count !== 1 ? "s" : ""}</p>
                 </div>
                 <p className={`font-semibold font-mono ${statusColor}`}>{inr(bd)}</p>
               </div>
@@ -217,7 +217,7 @@ export default function AccountsList({ customers }: Props) {
               >
                 Balance Due <SortIcon field="balance_due" />
               </th>
-              <th scope="col" className="p-4 font-semibold text-center">Invoices</th>
+              <th scope="col" className="p-4 font-semibold text-center">Invoices / Orders</th>
             </tr>
           </thead>
           <tbody>
@@ -245,7 +245,7 @@ export default function AccountsList({ customers }: Props) {
                     <td className="p-4 text-right font-mono">{inr(Number(c.total_invoiced))}</td>
                     <td className="p-4 text-right font-mono">{inr(Number(c.total_paid))}</td>
                     <td className={`p-4 text-right font-mono font-semibold ${statusColor}`}>{inr(bd)}</td>
-                    <td className="p-4 text-center text-slate-500 text-xs">{c.invoice_count}</td>
+                    <td className="p-4 text-center text-slate-500 text-xs">{c.invoice_count} docs</td>
                   </motion.tr>
                 );
               })

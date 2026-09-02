@@ -28,6 +28,7 @@ function today() {
 type CashSaleDraft = {
   customer: CustomerResult | null;
   walkInName: string;
+  orderNumber: string;
   items: SaleItem[];
   taxType: "cgst_sgst" | "none";
   discountAmount: number;
@@ -43,6 +44,7 @@ function isBlankSale(d: CashSaleDraft): boolean {
   return (
     !d.customer &&
     !d.walkInName.trim() &&
+    !d.orderNumber.trim() &&
     d.items.every((it) => !it.description.trim() && !(it.qty > 0)) &&
     d.taxType === "cgst_sgst" &&
     !d.discountAmount &&
@@ -57,6 +59,7 @@ export default function CashSaleForm() {
   const router = useRouter();
   const [customer, setCustomer] = useState<CustomerResult | null>(null);
   const [walkInName, setWalkInName] = useState("");
+  const [orderNumber, setOrderNumber] = useState("");
   const [docDate, setDocDate] = useState(today());
   const [items, setItems] = useState<SaleItem[]>([
     { description: "", size: "", hsn_code: DEFAULT_HSN_CODE, qty: 0, unit: "sq.ft", rate: 0 },
@@ -85,6 +88,7 @@ export default function CashSaleForm() {
     const snapshot = {
       customer,
       walkInName,
+      orderNumber,
       items,
       taxType,
       discountAmount,
@@ -94,11 +98,12 @@ export default function CashSaleForm() {
       amountPaid,
     };
     if (!isBlankSale(snapshot)) saveDraft(snapshot);
-  }, [customer, walkInName, items, taxType, discountAmount, paymentMode, referenceNumber, remarks, amountPaid, saveDraft]);
+  }, [customer, walkInName, orderNumber, items, taxType, discountAmount, paymentMode, referenceNumber, remarks, amountPaid, saveDraft]);
 
   function restoreDraft(d: CashSaleDraft) {
     setCustomer(d.customer);
     setWalkInName(d.walkInName);
+    setOrderNumber(d.orderNumber || "");
     setItems(d.items?.length ? d.items : [{ description: "", size: "", hsn_code: DEFAULT_HSN_CODE, qty: 0, unit: "sq.ft", rate: 0 }]);
     setTaxType(d.taxType ?? "cgst_sgst");
     setDiscountAmount(d.discountAmount || 0);
@@ -161,10 +166,6 @@ export default function CashSaleForm() {
       setError(`Paid (${inr(paid, 2)}) cannot exceed total (${inr(totalAmount, 2)}).`);
       return;
     }
-    if (paid > 0 && (paymentMode === "bank_transfer" || paymentMode === "cheque") && !referenceNumber.trim()) {
-      setError("Reference number is required for bank transfer / cheque.");
-      return;
-    }
     setSaving(true);
     setError("");
     try {
@@ -176,6 +177,7 @@ export default function CashSaleForm() {
           customer_name: customer ? customer.name : walkInName.trim(),
           customer_phone: customer?.contact_number ?? "",
           doc_date: docDate,
+          order_number: orderNumber.trim(),
           tax_type: taxType,
           discount_amount: discountAmount,
           remarks: remarks || null,
@@ -207,7 +209,7 @@ export default function CashSaleForm() {
   } else if ((amountPaid || 0) < totalAmount) {
     ctaLabel = `Create order • Paid ${inr(amountPaid || 0, 2)} • Balance ${inr(balanceDue, 2)}`;
   } else {
-    ctaLabel = `Complete sale & record ${paymentMode === "cash" ? "cash" : paymentLabel.toLowerCase()} payment`;
+    ctaLabel = `Create order & record ${paymentMode === "cash" ? "cash" : paymentLabel.toLowerCase()} payment`;
   }
 
   return (
@@ -275,9 +277,23 @@ export default function CashSaleForm() {
             </div>
           </>
         )}
-        <div>
-          <label className="label">Date</label>
-          <input type="date" className="input" value={docDate} onChange={(e) => setDocDate(e.target.value)} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="label">Order number</label>
+            <input
+              className="input"
+              placeholder="e.g. PO-1234 (auto if left blank)"
+              value={orderNumber}
+              onChange={(e) => setOrderNumber(e.target.value)}
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Leave blank to auto-generate an order number.
+            </p>
+          </div>
+          <div>
+            <label className="label">Date</label>
+            <input type="date" className="input" value={docDate} onChange={(e) => setDocDate(e.target.value)} />
+          </div>
         </div>
       </div>
 
@@ -483,8 +499,11 @@ export default function CashSaleForm() {
               </div>
               {(paymentMode === "bank_transfer" || paymentMode === "cheque" || paymentMode === "upi") && (
                 <div>
-                  <label className="label">Reference number{paymentMode === "upi" ? " (optional)" : ""}</label>
-                  <input className="input" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder={paymentMode === "upi" ? "UPI ref (optional)" : "Cheque / transfer ref"} />
+                  <label className="label">
+                    Reference number{" "}
+                    <span className="text-slate-400 font-normal">(optional)</span>
+                  </label>
+                  <input className="input" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder="Cheque / transfer / UPI ref (optional)" />
                 </div>
               )}
             </div>

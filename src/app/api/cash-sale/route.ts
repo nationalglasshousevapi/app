@@ -109,10 +109,6 @@ export async function POST(req: NextRequest) {
       { status: 400 },
     );
   }
-  if (amountPaid > 0 && (input.payment_mode === "bank_transfer" || input.payment_mode === "cheque") && !input.reference_number?.trim()) {
-    return NextResponse.json({ error: "Reference number is required for bank transfer / cheque." }, { status: 400 });
-  }
-
   const docDate = input.doc_date ? new Date(input.doc_date) : new Date();
   // Status: fully paid -> paid, otherwise sent (balance due). Allows 0 paid = full credit order.
   const status = amountPaid >= totalAmount && totalAmount > 0 ? "paid" : amountPaid === 0 && totalAmount === 0 ? "draft" : "sent";
@@ -120,8 +116,9 @@ export async function POST(req: NextRequest) {
   let document: Record<string, unknown>;
   try {
     ({ document } = await createDocumentRecord(sb, {
-      doc_type: "invoice",
+      doc_type: "order",
       doc_date: docDate,
+      order_number: input.order_number?.trim() || null,
       customer_id: customerId,
       bill_to: {
         name: billToName,
@@ -161,14 +158,14 @@ export async function POST(req: NextRequest) {
         payment_mode: input.payment_mode,
         reference_number: input.reference_number || null,
         document_id: docId,
-        notes: `Cash sale ${docNumber}${amountPaid < totalAmount ? ` — advance ${amountPaid}/${totalAmount}` : ""}`,
+        notes: `Order ${docNumber}${amountPaid < totalAmount ? ` — advance ${amountPaid}/${totalAmount}` : ""}`,
       })
       .select()
       .single();
 
     if (paymentError) {
       return NextResponse.json(
-        { document, warning: `Invoice saved but payment record failed: ${paymentError.message}`, balance_due: totalAmount - amountPaid },
+        { document, warning: `Order saved but payment record failed: ${paymentError.message}`, balance_due: totalAmount - amountPaid },
         { status: 201 },
       );
     }

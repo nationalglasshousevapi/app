@@ -54,7 +54,7 @@ async function getDashboardData() {
     sb
       .from("documents")
       .select("id, doc_type, doc_number, doc_date, bill_to_name, total_amount, bill_to_contact_number")
-      .eq("doc_type", "invoice")
+      .in("doc_type", ["invoice", "order"])
       .order("doc_date", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(5),
@@ -91,14 +91,14 @@ async function getDashboardData() {
   const thisMonthPurchases = (purchaseData ?? []).reduce((s, r) => s + Number(r.total_amount), 0);
   const thisMonthExpenses = (expenseData ?? []).reduce((s, r) => s + Number(r.amount), 0);
 
-  // Top debtors + how old their oldest unpaid invoice is (depends on debtor ids)
+  // Top debtors + how old their oldest unpaid invoice/order is (depends on debtor ids)
   const debtorIds = (debtors ?? []).map((d) => d.customer_id);
   const oldestOpen: Record<string, string> = {};
   if (debtorIds.length) {
     const { data: openInvoices } = await sb
       .from("documents")
       .select("customer_id, doc_date")
-      .eq("doc_type", "invoice")
+      .in("doc_type", ["invoice", "order"])
       .in("status", ["draft", "sent"])
       .in("customer_id", debtorIds)
       .order("doc_date");
@@ -225,7 +225,7 @@ export default async function DashboardPage() {
             </LazyMount>
           ) : (
             <p className="text-sm text-slate-400 py-10 text-center font-body">
-              No invoices yet &mdash; create your first one to see sales here.
+              No invoices or orders yet &mdash; create your first one to see sales here.
             </p>
           )}
         </div>
@@ -246,8 +246,8 @@ export default async function DashboardPage() {
       <div className="card p-5 md:p-6">
         <div className="mb-4 flex items-center justify-between gap-3">
           <div>
-            <h2 className="font-display font-bold text-ink">Recent invoices</h2>
-            <p className="text-sm text-slate-500 font-body">Latest 5 invoices</p>
+            <h2 className="font-display font-bold text-ink">Recent invoices &amp; orders</h2>
+            <p className="text-sm text-slate-500 font-body">Latest 5 sales documents</p>
           </div>
           <Link href="/documents?type=invoice" className="text-sm font-semibold text-brand-500 hover:underline font-body">
             View all
@@ -277,7 +277,7 @@ export default async function DashboardPage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-slate-400 py-6 text-center font-body">No invoices yet.</p>
+          <p className="text-sm text-slate-400 py-6 text-center font-body">No invoices or orders yet.</p>
         )}
         {d.recentInvoices.length ? (
           <div className="hidden md:block overflow-x-auto">

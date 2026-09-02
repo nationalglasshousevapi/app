@@ -19,7 +19,7 @@ create table if not exists customers (
 create index if not exists idx_customers_name on customers using gin (to_tsvector('simple', name));
 
 -- ========== Document type counters (per financial year) ==========
--- doc_type values: invoice | quotation | performa_invoice | estimate | receipt | window_quotation
+-- doc_type values: invoice | order | quotation | performa_invoice | estimate | receipt | purchase
 create table if not exists counters (
   doc_type text not null,
   financial_year text not null, -- e.g. '24-25'
@@ -31,7 +31,7 @@ create table if not exists counters (
 create table if not exists documents (
   id uuid primary key default gen_random_uuid(),
   doc_type text not null check (doc_type in (
-    'invoice', 'quotation', 'performa_invoice', 'estimate', 'receipt', 'purchase'
+    'invoice', 'order', 'quotation', 'performa_invoice', 'estimate', 'receipt', 'purchase'
   )),
   doc_number text not null,          -- human-readable number, e.g. "24-25-071"
   financial_year text not null,      -- e.g. "24-25"
@@ -219,7 +219,7 @@ from customers c
 left join (
   select customer_id, sum(total_amount) as total_invoiced
   from documents
-  where doc_type = 'invoice' and status != 'cancelled'
+  where doc_type in ('invoice', 'order') and status != 'cancelled'
   group by customer_id
 ) inv on inv.customer_id = c.id
 left join (
@@ -230,7 +230,7 @@ left join (
 left join (
   select customer_id, count(*) as invoice_count
   from documents
-  where doc_type = 'invoice' and status != 'cancelled'
+  where doc_type in ('invoice', 'order') and status != 'cancelled'
   group by customer_id
 ) cnt on cnt.customer_id = c.id;
 
@@ -242,16 +242,16 @@ declare
   this_month text := to_char(now(), 'YYYY-MM');
 begin
   return jsonb_build_object(
-    'totalRevenue', (select coalesce(sum(total_amount), 0) from documents where doc_type = 'invoice'),
-    'thisMonthRevenue', (select coalesce(sum(total_amount), 0) from documents where doc_type = 'invoice' and to_char(doc_date, 'YYYY-MM') = this_month),
-    'invoiceCount', (select count(*) from documents where doc_type = 'invoice'),
+    'totalRevenue', (select coalesce(sum(total_amount), 0) from documents where doc_type in ('invoice', 'order')),
+    'thisMonthRevenue', (select coalesce(sum(total_amount), 0) from documents where doc_type in ('invoice', 'order') and to_char(doc_date, 'YYYY-MM') = this_month),
+    'invoiceCount', (select count(*) from documents where doc_type in ('invoice', 'order')),
     'customerCount', (select count(*) from customers),
     'monthlySeries', COALESCE((
       select jsonb_agg(jsonb_build_object('month', month, 'total', total) order by month)
       from (
         select to_char(date_trunc('month', doc_date)::date, 'YYYY-MM') as month, sum(total_amount) as total
         from documents
-        where doc_type = 'invoice'
+        where doc_type in ('invoice', 'order')
         group by date_trunc('month', doc_date)
         order by date_trunc('month', doc_date) desc
         limit 12
@@ -267,7 +267,7 @@ begin
       from (
         select customer_id, bill_to_name, sum(total_amount) as total, count(*) as count
         from documents
-        where doc_type = 'invoice'
+        where doc_type in ('invoice', 'order')
         group by customer_id, bill_to_name
         order by total desc
         limit 8
@@ -421,4 +421,12 @@ alter table suppliers enable row level security;
 create index if not exists idx_documents_supplier_gst_doc_number
   on documents (bill_to_gst, doc_number)
   where doc_type = 'purchase';
+
+-- ========== Orders (quick cash sale) numbering seed ==========
+-- Orders use their own counter series (ORD-YY-NN) per financial year.
+insert into counters (doc_type, financial_year, last_number)
+select 'order', financial_year, 0
+from counters
+where doc_type = 'invoice'
+on conflict (doc_type, financial_year) do nothing;
 

@@ -16,10 +16,18 @@ describe("docTypes", () => {
     expect(purchase?.short).toBe("PUR");
   });
 
-  it("includes all 6 document types", () => {
+  it("includes order in DOC_TYPES with ORD short code", () => {
+    const order = DOC_TYPES.find((d) => d.value === "order");
+    expect(order).toBeDefined();
+    expect(order?.label).toBe("Order");
+    expect(order?.short).toBe("ORD");
+  });
+
+  it("includes all 7 document types", () => {
     expect(DOC_TYPES.map((d) => d.value).sort()).toEqual([
       "estimate",
       "invoice",
+      "order",
       "performa_invoice",
       "purchase",
       "quotation",
@@ -59,8 +67,9 @@ describe("docTypes", () => {
   });
 
   describe("canConvertToInvoice", () => {
-    it("returns true for quotation, performa_invoice, estimate", () => {
-      expect(CONVERTIBLE_TYPES).toEqual(["quotation", "performa_invoice", "estimate"]);
+    it("returns true for order, quotation, performa_invoice, estimate", () => {
+      expect(CONVERTIBLE_TYPES).toEqual(["order", "quotation", "performa_invoice", "estimate"]);
+      expect(canConvertToInvoice("order")).toBe(true);
       expect(canConvertToInvoice("quotation")).toBe(true);
       expect(canConvertToInvoice("performa_invoice")).toBe(true);
       expect(canConvertToInvoice("estimate")).toBe(true);

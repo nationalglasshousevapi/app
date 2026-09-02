@@ -163,7 +163,7 @@ export default async function CustomerDetailPage({
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4 text-center">
-          <div className="text-xs text-slate-500 font-semibold">Total Invoiced</div>
+          <div className="text-xs text-slate-500 font-semibold">Total Invoiced (incl. orders)</div>
           <div className="font-display font-bold text-ink mt-1 text-lg">{inr(totalInvoicedOverall)}</div>
         </div>
         <div className="card p-4 text-center">

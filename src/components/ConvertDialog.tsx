@@ -10,16 +10,22 @@ export default function ConvertDialog({
   open,
   documentId,
   docNumber,
+  docType,
   totalAmount,
   onCancel,
 }: {
   open: boolean;
   documentId: string;
   docNumber: string;
+  docType?: string;
   totalAmount: number;
   onCancel: () => void;
 }) {
-  const [recordPayment, setRecordPayment] = useState(true);
+  // Orders often already have an advance recorded at sale time; converting to an
+  // invoice is about paperwork, not payment. Default to no payment for orders,
+  // keep "record payment now" for quotations/estimates.
+  const isOrder = docType === "order";
+  const [recordPayment, setRecordPayment] = useState(!isOrder);
   const [paymentMode, setPaymentMode] = useState("cash");
   const [converting, setConverting] = useState(false);
   const [error, setError] = useState("");
@@ -30,7 +36,8 @@ export default function ConvertDialog({
     if (!open) return;
     confirmRef.current?.focus();
     setError("");
-  }, [open]);
+    setRecordPayment(!isOrder);
+  }, [open, isOrder]);
 
   useEffect(() => {
     if (!open) return;
@@ -114,10 +121,12 @@ export default function ConvertDialog({
               />
               <div>
                 <span className="block text-sm font-medium text-slate-800">
-                  Record cash payment now
+                  Record {isOrder ? "balance" : "cash"} payment now
                 </span>
                 <span className="block text-xs text-slate-400">
-                  {inr(totalAmount)} — also creates a receipt, invoice marked paid
+                  {isOrder
+                    ? "Only if the remaining balance is being paid now — also creates a receipt"
+                    : `${inr(totalAmount)} — also creates a receipt, invoice marked paid`}
                 </span>
               </div>
             </label>

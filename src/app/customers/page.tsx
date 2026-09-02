@@ -211,7 +211,7 @@ export default function CustomersPage() {
               <th className="p-4">Contact</th>
               <th className="p-4">Phone</th>
               <th className="p-4">GST</th>
-              <th className="p-4 text-center">Invoices</th>
+              <th className="p-4 text-center">Invoices / Orders</th>
               <th className="p-4 text-right">Balance</th>
               <th className="p-3"></th>
             </tr>

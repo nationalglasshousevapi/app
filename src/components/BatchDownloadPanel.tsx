@@ -92,6 +92,7 @@ export default function BatchDownloadPanel() {
         a.href = blobUrl;
         const typeLabel =
           selectedType === "invoice" ? "invoices"
+          : selectedType === "order" ? "orders"
           : selectedType === "quotation" ? "quotations"
           : selectedType === "performa_invoice" ? "performa-invoices"
           : selectedType === "estimate" ? "estimates"
@@ -167,6 +168,7 @@ export default function BatchDownloadPanel() {
               >
                 <option value="">All types</option>
                 <option value="invoice">Invoice</option>
+                <option value="order">Order</option>
                 <option value="quotation">Quotation</option>
                 <option value="performa_invoice">Performa Invoice</option>
                 <option value="estimate">Estimate</option>

@@ -30,7 +30,7 @@ export default async function DayBookPage({
     sb
       .from("documents")
       .select("id, doc_number, doc_date, bill_to_name, total_amount, status, doc_type")
-      .in("doc_type", ["invoice", "receipt"])
+      .in("doc_type", ["invoice", "order", "receipt"])
       .neq("status", "cancelled")
       .eq("doc_date", date)
       .order("created_at"),
@@ -48,7 +48,7 @@ export default async function DayBookPage({
     sb.from("expenses").select("*").eq("expense_date", date).order("created_at"),
   ]);
 
-  const sales = invoicesRes.data?.filter((d) => d.doc_type === "invoice") ?? [];
+  const sales = invoicesRes.data?.filter((d) => d.doc_type === "invoice" || d.doc_type === "order") ?? [];
   const receipts = invoicesRes.data?.filter((d) => d.doc_type === "receipt") ?? [];
   const payments = paymentsRes.data ?? [];
   const purchases = purchasesRes.data ?? [];
@@ -185,11 +185,11 @@ export default async function DayBookPage({
           )}
         </section>
 
-        {/* Invoices */}
+        {/* Invoices + orders */}
         <section className="card p-5">
-          <h2 className="font-display font-bold text-ink mb-3">Invoices created</h2>
+          <h2 className="font-display font-bold text-ink mb-3">Invoices &amp; orders created</h2>
           {sales.length === 0 ? (
-            <p className="text-sm text-slate-400 py-4 text-center font-body">No invoices this day.</p>
+            <p className="text-sm text-slate-400 py-4 text-center font-body">No invoices or orders this day.</p>
           ) : (
             <ul className="divide-y divide-slate-100">
               {sales.map((d) => (

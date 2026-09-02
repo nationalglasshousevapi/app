@@ -5,6 +5,7 @@ import { readFile } from "fs/promises";
 import path from "path";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { companyDetails } from "@/lib/company";
+import { docTypeLabel } from "@/lib/docTypes";
 import BatchPdfDocument from "@/components/BatchPdfDocument";
 import type { BatchDocument } from "@/components/BatchPdfDocument";
 
@@ -100,6 +101,7 @@ export async function GET(req: NextRequest) {
   const company = companyDetails();
   const logoSrc = await companyLogo();
   const type = docType || "invoice";
+  const summaryType = docType ? docTypeLabel(docType).toLowerCase() : "documents";
   const title = periodLabel(year, months);
 
   const buffer = await renderToBuffer(
@@ -110,10 +112,11 @@ export async function GET(req: NextRequest) {
       title,
       totalAmount,
       docType: type,
+      summaryLabel: summaryType,
     }) as any
   );
 
-  const filename = `${type}s-${title.replace(/[,\s]+/g, "-").toLowerCase()}.pdf`;
+  const filename = `${docType ? `${docType}s` : "documents"}-${title.replace(/[,\s]+/g, "-").toLowerCase()}.pdf`;
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

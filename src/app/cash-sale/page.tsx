@@ -9,7 +9,7 @@ export default function NewCashSalePage() {
       <BackButton href="/documents" label="Back to Documents" />
       <h1 className="page-title">Quick Cash Sale</h1>
       <p className="text-sm text-slate-500 font-body -mt-2 mb-6">
-        Counter sale paid on the spot &mdash; creates a paid invoice and records the payment in one step.
+        Counter sale &mdash; creates an order and records any advance payment. Convert to an invoice only when the customer needs one.
       </p>
       <CashSaleForm />
     </main>

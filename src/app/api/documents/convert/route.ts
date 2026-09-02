@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!CONVERTIBLE_TYPES.includes(source.doc_type)) {
-    return NextResponse.json({ error: "Only quotations, performa invoices and estimates can be converted to an invoice." }, { status: 400 });
+    return NextResponse.json({ error: "Only orders, quotations, performa invoices and estimates can be converted to an invoice." }, { status: 400 });
   }
   if (source.status === "cancelled") {
     return NextResponse.json({ error: "Cancelled documents cannot be converted." }, { status: 400 });
@@ -140,8 +140,22 @@ export async function POST(req: NextRequest) {
   // Record payment + generate receipt if requested
   let payment: unknown = null;
   if (record_payment) {
-    const amount = Number(source.total_amount);
+    // If the source order already collected an advance, only the remaining
+    // balance is paid now (the advance payment row already exists). Source
+    // documents don't store a paid-total column, so sum the linked payments.
+    const { data: paidRows } = await sb
+      .from("payments")
+      .select("amount")
+      .eq("document_id", id);
+    const paidSoFar = (paidRows ?? []).reduce((s, p) => s + Number(p.amount), 0);
+    const amount = Math.max(0, Number(source.total_amount) - paidSoFar);
     const paymentMode = payment_mode ?? "cash";
+    if (amount <= 0) {
+      return NextResponse.json(
+        { document: invoice, payment: null, message: "This order is already fully paid. Invoice created without a new payment." },
+        { status: 201 },
+      );
+    }
 
     // Ensure we have a customer row to attach the payment to (auto-create from
     // the snapshot if the document was created without a linked customer).

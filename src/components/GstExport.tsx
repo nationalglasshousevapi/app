@@ -145,7 +145,7 @@ export default function GstExport() {
             onChange={(e) => setType(e.target.value as ReportType)}
             className="input w-full"
           >
-            <option value="invoice">Sales — Invoice-wise (GSTR-1)</option>
+            <option value="invoice">Sales — Invoice-wise (incl. orders)</option>
             <option value="hsn">Sales — HSN-wise</option>
             <option value="purchase">Purchases — Invoice-wise (ITC)</option>
             <option value="purchase_hsn">Purchases — HSN-wise</option>
