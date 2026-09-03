@@ -96,7 +96,7 @@ export const createCashSaleSchema = z.object({
   remarks: z.string().nullable().optional().default(null),
   items: z.array(itemSchema).min(1, "Add at least one line item."),
   payment_mode: paymentModeSchema.optional().default("cash"),
-  reference_number: z.string().optional().default(""),
+  reference_number: z.string().nullable().optional().default(""),
   amount_paid: z.number().min(0, "Paid amount cannot be negative.").optional().default(0),
 });
 
@@ -115,7 +115,7 @@ export const createExpenseSchema = z.object({
   description: z.string().optional().default(""),
   amount: z.number().positive("Amount must be greater than 0."),
   payment_mode: paymentModeSchema.optional().default("cash"),
-  reference_number: z.string().optional().default(""),
+  reference_number: z.string().nullable().optional().default(""),
 });
 
 export const updateExpenseSchema = createExpenseSchema.partial();
@@ -125,7 +125,7 @@ export const createPaymentSchema = z.object({
   payment_date: z.string().optional(),
   amount: z.number().positive("Amount must be greater than 0."),
   payment_mode: paymentModeSchema.optional().default("cash"),
-  reference_number: z.string().optional().default(""),
+  reference_number: z.string().nullable().optional().default(""),
   document_id: z.string().uuid().nullable().optional(),
   notes: z.string().nullable().optional(),
   generate_receipt: z.boolean().optional().default(false),

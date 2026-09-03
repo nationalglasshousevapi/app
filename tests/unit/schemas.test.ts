@@ -44,6 +44,26 @@ describe("createPaymentSchema", () => {
     });
     expect(parsed.success).toBe(true);
   });
+
+  it("accepts a null reference_number (blank ref field)", () => {
+    const parsed = createPaymentSchema.safeParse({
+      ...validPayment,
+      payment_mode: "bank_transfer",
+      reference_number: null,
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.reference_number).toBe("");
+    }
+  });
+
+  it("accepts an omitted reference_number", () => {
+    const parsed = createPaymentSchema.safeParse({
+      ...validPayment,
+      payment_mode: "upi",
+    });
+    expect(parsed.success).toBe(true);
+  });
 });
 
 describe("createCustomerSchema", () => {
