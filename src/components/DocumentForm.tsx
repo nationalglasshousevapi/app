@@ -57,6 +57,7 @@ function today() {
 }
 
 export function blankDocument(defaultType: DocType = "invoice"): DocumentFormValue {
+  const isOrder = defaultType === "order";
   return {
     doc_type: defaultType,
     doc_date: today(),
@@ -73,8 +74,8 @@ export function blankDocument(defaultType: DocType = "invoice"): DocumentFormVal
     ship_to_address: "",
     ship_to_contact_person: "",
     ship_to_contact_number: "",
-    tax_type: "cgst_sgst",
-    tax_rate: 0.18,
+    tax_type: isOrder ? "none" : "cgst_sgst",
+    tax_rate: isOrder ? 0 : 0.18,
     discount_amount: 0,
     additional_charges: [],
     taxable_charges: [],

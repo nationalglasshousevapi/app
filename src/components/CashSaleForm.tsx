@@ -46,7 +46,7 @@ function isBlankSale(d: CashSaleDraft): boolean {
     !d.walkInName.trim() &&
     !d.orderNumber.trim() &&
     d.items.every((it) => !it.description.trim() && !(it.qty > 0)) &&
-    d.taxType === "cgst_sgst" &&
+    d.taxType === "none" &&
     !d.discountAmount &&
     d.paymentMode === "cash" &&
     !d.referenceNumber.trim() &&
@@ -64,7 +64,7 @@ export default function CashSaleForm() {
   const [items, setItems] = useState<SaleItem[]>([
     { description: "", size: "", hsn_code: DEFAULT_HSN_CODE, qty: 0, unit: "sq.ft", rate: 0 },
   ]);
-  const [taxType, setTaxType] = useState<"cgst_sgst" | "none">("cgst_sgst");
+  const [taxType, setTaxType] = useState<"cgst_sgst" | "none">("none");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [paymentMode, setPaymentMode] = useState("cash");
   const [referenceNumber, setReferenceNumber] = useState("");
@@ -105,7 +105,7 @@ export default function CashSaleForm() {
     setWalkInName(d.walkInName);
     setOrderNumber(d.orderNumber || "");
     setItems(d.items?.length ? d.items : [{ description: "", size: "", hsn_code: DEFAULT_HSN_CODE, qty: 0, unit: "sq.ft", rate: 0 }]);
-    setTaxType(d.taxType ?? "cgst_sgst");
+    setTaxType(d.taxType ?? "none");
     setDiscountAmount(d.discountAmount || 0);
     setPaymentMode(d.paymentMode || "cash");
     setReferenceNumber(d.referenceNumber || "");
@@ -392,12 +392,13 @@ export default function CashSaleForm() {
                 value={taxType}
                 onChange={(e) => setTaxType(e.target.value as "cgst_sgst" | "none")}
               >
-                <option value="cgst_sgst">18% CGST+SGST</option>
                 <option value="none">No GST</option>
+                <option value="cgst_sgst">18% CGST+SGST</option>
               </select>
             </span>
             <span className="font-mono font-semibold">{inr(cgst + sgst, 2)}</span>
           </div>
+          <p className="text-xs text-slate-400">Orders start without GST. Add 18% when you convert to an invoice.</p>
           <div className="flex items-center justify-between border-t border-slate-100 pt-2">
             <span className="font-bold">Total</span>
             <span className="text-xl font-bold font-mono text-brand-600">{inr(totalAmount, 2)}</span>

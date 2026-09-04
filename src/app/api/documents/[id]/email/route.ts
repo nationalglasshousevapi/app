@@ -8,6 +8,7 @@ import { companyDetails } from "@/lib/company";
 import PdfDocument from "@/components/PdfDocument";
 import { sendInvoiceEmail } from "@/lib/mail";
 import { docTypeLabel } from "@/lib/docTypes";
+import { getAppBaseUrl } from "@/lib/appUrl";
 
 async function companyLogo() {
   try {
@@ -19,7 +20,7 @@ async function companyLogo() {
 }
 
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const sb = supabaseServer();
@@ -85,8 +86,8 @@ export async function POST(
     }) as any
   );
 
-  const origin = _req.headers.get("origin") || "https://national-glass-house.vercel.app";
-  const pdfUrl = `${origin}/api/documents/${params.id}/pdf`;
+  const baseUrl = getAppBaseUrl(req);
+  const pdfUrl = `${baseUrl}/api/documents/${params.id}/pdf`;
   const totalFormatted = Number(doc.total_amount).toLocaleString("en-IN", { maximumFractionDigits: 2 });
   const customerName = doc.bill_to_name || "Customer";
 

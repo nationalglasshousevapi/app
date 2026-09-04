@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { CONVERTIBLE_TYPES, docTypeShort, financialYearFor } from "@/lib/docTypes";
 import { PAYMENT_MODES } from "@/lib/paymentModes";
+import { computeTax, computeTotal } from "@/lib/documents";
 
 const validModes = PAYMENT_MODES.map((m) => m.value);
 
@@ -13,10 +14,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const { id, record_payment, payment_mode } = (body ?? {}) as {
+  const { id, record_payment, payment_mode, with_gst, add_gst, gst_type, tax_type } = (body ?? {}) as {
     id?: string;
     record_payment?: boolean;
     payment_mode?: string;
+    with_gst?: boolean;
+    add_gst?: boolean;
+    gst_type?: string;
+    tax_type?: string;
   };
   if (!id) {
     return NextResponse.json({ error: "Source document ID is required." }, { status: 400 });
@@ -45,6 +50,53 @@ export async function POST(req: NextRequest) {
 
   if (record_payment && payment_mode && !(validModes as string[]).includes(payment_mode)) {
     return NextResponse.json({ error: "Invalid payment mode." }, { status: 400 });
+  }
+
+  // Determine whether to add GST on conversion (Order without GST -> Invoice with GST)
+  const shouldAddGst = Boolean(with_gst ?? add_gst);
+  // Explicit tax_type override takes precedence over gst_type / with_gst
+  let invoiceTaxType: string = source.tax_type;
+  let invoiceTaxRate: number = Number(source.tax_rate ?? 0);
+  const validGstTypes = ["cgst_sgst", "igst", "none"] as const;
+  const requestedGstType = (gst_type ?? tax_type) as string | undefined;
+
+  if (requestedGstType && !(validGstTypes as readonly string[]).includes(requestedGstType)) {
+    return NextResponse.json({ error: "Invalid GST type. Use cgst_sgst, igst or none." }, { status: 400 });
+  }
+
+  if (requestedGstType && requestedGstType !== "none" && source.tax_type === "none") {
+    // Explicit request to add GST (e.g. with_gst + gst_type=igst)
+    invoiceTaxType = requestedGstType;
+    invoiceTaxRate = 0.18;
+  } else if (shouldAddGst && source.tax_type === "none") {
+    invoiceTaxType = requestedGstType && requestedGstType !== "none" ? requestedGstType : "cgst_sgst";
+    invoiceTaxRate = 0.18;
+  } else if (requestedGstType) {
+    // Allow switching tax type even when source already has GST (e.g. cgst_sgst -> igst)
+    // Keep rate consistent: taxable => 0.18, none => 0
+    invoiceTaxType = requestedGstType;
+    invoiceTaxRate = requestedGstType === "none" ? 0 : 0.18;
+  }
+
+  // Compute invoice totals — recompute if tax settings differ from source (e.g. Order without GST -> Invoice with GST)
+  let invoiceSubtotal = Number(source.subtotal);
+  let invoiceDiscount = Number(source.discount_amount ?? 0);
+  const invoiceAdditional = (source.additional_charges ?? []) as { label: string; amount: number }[];
+  const invoiceTaxable = (source.taxable_charges ?? []) as { label: string; amount: number }[];
+  let invoiceCgst = Number(source.cgst_amount ?? 0);
+  let invoiceSgst = Number(source.sgst_amount ?? 0);
+  let invoiceIgst = Number(source.igst_amount ?? 0);
+  let invoiceRoundOff = Number(source.round_off ?? 0);
+  let invoiceTotal = Number(source.total_amount ?? 0);
+  const taxChanged = invoiceTaxType !== source.tax_type || invoiceTaxRate !== Number(source.tax_rate ?? 0);
+  if (taxChanged) {
+    const { cgst, sgst, igst } = computeTax(invoiceSubtotal, invoiceTaxType, invoiceTaxRate, invoiceDiscount, invoiceTaxable);
+    const { totalAmount, roundOff } = computeTotal(invoiceSubtotal, cgst, sgst, igst, invoiceDiscount, invoiceAdditional, invoiceTaxable);
+    invoiceCgst = cgst;
+    invoiceSgst = sgst;
+    invoiceIgst = igst;
+    invoiceRoundOff = roundOff;
+    invoiceTotal = totalAmount;
   }
 
   // Fetch source items
@@ -87,17 +139,17 @@ export async function POST(req: NextRequest) {
       ship_to_address: source.ship_to_address,
       ship_to_contact_person: source.ship_to_contact_person,
       ship_to_contact_number: source.ship_to_contact_number,
-      subtotal: source.subtotal,
-      tax_type: source.tax_type,
-      tax_rate: source.tax_rate,
-      cgst_amount: source.cgst_amount,
-      sgst_amount: source.sgst_amount,
-      igst_amount: source.igst_amount,
-      round_off: source.round_off,
-      discount_amount: source.discount_amount || 0,
-      additional_charges: source.additional_charges ?? [],
-      taxable_charges: source.taxable_charges ?? [],
-      total_amount: source.total_amount,
+      subtotal: invoiceSubtotal,
+      tax_type: invoiceTaxType,
+      tax_rate: invoiceTaxRate,
+      cgst_amount: invoiceCgst,
+      sgst_amount: invoiceSgst,
+      igst_amount: invoiceIgst,
+      round_off: invoiceRoundOff,
+      discount_amount: invoiceDiscount || 0,
+      additional_charges: invoiceAdditional ?? [],
+      taxable_charges: invoiceTaxable ?? [],
+      total_amount: invoiceTotal,
       remarks: source.remarks,
       status: record_payment ? "paid" : "draft",
     })
@@ -143,12 +195,13 @@ export async function POST(req: NextRequest) {
     // If the source order already collected an advance, only the remaining
     // balance is paid now (the advance payment row already exists). Source
     // documents don't store a paid-total column, so sum the linked payments.
+    // Use the invoice total (which may include newly added GST) for balance.
     const { data: paidRows } = await sb
       .from("payments")
       .select("amount")
       .eq("document_id", id);
     const paidSoFar = (paidRows ?? []).reduce((s, p) => s + Number(p.amount), 0);
-    const amount = Math.max(0, Number(source.total_amount) - paidSoFar);
+    const amount = Math.max(0, invoiceTotal - paidSoFar);
     const paymentMode = payment_mode ?? "cash";
     if (amount <= 0) {
       return NextResponse.json(

@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { PAYMENT_MODES } from "@/lib/paymentModes";
 import { inr } from "@/lib/format";
+import { computeTax, computeTotal } from "@/lib/documents";
 
 export default function ConvertDialog({
   open,
@@ -32,12 +33,50 @@ export default function ConvertDialog({
   const confirmRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
 
+  // GST-on-conversion: orders now default to No GST; customer may request GST invoice.
+  const [withGst, setWithGst] = useState(false);
+  const [gstType, setGstType] = useState<"cgst_sgst" | "igst">("cgst_sgst");
+  const [sourceTaxType, setSourceTaxType] = useState<string | null>(null);
+  const [sourceSubtotal, setSourceSubtotal] = useState<number | null>(null);
+  const [sourceDiscount, setSourceDiscount] = useState(0);
+  const [sourceTaxableCharges, setSourceTaxableCharges] = useState<{ label: string; amount: number }[]>([]);
+  const [sourceAdditionalCharges, setSourceAdditionalCharges] = useState<{ label: string; amount: number }[]>([]);
+  const [sourceLoading, setSourceLoading] = useState(false);
+
   useEffect(() => {
     if (!open) return;
     confirmRef.current?.focus();
     setError("");
     setRecordPayment(!isOrder);
-  }, [open, isOrder]);
+    setWithGst(false);
+    setGstType("cgst_sgst");
+    setSourceTaxType(null);
+    setSourceSubtotal(null);
+    setSourceAdditionalCharges([]);
+    setSourceTaxableCharges([]);
+    setSourceDiscount(0);
+
+    if (docType === "order") {
+      setSourceLoading(true);
+      fetch(`/api/documents/${documentId}`)
+        .then((r) => r.json())
+        .then((json) => {
+          const d = json.document;
+          if (d) {
+            setSourceTaxType(d.tax_type ?? "none");
+            setSourceSubtotal(Number(d.subtotal ?? totalAmount));
+            setSourceDiscount(Number(d.discount_amount ?? 0));
+            setSourceTaxableCharges(Array.isArray(d.taxable_charges) ? d.taxable_charges : []);
+            setSourceAdditionalCharges(Array.isArray(d.additional_charges) ? d.additional_charges : []);
+          }
+        })
+        .catch(() => {})
+        .finally(() => setSourceLoading(false));
+    } else {
+      // For non-orders, assume GST already included if any; no need to fetch
+      setSourceTaxType(null);
+    }
+  }, [open, isOrder, docType, documentId, totalAmount]);
 
   useEffect(() => {
     if (!open) return;
@@ -53,6 +92,7 @@ export default function ConvertDialog({
     setConverting(true);
     setError("");
     try {
+      const wantsGst = isOrder && sourceTaxType === "none" && withGst;
       const res = await fetch("/api/documents/convert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -60,6 +100,7 @@ export default function ConvertDialog({
           id: documentId,
           record_payment: recordPayment,
           payment_mode: recordPayment ? paymentMode : undefined,
+          ...(wantsGst ? { with_gst: true, gst_type: gstType } : {}),
         }),
       });
       const json = await res.json();
@@ -111,6 +152,53 @@ export default function ConvertDialog({
               {docNumber} → a new invoice with a fresh number. Customer details,
               tax settings and line items are copied.
             </p>
+
+            {/* GST toggle for Orders without GST — add 18% when invoicing */}
+            {isOrder && sourceTaxType === "none" && (
+              <div className="mb-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <label className="flex items-center gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={withGst}
+                    onChange={(e) => setWithGst(e.target.checked)}
+                    className="accent-brand-500 w-4 h-4"
+                  />
+                  <div>
+                    <span className="block text-sm font-medium text-slate-800">Add GST to invoice</span>
+                    <span className="block text-xs text-slate-400">Order is without GST — add 18% when the customer needs a billed invoice</span>
+                  </div>
+                </label>
+                {withGst && (
+                  <div className="space-y-2 pl-7">
+                    <label className="label">GST type</label>
+                    <select className="input" value={gstType} onChange={(e) => setGstType(e.target.value as "cgst_sgst" | "igst")}>
+                      <option value="cgst_sgst">CGST + SGST (9% + 9%)</option>
+                      <option value="igst">IGST (18%)</option>
+                    </select>
+                    {sourceSubtotal !== null && (() => {
+                      const taxable = computeTax(sourceSubtotal, gstType, 0.18, sourceDiscount, sourceTaxableCharges);
+                      const { totalAmount: newTotal } = computeTotal(sourceSubtotal, taxable.cgst, taxable.sgst, taxable.igst, sourceDiscount, sourceAdditionalCharges, sourceTaxableCharges);
+                      const gstAmt = taxable.cgst + taxable.sgst + taxable.igst;
+                      return (
+                        <div className="rounded-lg bg-white border border-brand-100 px-3 py-2 text-xs space-y-1">
+                          <div className="flex justify-between"><span className="text-slate-500">Order total (no GST)</span><span className="font-mono font-semibold">{inr(totalAmount, 2)}</span></div>
+                          <div className="flex justify-between"><span className="text-slate-500">GST {gstType === "igst" ? "@ 18%" : "@ 9%+9%"}</span><span className="font-mono font-semibold">{inr(gstAmt, 2)}</span></div>
+                          <div className="flex justify-between border-t border-slate-100 pt-1 font-bold text-ink"><span>Invoice total</span><span className="font-mono">{inr(newTotal, 2)}</span></div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
+            )}
+            {isOrder && sourceTaxType && sourceTaxType !== "none" && (
+              <p className="text-xs text-slate-500 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 mb-3">
+                This order already includes {sourceTaxType === "igst" ? "IGST 18%" : "CGST + SGST 18%"} — the invoice will carry the same GST.
+              </p>
+            )}
+            {isOrder && sourceLoading && sourceTaxType === null && (
+              <p className="text-xs text-slate-400 mb-3">Loading order details…</p>
+            )}
 
             <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 cursor-pointer mb-3">
               <input

@@ -82,7 +82,7 @@ export const updateDocumentSchema = createDocumentSchema.omit({ doc_type: true }
 export const paymentModeSchema = z.enum(["cash", "bank_transfer", "upi", "cheque", "adjustment"]);
 
 // Quick cash sale: counter order with partial / advance payment support.
-// Creates an Order document (not an invoice); convert to invoice when needed.
+// Creates an Order document WITHOUT GST by default (add GST at invoice conversion).
 // Customer name required when no customer_id (enforced in API). Paid can be 0 (full credit).
 export const createCashSaleSchema = z.object({
   customer_id: z.string().uuid().nullable().optional(),
@@ -90,7 +90,7 @@ export const createCashSaleSchema = z.object({
   customer_phone: z.string().optional().default(""),
   doc_date: z.string().optional(),
   order_number: z.string().optional().default(""),
-  tax_type: taxTypeSchema.optional().default("cgst_sgst"),
+  tax_type: taxTypeSchema.optional().default("none"),
   discount_amount: z.number().min(0).optional().default(0),
   taxable_charges: z.array(taxableChargeSchema).optional().default([]),
   remarks: z.string().nullable().optional().default(null),

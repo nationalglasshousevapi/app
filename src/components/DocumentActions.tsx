@@ -107,6 +107,9 @@ export default function DocumentActions({
 
   async function shareWhatsApp() {
     const shareUrl = await fetchShareUrl();
+    if (!shareUrl) {
+      toast.error("Could not generate PDF link. Please try Copy link or try again.");
+    }
     const text = documentShareMessage({
       docTypeLabel: docTypeLabel(docType),
       docNumber,

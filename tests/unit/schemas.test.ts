@@ -53,7 +53,8 @@ describe("createPaymentSchema", () => {
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) {
-      expect(parsed.data.reference_number).toBe("");
+      // null is accepted and stays null (API normalizes null/"" -> null in DB)
+      expect(parsed.data.reference_number).toBeNull();
     }
   });
 

@@ -59,7 +59,7 @@ export default async function CustomerLedgerPage({
   // Fetch invoices + orders (filtered by date range if set)
   let invoiceQuery = sb
     .from("documents")
-    .select("id, doc_date, doc_number, total_amount")
+    .select("id, doc_date, doc_number, total_amount, doc_type")
     .eq("customer_id", customerId)
     .in("doc_type", ["invoice", "order"])
     .neq("status", "cancelled");

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { signShareToken } from "@/lib/shareLink";
+import { buildPublicPdfUrl } from "@/lib/appUrl";
 
 export const dynamic = "force-dynamic";
 
@@ -21,10 +22,10 @@ export async function POST(
   const expiryDays = Number.isFinite(days) && days > 0 ? days : 365;
   const token = await signShareToken(params.id, expiryDays * 24 * 60 * 60);
   const [exp, sig] = token.split(".");
-  const forwardedHost = req.headers.get("x-forwarded-host");
-  const host = forwardedHost || req.headers.get("host") || req.nextUrl.host;
-  const proto = req.headers.get("x-forwarded-proto") || (host.startsWith("localhost") ? "http" : "https");
-  const url = `${proto}://${host}/api/public/documents/${params.id}/pdf?exp=${exp}&sig=${sig}`;
+  // IMPORTANT: Use centralized helper for app URL — do not read host headers directly.
+  // The helper respects NEXT_PUBLIC_APP_URL / VERCEL_PROJECT_PRODUCTION_URL
+  // so share links are always the canonical production URL, not a preview deployment.
+  const url = buildPublicPdfUrl(params.id, exp, sig, req);
 
   return NextResponse.json({ url });
 }
