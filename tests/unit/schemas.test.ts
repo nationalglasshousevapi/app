@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { createPaymentSchema, createCustomerSchema } from "@/lib/schemas";
+import {
+  createPaymentSchema,
+  createCustomerSchema,
+  createCashSaleSchema,
+  createExpenseSchema,
+} from "@/lib/schemas";
 
 describe("createPaymentSchema", () => {
   const validPayment = {
@@ -84,5 +89,56 @@ describe("createCustomerSchema", () => {
     if (parsed.success) {
       expect(parsed.data.opening_balance).toBe(0);
     }
+  });
+});
+
+describe("createCashSaleSchema — cash order without GST by default", () => {
+  const validCashSale = {
+    customer_name: "Ramesh",
+    items: [{ description: "5 mm Clear Glass", qty: 10, rate: 100 }],
+  };
+
+  it("defaults to tax_type none (no GST) for counter orders", () => {
+    const parsed = createCashSaleSchema.safeParse(validCashSale);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.tax_type).toBe("none");
+    }
+  });
+
+  it("accepts explicit cgst_sgst when GST is needed", () => {
+    const parsed = createCashSaleSchema.safeParse({ ...validCashSale, tax_type: "cgst_sgst" });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data.tax_type).toBe("cgst_sgst");
+  });
+
+  it("accepts null reference_number (blank ref field)", () => {
+    const parsed = createCashSaleSchema.safeParse({
+      ...validCashSale,
+      payment_mode: "bank_transfer",
+      reference_number: null,
+    });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("accepts omitted reference_number", () => {
+    const parsed = createCashSaleSchema.safeParse({ ...validCashSale, payment_mode: "upi" });
+    expect(parsed.success).toBe(true);
+  });
+
+  it("accepts empty string reference_number", () => {
+    const parsed = createCashSaleSchema.safeParse({ ...validCashSale, reference_number: "" });
+    expect(parsed.success).toBe(true);
+  });
+});
+
+describe("createExpenseSchema — reference_number optional", () => {
+  it("accepts null reference_number", () => {
+    const parsed = createExpenseSchema.safeParse({ amount: 100, reference_number: null });
+    expect(parsed.success).toBe(true);
+  });
+  it("accepts omitted reference_number", () => {
+    const parsed = createExpenseSchema.safeParse({ amount: 100 });
+    expect(parsed.success).toBe(true);
   });
 });
