@@ -8,7 +8,8 @@ import { companyDetails } from "@/lib/company";
 import PdfDocument from "@/components/PdfDocument";
 import { sendInvoiceEmail } from "@/lib/mail";
 import { docTypeLabel } from "@/lib/docTypes";
-import { getAppBaseUrl } from "@/lib/appUrl";
+import { buildPublicPdfUrl } from "@/lib/appUrl";
+import { signShareToken } from "@/lib/shareLink";
 
 async function companyLogo() {
   try {
@@ -31,12 +32,18 @@ export async function POST(
     .eq("id", params.id)
     .single();
   if (error || !doc) {
-    return NextResponse.json({ error: error?.message ?? "Not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: error?.message ?? "Not found" },
+      { status: 404 }
+    );
   }
 
   if (!doc.bill_to_email) {
     return NextResponse.json(
-      { error: "This document has no customer email address. Add an email to the customer's details first." },
+      {
+        error:
+          "This document has no customer email address. Add an email to the customer's details first.",
+      },
       { status: 400 }
     );
   }
@@ -86,9 +93,17 @@ export async function POST(
     }) as any
   );
 
-  const baseUrl = getAppBaseUrl(req);
-  const pdfUrl = `${baseUrl}/api/documents/${params.id}/pdf`;
-  const totalFormatted = Number(doc.total_amount).toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  // Use the same signed public link as WhatsApp share — the private
+  // /api/documents/[id]/pdf URL requires login, so external recipients
+  // would hit the app password screen. The public URL works without auth.
+  const days = Number(process.env.SHARE_LINK_EXPIRY_DAYS);
+  const expiryDays = Number.isFinite(days) && days > 0 ? days : 365;
+  const token = await signShareToken(params.id, expiryDays * 24 * 60 * 60);
+  const [exp, sig] = token.split(".");
+  const pdfUrl = buildPublicPdfUrl(params.id, exp, sig, req);
+  const totalFormatted = Number(doc.total_amount).toLocaleString("en-IN", {
+    maximumFractionDigits: 2,
+  });
   const customerName = doc.bill_to_name || "Customer";
 
   try {
@@ -108,7 +123,11 @@ export async function POST(
     });
   } catch (err: any) {
     return NextResponse.json(
-      { error: err?.message || "Could not send email. Check your SMTP configuration." },
+      {
+        error:
+          err?.message ||
+          "Could not send email. Check your SMTP configuration.",
+      },
       { status: 500 }
     );
   }
