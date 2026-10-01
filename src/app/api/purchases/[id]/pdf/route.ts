@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Document, Page, renderToBuffer, StyleSheet } from "@react-pdf/renderer";
+import {
+  Document,
+  Page,
+  renderToBuffer,
+  StyleSheet,
+} from "@react-pdf/renderer";
 import React from "react";
 import { readFile } from "fs/promises";
 import path from "path";
@@ -33,7 +38,10 @@ export async function GET(
     .eq("id", params.id)
     .single();
   if (error || !doc || doc.doc_type !== "purchase") {
-    return NextResponse.json({ error: error?.message ?? "Not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: error?.message ?? "Not found" },
+      { status: 404 }
+    );
   }
 
   const { data: items } = await sb
@@ -83,6 +91,9 @@ export async function GET(
             length_mm: it.length_mm != null ? Number(it.length_mm) : null,
           })),
           subtotal: Number(doc.subtotal),
+          additionalCharges: doc.additional_charges ?? [],
+          taxableCharges: doc.taxable_charges ?? [],
+          roundOff: Number(doc.round_off ?? 0),
           taxType: doc.tax_type,
           taxRate: Number(doc.tax_rate),
           cgstAmount: Number(doc.cgst_amount),
@@ -90,9 +101,9 @@ export async function GET(
           igstAmount: Number(doc.igst_amount),
           totalAmount: Number(doc.total_amount),
           remarks: doc.remarks,
-        }),
-      ),
-    ),
+        })
+      )
+    )
   );
 
   return new NextResponse(new Uint8Array(buffer), {
@@ -100,8 +111,8 @@ export async function GET(
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="${doc.doc_number}.pdf"`,
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-      "Pragma": "no-cache",
-      "Expires": "0",
+      Pragma: "no-cache",
+      Expires: "0",
     },
   });
 }

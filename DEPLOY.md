@@ -29,23 +29,32 @@ git push -u origin main
 4. Vercel auto-detects Next.js — leave all defaults
 5. Click **"Environment Variables"** and add every variable from `.env.local`:
 
-| Variable                        | Your value                        |
-| ------------------------------- | --------------------------------- |
-| `NEXT_PUBLIC_SUPABASE_URL`      | From your Supabase project        |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | From your Supabase project        |
-| `SUPABASE_SERVICE_ROLE_KEY`     | From your Supabase project        |
-| `ADMIN_PASSWORD`                | Choose a strong password          |
-| `SESSION_SECRET`                | Run: `openssl rand -hex 32`       |
-| `COMPANY_NAME`                  | National Glass House (optional)   |
-| `COMPANY_ADDRESS`               | Your address (optional)           |
-| `COMPANY_PHONE`                 | Your phone (optional)             |
-| `COMPANY_EMAIL`                 | Your email (optional)             |
-| `COMPANY_GST`                   | Your GSTIN (optional)             |
-| `COMPANY_BANK_NAME`             | Bank name (optional)              |
-| `COMPANY_BANK_ACCOUNT_NAME`     | Account name (optional)           |
-| `COMPANY_BANK_ACCOUNT_NO`       | Account number (optional)         |
-| `COMPANY_BANK_IFSC`             | IFSC code (optional)              |
-| `DEFAULT_HSN_CODE`              | `7005` (optional)                 |
+| Variable                        | Your value                                                           |
+| ------------------------------- | -------------------------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | From your Supabase project                                           |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | From your Supabase project                                           |
+| `SUPABASE_SERVICE_ROLE_KEY`     | From your Supabase project                                           |
+| `ADMIN_PASSWORD`                | Choose a strong password                                             |
+| `SESSION_SECRET`                | Run: `openssl rand -hex 32`                                          |
+| `COMPANY_NAME`                  | National Glass House (optional)                                      |
+| `COMPANY_ADDRESS`               | Your address (optional)                                              |
+| `COMPANY_PHONE`                 | Your phone (optional)                                                |
+| `COMPANY_EMAIL`                 | Your email (optional)                                                |
+| `COMPANY_GST`                   | Your GSTIN (optional)                                                |
+| `COMPANY_BANK_NAME`             | Bank name (optional)                                                 |
+| `COMPANY_BANK_ACCOUNT_NAME`     | Account name (optional)                                              |
+| `COMPANY_BANK_ACCOUNT_NO`       | Account number (optional)                                            |
+| `COMPANY_BANK_IFSC`             | IFSC code (optional)                                                 |
+| `DEFAULT_HSN_CODE`              | `7005` (optional)                                                    |
+| `OCR_API_KEY`                   | Google AI Studio key (optional)                                      |
+| `OCR_BASE_URL`                  | `https://generativelanguage.googleapis.com/v1beta/openai` (optional) |
+| `OCR_MODEL`                     | `gemini-3.6-flash` (optional)                                        |
+
+The three `OCR_*` variables enable the "Scan purchase invoice" feature (photo or
+PDF). Set all three together — the code falls back to DeepSeek defaults
+(`https://api.deepseek.com`, `deepseek-v4-flash-vision-exp`) if only the key is
+set, and a Gemini key against the DeepSeek URL will fail. Any OpenAI-compatible
+vision provider works as long as key, base URL and model match.
 
 6. Click **"Deploy"** — takes ~2 minutes
 7. Once done, Vercel gives you a URL like `https://your-app.vercel.app`
@@ -98,10 +107,11 @@ Want `ngh.in` or similar?
 
 ## Troubleshooting
 
-| Symptom                    | Fix                                                 |
-| -------------------------- | --------------------------------------------------- |
-| Blank page after deploy    | Check Vercel deploy logs for build errors           |
-| "Missing env vars" error   | Add all variables from `.env.local` in Vercel       |
-| Login not working          | Verify `ADMIN_PASSWORD` and `SESSION_SECRET` are set |
-| Database errors            | Run `supabase/schema.sql` in Supabase SQL Editor    |
-| PDF download broken        | Make sure Vercel URL is the same one you're on      |
+| Symptom                    | Fix                                                      |
+| -------------------------- | -------------------------------------------------------- |
+| Blank page after deploy    | Check Vercel deploy logs for build errors                |
+| "Missing env vars" error   | Add all variables from `.env.local` in Vercel            |
+| Login not working          | Verify `ADMIN_PASSWORD` and `SESSION_SECRET` are set     |
+| Database errors            | Run `supabase/schema.sql` in Supabase SQL Editor         |
+| PDF download broken        | Make sure Vercel URL is the same one you're on           |
+| Scan says "not configured" | Set `OCR_API_KEY`, `OCR_BASE_URL`, `OCR_MODEL` in Vercel |

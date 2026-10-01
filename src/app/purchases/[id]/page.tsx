@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabaseServer";
 import PurchaseForm, { PurchaseFormValue } from "@/components/PurchaseForm";
+import PurchaseScanManager from "@/components/PurchaseScanManager";
 import StatusBadge from "@/components/StatusBadge";
 import { formatDateReadable } from "@/lib/format";
 import Link from "next/link";
@@ -29,7 +30,9 @@ export default async function PurchaseDetailPage({
   const { data: scanFiles } = await sb.storage
     .from("purchase-scans")
     .list(params.id, { limit: 1, search: "original" });
-  const hasScan = Boolean(scanFiles?.some((f) => f.name.startsWith("original.")));
+  const hasScan = Boolean(
+    scanFiles?.some((f) => f.name.startsWith("original."))
+  );
 
   const initial: PurchaseFormValue = {
     id: doc.id,
@@ -48,6 +51,8 @@ export default async function PurchaseDetailPage({
     vehicle_number: doc.vehicle_number ?? "",
     tax_type: doc.tax_type,
     tax_rate: Number(doc.tax_rate),
+    additional_charges: doc.additional_charges ?? [],
+    taxable_charges: doc.taxable_charges ?? [],
     remarks: doc.remarks ?? "",
     status: doc.status,
     items: (items ?? []).map((it) => ({
@@ -66,31 +71,44 @@ export default async function PurchaseDetailPage({
 
   return (
     <div className="space-y-7">
-      <a href="/purchases" className="text-sm text-brand-600 hover:underline inline-flex items-center gap-1">
+      <a
+        href="/purchases"
+        className="text-sm text-brand-600 hover:underline inline-flex items-center gap-1"
+      >
         <span>&larr;</span> Back to Purchases
       </a>
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-brand-600">Edit purchase</p>
           <h1 className="page-title">Purchase — {doc.doc_number}</h1>
-          <p className="page-subtitle">Created {formatDateReadable(doc.created_at)}</p>
+          <p className="page-subtitle">
+            Created {formatDateReadable(doc.created_at)}
+          </p>
         </div>
         <div className="shrink-0 pt-1">
-          <StatusBadge documentId={doc.id} currentStatus={doc.status} docType="purchase" />
+          <StatusBadge
+            documentId={doc.id}
+            currentStatus={doc.status}
+            docType="purchase"
+          />
         </div>
       </div>
       <div className="flex gap-2">
-        <Link href={`/api/purchases/${doc.id}/pdf`} target="_blank" className="btn-secondary text-sm">
+        <Link
+          href={`/api/purchases/${doc.id}/pdf`}
+          target="_blank"
+          className="btn-secondary text-sm"
+        >
           View PDF
         </Link>
-        <a href={`/api/purchases/${doc.id}/pdf`} download={`${doc.doc_number}.pdf`} className="btn-secondary text-sm">
+        <a
+          href={`/api/purchases/${doc.id}/pdf`}
+          download={`${doc.doc_number}.pdf`}
+          className="btn-secondary text-sm"
+        >
           Download PDF
         </a>
-        {hasScan && (
-          <Link href={`/api/purchases/${doc.id}/scan`} target="_blank" className="btn-secondary text-sm">
-            📷 Original scan
-          </Link>
-        )}
+        <PurchaseScanManager purchaseId={doc.id} hasScan={hasScan} />
       </div>
       <PurchaseForm initial={initial} />
     </div>

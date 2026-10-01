@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DEFAULT_HSN_CODE } from "@/lib/company";
-import { computeTax, computeTotal } from "@/lib/documents";
+import {
+  computeAdditionalChargesTotal,
+  computeTax,
+  computeTaxableChargesTotal,
+  computeTotal,
+} from "@/lib/documents";
+import type { AdditionalCharge, TaxableCharge } from "@/lib/documents";
 import { inr } from "@/lib/format";
 import SupplierPicker from "@/components/SupplierPicker";
 import { useDraftPersistence } from "@/lib/useDraftPersistence";
@@ -38,6 +44,8 @@ export type PurchaseFormValue = {
   vehicle_number: string;
   tax_type: "cgst_sgst" | "igst" | "none";
   tax_rate: number;
+  additional_charges: TaxableCharge[];
+  taxable_charges: TaxableCharge[];
   remarks: string;
   status: string;
   items: PurchaseItem[];
@@ -63,9 +71,20 @@ export function blankPurchase(): PurchaseFormValue {
     vehicle_number: "",
     tax_type: "cgst_sgst",
     tax_rate: 0.18,
+    additional_charges: [],
+    taxable_charges: [],
     remarks: "",
     status: "draft",
-    items: [{ description: "", size: "", hsn_code: DEFAULT_HSN_CODE, qty: 0, unit: "mts", rate: 0 }],
+    items: [
+      {
+        description: "",
+        size: "",
+        hsn_code: DEFAULT_HSN_CODE,
+        qty: 0,
+        unit: "mts",
+        rate: 0,
+      },
+    ],
   };
 }
 
@@ -93,13 +112,23 @@ function isBlankPurchase(v: PurchaseFormValue): boolean {
   );
 }
 
-export default function PurchaseForm({ initial, scanFile }: { initial: PurchaseFormValue; scanFile?: File | null }) {
+export default function PurchaseForm({
+  initial,
+  scanFile,
+}: {
+  initial: PurchaseFormValue;
+  scanFile?: File | null;
+}) {
   const [value, setValue] = useState<PurchaseFormValue>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const router = useRouter();
-  const { existing: draft, save: saveDraft, clear: clearDraft } = useDraftPersistence<PurchaseFormValue>(DRAFT_KEY);
+  const {
+    existing: draft,
+    save: saveDraft,
+    clear: clearDraft,
+  } = useDraftPersistence<PurchaseFormValue>(DRAFT_KEY);
 
   useEffect(() => {
     if (value.id || bannerDismissed) return;
@@ -128,7 +157,17 @@ export default function PurchaseForm({ initial, scanFile }: { initial: PurchaseF
   function addItem() {
     setValue((v) => ({
       ...v,
-      items: [...v.items, { description: "", size: "", hsn_code: DEFAULT_HSN_CODE, qty: 0, unit: "mts", rate: 0 }],
+      items: [
+        ...v.items,
+        {
+          description: "",
+          size: "",
+          hsn_code: DEFAULT_HSN_CODE,
+          qty: 0,
+          unit: "mts",
+          rate: 0,
+        },
+      ],
     }));
   }
 
@@ -136,9 +175,28 @@ export default function PurchaseForm({ initial, scanFile }: { initial: PurchaseF
     setValue((v) => ({ ...v, items: v.items.filter((_, j) => j !== i) }));
   }
 
-  const subtotal = value.items.reduce((s, it) => s + (it.qty || 0) * (it.rate || 0), 0);
-  const { cgst, sgst, igst } = computeTax(subtotal, value.tax_type, value.tax_rate);
-  const { totalAmount } = computeTotal(subtotal, cgst, sgst, igst, 0, [], []);
+  const subtotal = value.items.reduce(
+    (s, it) => s + (it.qty || 0) * (it.rate || 0),
+    0
+  );
+  const taxableCharges = value.taxable_charges || [];
+  const additionalCharges = value.additional_charges || [];
+  const { cgst, sgst, igst } = computeTax(
+    subtotal,
+    value.tax_type,
+    value.tax_rate,
+    0,
+    taxableCharges
+  );
+  const { totalAmount } = computeTotal(
+    subtotal,
+    cgst,
+    sgst,
+    igst,
+    0,
+    additionalCharges,
+    taxableCharges
+  );
 
   async function save() {
     if (saving) return;
@@ -164,6 +222,8 @@ export default function PurchaseForm({ initial, scanFile }: { initial: PurchaseF
         bill_to_gst: value.supplier_gst,
         tax_type: value.tax_type,
         tax_rate: value.tax_rate,
+        additional_charges: value.additional_charges || [],
+        taxable_charges: value.taxable_charges || [],
         remarks: value.remarks || null,
         status: value.status || "draft",
         irn: value.irn || null,
@@ -197,7 +257,10 @@ export default function PurchaseForm({ initial, scanFile }: { initial: PurchaseF
           try {
             const fd = new FormData();
             fd.append("file", scanFile);
-            await fetch(`/api/purchases/${json.document.id}/scan`, { method: "POST", body: fd });
+            await fetch(`/api/purchases/${json.document.id}/scan`, {
+              method: "POST",
+              body: fd,
+            });
           } catch {
             // Scan storage is best-effort; never block the entry itself.
           }
@@ -220,7 +283,8 @@ export default function PurchaseForm({ initial, scanFile }: { initial: PurchaseF
       {resumableDraft && !bannerDismissed && !value.id && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm">
           <span className="text-amber-900 font-medium">
-            Resume unsaved purchase from {new Date(resumableDraft.savedAt).toLocaleString()}?
+            Resume unsaved purchase from{" "}
+            {new Date(resumableDraft.savedAt).toLocaleString()}?
           </span>
           <span className="flex items-center gap-2">
             <button
@@ -261,28 +325,57 @@ export default function PurchaseForm({ initial, scanFile }: { initial: PurchaseF
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="label">Supplier name *</label>
-            <input className="input" value={value.supplier_name} onChange={(e) => patch({ supplier_name: e.target.value })} />
+            <input
+              className="input"
+              value={value.supplier_name}
+              onChange={(e) => patch({ supplier_name: e.target.value })}
+            />
           </div>
           <div>
             <label className="label">Contact number</label>
-            <input className="input" value={value.supplier_contact_number} onChange={(e) => patch({ supplier_contact_number: e.target.value })} />
+            <input
+              className="input"
+              value={value.supplier_contact_number}
+              onChange={(e) =>
+                patch({ supplier_contact_number: e.target.value })
+              }
+            />
           </div>
           <div className="sm:col-span-2">
             <label className="label">Address</label>
-            <input className="input" value={value.supplier_address} onChange={(e) => patch({ supplier_address: e.target.value })} />
+            <input
+              className="input"
+              value={value.supplier_address}
+              onChange={(e) => patch({ supplier_address: e.target.value })}
+            />
           </div>
           <div>
             <label className="label">Contact person</label>
-            <input className="input" value={value.supplier_contact_person} onChange={(e) => patch({ supplier_contact_person: e.target.value })} />
+            <input
+              className="input"
+              value={value.supplier_contact_person}
+              onChange={(e) =>
+                patch({ supplier_contact_person: e.target.value })
+              }
+            />
           </div>
           <div>
             <label className="label">Supplier GST</label>
-            <input className="input" value={value.supplier_gst} onChange={(e) => patch({ supplier_gst: e.target.value })} />
+            <input
+              className="input"
+              value={value.supplier_gst}
+              onChange={(e) => patch({ supplier_gst: e.target.value })}
+            />
           </div>
         </div>
         <div>
           <label className="label">Date</label>
-          <input type="date" className="input" value={value.doc_date} onChange={(e) => patch({ doc_date: e.target.value })} />
+          <input
+            type="date"
+            className="input"
+            value={value.doc_date}
+            onChange={(e) => patch({ doc_date: e.target.value })}
+          />
         </div>
       </div>
 
@@ -291,31 +384,61 @@ export default function PurchaseForm({ initial, scanFile }: { initial: PurchaseF
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="label">Supplier invoice no.</label>
-            <input className="input" value={value.doc_number || ""} placeholder="e.g. MGW/26-27/0554" onChange={(e) => patch({ doc_number: e.target.value })} />
+            <input
+              className="input"
+              value={value.doc_number || ""}
+              placeholder="e.g. MGW/26-27/0554"
+              onChange={(e) => patch({ doc_number: e.target.value })}
+            />
           </div>
           <div>
             <label className="label">Place of supply</label>
-            <input className="input" value={value.place_of_supply} onChange={(e) => patch({ place_of_supply: e.target.value })} />
+            <input
+              className="input"
+              value={value.place_of_supply}
+              onChange={(e) => patch({ place_of_supply: e.target.value })}
+            />
           </div>
           <div>
             <label className="label">IRN</label>
-            <input className="input" value={value.irn} onChange={(e) => patch({ irn: e.target.value })} />
+            <input
+              className="input"
+              value={value.irn}
+              onChange={(e) => patch({ irn: e.target.value })}
+            />
           </div>
           <div>
             <label className="label">Ack no.</label>
-            <input className="input" value={value.ack_number} onChange={(e) => patch({ ack_number: e.target.value })} />
+            <input
+              className="input"
+              value={value.ack_number}
+              onChange={(e) => patch({ ack_number: e.target.value })}
+            />
           </div>
           <div>
             <label className="label">Ack date</label>
-            <input type="date" className="input" value={value.ack_date} onChange={(e) => patch({ ack_date: e.target.value })} />
+            <input
+              type="date"
+              className="input"
+              value={value.ack_date}
+              onChange={(e) => patch({ ack_date: e.target.value })}
+            />
           </div>
           <div>
             <label className="label">Bilty / LR no.</label>
-            <input className="input" value={value.bilty_number} onChange={(e) => patch({ bilty_number: e.target.value })} />
+            <input
+              className="input"
+              value={value.bilty_number}
+              onChange={(e) => patch({ bilty_number: e.target.value })}
+            />
           </div>
           <div>
             <label className="label">Vehicle no.</label>
-            <input className="input" value={value.vehicle_number} onChange={(e) => patch({ vehicle_number: e.target.value })} />
+            <input
+              className="input"
+              value={value.vehicle_number}
+              onChange={(e) => patch({ vehicle_number: e.target.value })}
+            />
           </div>
         </div>
       </div>
@@ -342,48 +465,140 @@ export default function PurchaseForm({ initial, scanFile }: { initial: PurchaseF
               {value.items.map((it, i) => (
                 <tr key={i} className="border-b border-slate-100">
                   <td className="p-2 min-w-[140px]">
-                    <input className="input !min-h-[30px] !py-1.5 text-xs" value={it.description} onChange={(e) => patchItem(i, { description: e.target.value })} />
+                    <input
+                      className="input !min-h-[30px] !py-1.5 text-xs"
+                      value={it.description}
+                      onChange={(e) =>
+                        patchItem(i, { description: e.target.value })
+                      }
+                    />
                   </td>
                   <td className="p-2">
-                    <input className="input !min-h-[30px] !py-1.5 text-xs w-20" value={it.hsn_code} onChange={(e) => patchItem(i, { hsn_code: e.target.value })} />
+                    <input
+                      className="input !min-h-[30px] !py-1.5 text-xs w-20"
+                      value={it.hsn_code}
+                      onChange={(e) =>
+                        patchItem(i, { hsn_code: e.target.value })
+                      }
+                    />
                   </td>
                   <td className="p-2">
-                    <input type="number" min="0" step="any" className="input !min-h-[30px] !py-1.5 text-xs w-16" value={it.thickness || ""} placeholder="0" onChange={(e) => patchItem(i, { thickness: parseFloat(e.target.value) || 0 })} />
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      className="input !min-h-[30px] !py-1.5 text-xs w-16"
+                      value={it.thickness || ""}
+                      placeholder="0"
+                      onChange={(e) =>
+                        patchItem(i, {
+                          thickness: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
                   </td>
                   <td className="p-2">
-                    <input type="number" min="0" step="any" className="input !min-h-[30px] !py-1.5 text-xs w-16" value={it.width_mm || ""} placeholder="0" onChange={(e) => patchItem(i, { width_mm: parseFloat(e.target.value) || 0 })} />
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      className="input !min-h-[30px] !py-1.5 text-xs w-16"
+                      value={it.width_mm || ""}
+                      placeholder="0"
+                      onChange={(e) =>
+                        patchItem(i, {
+                          width_mm: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
                   </td>
                   <td className="p-2">
-                    <input type="number" min="0" step="any" className="input !min-h-[30px] !py-1.5 text-xs w-16" value={it.length_mm || ""} placeholder="0" onChange={(e) => patchItem(i, { length_mm: parseFloat(e.target.value) || 0 })} />
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      className="input !min-h-[30px] !py-1.5 text-xs w-16"
+                      value={it.length_mm || ""}
+                      placeholder="0"
+                      onChange={(e) =>
+                        patchItem(i, {
+                          length_mm: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
                   </td>
                   <td className="p-2">
-                    <input type="number" min="0" step="1" className="input !min-h-[30px] !py-1.5 text-xs w-14" value={it.pcs || ""} placeholder="0" onChange={(e) => patchItem(i, { pcs: parseInt(e.target.value) || 0 })} />
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="input !min-h-[30px] !py-1.5 text-xs w-14"
+                      value={it.pcs || ""}
+                      placeholder="0"
+                      onChange={(e) =>
+                        patchItem(i, { pcs: parseInt(e.target.value) || 0 })
+                      }
+                    />
                   </td>
                   <td className="p-2">
-                    <input type="number" min="0" step="any" className="input !min-h-[30px] !py-1.5 text-xs w-24" value={it.qty || ""} placeholder="0" onChange={(e) => patchItem(i, { qty: parseFloat(e.target.value) || 0 })} />
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      className="input !min-h-[30px] !py-1.5 text-xs w-24"
+                      value={it.qty || ""}
+                      placeholder="0"
+                      onChange={(e) =>
+                        patchItem(i, { qty: parseFloat(e.target.value) || 0 })
+                      }
+                    />
                   </td>
                   <td className="p-2">
-                    <select className="input !min-h-[30px] !py-1.5 text-xs" value={it.unit} onChange={(e) => patchItem(i, { unit: e.target.value })}>
+                    <select
+                      className="input !min-h-[30px] !py-1.5 text-xs"
+                      value={it.unit}
+                      onChange={(e) => patchItem(i, { unit: e.target.value })}
+                    >
                       {UNITS.map((u) => (
-                        <option key={u} value={u}>{u}</option>
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
                       ))}
                     </select>
                   </td>
                   <td className="p-2">
-                    <input type="number" min="0" step="any" className="input !min-h-[30px] !py-1.5 text-xs w-20" value={it.rate || ""} placeholder="0" onChange={(e) => patchItem(i, { rate: parseFloat(e.target.value) || 0 })} />
+                    <input
+                      type="number"
+                      min="0"
+                      step="any"
+                      className="input !min-h-[30px] !py-1.5 text-xs w-20"
+                      value={it.rate || ""}
+                      placeholder="0"
+                      onChange={(e) =>
+                        patchItem(i, { rate: parseFloat(e.target.value) || 0 })
+                      }
+                    />
                   </td>
                   <td className="p-2 text-right font-mono text-xs whitespace-nowrap">
                     {inr((it.qty || 0) * (it.rate || 0), 2)}
                   </td>
                   <td className="p-2">
-                    <button onClick={() => removeItem(i)} className="text-red-500 hover:text-red-700 text-lg leading-none">×</button>
+                    <button
+                      onClick={() => removeItem(i)}
+                      className="text-red-500 hover:text-red-700 text-lg leading-none"
+                    >
+                      ×
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <button onClick={addItem} className="mt-3 w-full border border-dashed border-slate-300 text-brand-600 font-mono text-xs py-2 rounded-lg hover:border-brand-500 transition">
+        <button
+          onClick={addItem}
+          className="mt-3 w-full border border-dashed border-slate-300 text-brand-600 font-mono text-xs py-2 rounded-lg hover:border-brand-500 transition"
+        >
           + Add item
         </button>
       </div>
@@ -393,10 +608,14 @@ export default function PurchaseForm({ initial, scanFile }: { initial: PurchaseF
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="label">Tax type</label>
-            <select className="input" value={value.tax_type} onChange={(e) => {
-              const t = e.target.value as PurchaseFormValue["tax_type"];
-              patch({ tax_type: t, tax_rate: t === "none" ? 0 : 0.18 });
-            }}>
+            <select
+              className="input"
+              value={value.tax_type}
+              onChange={(e) => {
+                const t = e.target.value as PurchaseFormValue["tax_type"];
+                patch({ tax_type: t, tax_rate: t === "none" ? 0 : 0.18 });
+              }}
+            >
               <option value="cgst_sgst">CGST + SGST</option>
               <option value="igst">IGST</option>
               <option value="none">None</option>
@@ -404,39 +623,113 @@ export default function PurchaseForm({ initial, scanFile }: { initial: PurchaseF
           </div>
           <div>
             <label className="label">Status</label>
-            <select className="input" value={value.status} onChange={(e) => patch({ status: e.target.value })}>
+            <select
+              className="input"
+              value={value.status}
+              onChange={(e) => patch({ status: e.target.value })}
+            >
               <option value="draft">Draft</option>
               <option value="paid">Paid</option>
             </select>
           </div>
           <div>
             <label className="label">Remarks</label>
-            <input className="input" value={value.remarks} onChange={(e) => patch({ remarks: e.target.value })} />
+            <input
+              className="input"
+              value={value.remarks}
+              onChange={(e) => patch({ remarks: e.target.value })}
+            />
           </div>
         </div>
+
+        {(value.taxable_charges || []).length > 0 && (
+          <div className="mt-4 space-y-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+              Taxable charges (from scan)
+            </h3>
+            {(value.taxable_charges || []).map((c, idx) => (
+              <div
+                key={idx}
+                className="grid grid-cols-[1fr_auto_auto] gap-2 items-center"
+              >
+                <input
+                  className="input"
+                  value={c.label}
+                  onChange={(e) => {
+                    const next = [...(value.taxable_charges || [])];
+                    next[idx] = { ...next[idx], label: e.target.value };
+                    patch({ taxable_charges: next });
+                  }}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  className="input w-28"
+                  value={c.amount || ""}
+                  onChange={(e) => {
+                    const next = [...(value.taxable_charges || [])];
+                    next[idx] = {
+                      ...next[idx],
+                      amount: parseFloat(e.target.value) || 0,
+                    };
+                    patch({ taxable_charges: next });
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    patch({
+                      taxable_charges: (value.taxable_charges || []).filter(
+                        (_, i) => i !== idx
+                      ),
+                    })
+                  }
+                  className="text-red-500 hover:text-red-700 text-lg leading-none"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
           <div className="text-sm text-slate-500">
-            Subtotal: <span className="font-semibold text-slate-800">{inr(subtotal, 2)}</span>
+            Subtotal:{" "}
+            <span className="font-semibold text-slate-800">
+              {inr(subtotal, 2)}
+            </span>
             {value.tax_type !== "none" && (
               <span className="ml-3">
-                Tax: <span className="font-semibold text-slate-800">{inr(cgst + sgst + igst, 2)}</span>
+                Tax:{" "}
+                <span className="font-semibold text-slate-800">
+                  {inr(cgst + sgst + igst, 2)}
+                </span>
               </span>
             )}
           </div>
-          <div className="text-lg font-bold">
-            Total: {inr(totalAmount, 2)}
-          </div>
+          <div className="text-lg font-bold">Total: {inr(totalAmount, 2)}</div>
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      )}
 
       <div className="flex gap-3">
-        <button onClick={save} disabled={saving} className="btn-primary flex-1 sm:flex-none">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="btn-primary flex-1 sm:flex-none"
+        >
           {saving ? "Saving…" : value.id ? "Save changes" : "Save purchase"}
         </button>
-        <a href="/purchases" className="btn-secondary">Cancel</a>
+        <a href="/purchases" className="btn-secondary">
+          Cancel
+        </a>
       </div>
     </div>
   );

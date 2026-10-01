@@ -3,6 +3,9 @@
 //   OCR_API_KEY   — API key (required to enable extraction)
 //   OCR_BASE_URL  — default: https://api.deepseek.com
 //   OCR_MODEL     — default: deepseek-v4-flash-vision-exp
+// Photos and PDFs are sent as data-URI attachments in the same image_url
+// content part. PDF input needs a provider that accepts application/pdf
+// there (Gemini does; OpenAI's chat/completions does not).
 // The model output is ALWAYS a draft; the app recomputes all money math.
 
 export interface ExtractedItem {
@@ -14,6 +17,7 @@ export interface ExtractedItem {
   pcs: number;
   qty_mts: number;
   rate: number;
+  amount: number;
 }
 
 export interface ExtractedPurchase {
@@ -34,10 +38,9 @@ export interface ExtractedPurchase {
 }
 
 export type OcrResult =
-  | { ok: true; data: ExtractedPurchase }
-  | { ok: false; reason: string };
+  { ok: true; data: ExtractedPurchase } | { ok: false; reason: string };
 
-const SYSTEM_PROMPT = `You are a precise data-extraction engine for Indian GST tax invoices from glass suppliers. Given an image of an invoice, extract ALL fields into JSON matching exactly this schema:
+const SYSTEM_PROMPT = `You are a precise data-extraction engine for Indian GST tax invoices from glass suppliers. Given a photo or PDF of an invoice, extract ALL fields into JSON matching exactly this schema:
 
 {
   "supplier_name": string,
@@ -62,7 +65,8 @@ const SYSTEM_PROMPT = `You are a precise data-extraction engine for Indian GST t
       "length_mm": number,       // mm (0 if absent)
       "pcs": number,             // piece count (0 if absent)
       "qty_mts": number,         // quantity in Mts as printed
-      "rate": number             // rate as printed
+      "rate": number,            // rate as printed
+      "amount": number           // this row's Amount column (before tax), 0 if absent
     }
   ]
 }
@@ -70,6 +74,8 @@ const SYSTEM_PROMPT = `You are a precise data-extraction engine for Indian GST t
 Rules:
 - Copy numbers exactly as printed; never calculate or correct values.
 - Use "" for missing text fields and 0 for missing numbers.
+- The invoice may span several pages; merge line items from every page into a single "items" array.
+- Always fill "amount" with the printed Amount column of that row — many glass suppliers print "rate per MM", so the amount is the only reliable line value.
 - Output ONLY the JSON object, no markdown fences, no commentary.`;
 
 function num(v: unknown): number {
@@ -82,7 +88,10 @@ function str(v: unknown): string {
 }
 
 function parseJsonLoose(text: string): unknown {
-  const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/, "").trim();
+  const cleaned = text
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```\s*$/, "")
+    .trim();
   try {
     return JSON.parse(cleaned);
   } catch {
@@ -103,7 +112,9 @@ function normalize(raw: unknown): ExtractedPurchase {
   const taxType =
     taxTypeRaw === "igst" || taxTypeRaw === "none" || taxTypeRaw === "cgst_sgst"
       ? (taxTypeRaw as ExtractedPurchase["tax_type"])
-      : str(r.igst) && num(r.igst) > 0 && !(num((r as Record<string, unknown>).cgst) > 0)
+      : str(r.igst) &&
+          num(r.igst) > 0 &&
+          !(num((r as Record<string, unknown>).cgst) > 0)
         ? "igst"
         : "igst"; // inter-state purchases are the norm for Vapi glass imports
 
@@ -133,10 +144,12 @@ function normalize(raw: unknown): ExtractedPurchase {
     vehicle_number: str(r.vehicle_number),
     tax_type: taxType,
     tax_rate_percent: num(r.tax_rate_percent) || 18,
-    charges: chargesRaw.map((c) => ({
-      label: str((c as Record<string, unknown>).label) || "Charge",
-      amount: num((c as Record<string, unknown>).amount),
-    })).filter((c) => c.amount > 0),
+    charges: chargesRaw
+      .map((c) => ({
+        label: str((c as Record<string, unknown>).label) || "Charge",
+        amount: num((c as Record<string, unknown>).amount),
+      }))
+      .filter((c) => c.amount > 0),
     items: itemsRaw.map((it) => {
       const i = (it ?? {}) as Record<string, unknown>;
       return {
@@ -148,9 +161,25 @@ function normalize(raw: unknown): ExtractedPurchase {
         pcs: Math.round(num(i.pcs)),
         qty_mts: num(i.qty_mts),
         rate: num(i.rate),
+        amount: num(i.amount),
       };
     }),
   };
+}
+
+/**
+ * The purchase form computes line amounts as qty × rate. Suppliers who print
+ * their rate per MM ("115.00 per MM") only reconcile through the printed Amount
+ * column, so the form uses amount ÷ qty as the effective rate whenever the
+ * invoice shows an amount. Falls back to the printed rate otherwise.
+ */
+export function effectiveRate(
+  printedRate: number,
+  qty: number,
+  amount: number
+): number {
+  if (amount > 0 && qty > 0) return Math.round((amount / qty) * 10000) / 10000;
+  return printedRate;
 }
 
 export function isOcrConfigured(): boolean {
@@ -158,12 +187,15 @@ export function isOcrConfigured(): boolean {
 }
 
 export async function extractPurchaseInvoice(
-  base64Image: string,
-  mimeType: string,
+  base64File: string,
+  mimeType: string
 ): Promise<OcrResult> {
   const apiKey = process.env.OCR_API_KEY;
   if (!apiKey) {
-    return { ok: false, reason: "OCR_API_KEY is not configured on the server." };
+    return {
+      ok: false,
+      reason: "OCR_API_KEY is not configured on the server.",
+    };
   }
   const baseUrl = process.env.OCR_BASE_URL || "https://api.deepseek.com";
   const model = process.env.OCR_MODEL || "deepseek-v4-flash-vision-exp";
@@ -184,8 +216,14 @@ export async function extractPurchaseInvoice(
           {
             role: "user",
             content: [
-              { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64Image}` } },
-              { type: "text", text: "Extract this purchase invoice into the JSON schema." },
+              {
+                type: "image_url",
+                image_url: { url: `data:${mimeType};base64,${base64File}` },
+              },
+              {
+                type: "text",
+                text: "Extract this purchase invoice into the JSON schema.",
+              },
             ],
           },
         ],
@@ -193,12 +231,18 @@ export async function extractPurchaseInvoice(
       signal: AbortSignal.timeout(90_000),
     });
   } catch {
-    return { ok: false, reason: "Could not reach the extraction service. Check your connection." };
+    return {
+      ok: false,
+      reason: "Could not reach the extraction service. Check your connection.",
+    };
   }
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    return { ok: false, reason: `Extraction service error (${res.status}). ${body.slice(0, 200)}` };
+    return {
+      ok: false,
+      reason: `Extraction service error (${res.status}). ${body.slice(0, 200)}`,
+    };
   }
 
   const json = (await res.json()) as {
@@ -212,13 +256,24 @@ export async function extractPurchaseInvoice(
   try {
     const data = normalize(parseJsonLoose(content));
     if (!data.items.length) {
-      return { ok: false, reason: "No line items were found in the image. Try a clearer photo." };
+      return {
+        ok: false,
+        reason:
+          "No line items were found in the document. Try a clearer scan or photo.",
+      };
     }
     if (!data.supplier_name && !data.doc_number) {
-      return { ok: false, reason: "This does not look like a purchase invoice." };
+      return {
+        ok: false,
+        reason: "This does not look like a purchase invoice.",
+      };
     }
     return { ok: true, data };
   } catch {
-    return { ok: false, reason: "Could not parse the extracted data. Please enter the details manually." };
+    return {
+      ok: false,
+      reason:
+        "Could not parse the extracted data. Please enter the details manually.",
+    };
   }
 }

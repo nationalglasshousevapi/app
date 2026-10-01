@@ -1,5 +1,6 @@
 import { Image, StyleSheet, Text, View } from "@react-pdf/renderer";
 import type { CompanyDetails } from "@/lib/company";
+import type { AdditionalCharge, TaxableCharge } from "@/lib/documents";
 
 const ACCENT = "#046380";
 const LIGHT_BG = "#f2f6f7";
@@ -9,26 +10,84 @@ const MUTED = "#64748b";
 
 const styles = StyleSheet.create({
   pageContent: { flex: 1, flexDirection: "column" },
-  topBar: { height: 3, backgroundColor: ACCENT, marginBottom: 12, borderRadius: 2 },
+  topBar: {
+    height: 3,
+    backgroundColor: ACCENT,
+    marginBottom: 12,
+    borderRadius: 2,
+  },
   headerRow: { flexDirection: "row", marginBottom: 10 },
   brandCol: { width: "55%" },
-  logo: { width: 175, height: 52, objectFit: "contain", objectPosition: "left" },
+  logo: {
+    width: 175,
+    height: 52,
+    objectFit: "contain",
+    objectPosition: "left",
+  },
   metaCol: { width: "45%", alignItems: "flex-end" },
-  docTitle: { fontSize: 18, fontFamily: "Helvetica-Bold", color: ACCENT, letterSpacing: 1, textAlign: "right" },
+  docTitle: {
+    fontSize: 18,
+    fontFamily: "Helvetica-Bold",
+    color: ACCENT,
+    letterSpacing: 1,
+    textAlign: "right",
+  },
   metaBlock: { marginTop: 6, alignItems: "flex-end" },
   metaLine: { fontSize: 9, color: BODY, lineHeight: 1.6 },
-  companyStrip: { flexDirection: "row", backgroundColor: LIGHT_BG, borderRadius: 4, padding: 10, marginBottom: 10 },
+  companyStrip: {
+    flexDirection: "row",
+    backgroundColor: LIGHT_BG,
+    borderRadius: 4,
+    padding: 10,
+    marginBottom: 10,
+  },
   companyCol: { flex: 1 },
-  companyName: { fontSize: 10, fontFamily: "Helvetica-Bold", color: ACCENT, marginBottom: 2 },
+  companyName: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    color: ACCENT,
+    marginBottom: 2,
+  },
   companyText: { fontSize: 8.5, color: MUTED, lineHeight: 1.5 },
-  supplierBox: { padding: 10, borderRadius: 4, backgroundColor: "#fafbfc", borderWidth: 1, borderColor: DIVIDER, marginBottom: 10, minHeight: 60 },
-  supplierLabel: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: ACCENT, textTransform: "uppercase", marginBottom: 4 },
-  supplierName: { fontSize: 10, fontFamily: "Helvetica-Bold", color: BODY, marginBottom: 2 },
+  supplierBox: {
+    padding: 10,
+    borderRadius: 4,
+    backgroundColor: "#fafbfc",
+    borderWidth: 1,
+    borderColor: DIVIDER,
+    marginBottom: 10,
+    minHeight: 60,
+  },
+  supplierLabel: {
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Bold",
+    color: ACCENT,
+    textTransform: "uppercase",
+    marginBottom: 4,
+  },
+  supplierName: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    color: BODY,
+    marginBottom: 2,
+  },
   supplierText: { fontSize: 8.5, color: MUTED, lineHeight: 1.5 },
   tableWrap: { flexGrow: 1, flexDirection: "column" },
-  tableHead: { flexDirection: "row", backgroundColor: ACCENT, borderRadius: 4, paddingVertical: 6, paddingHorizontal: 8 },
+  tableHead: {
+    flexDirection: "row",
+    backgroundColor: ACCENT,
+    borderRadius: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
   headCell: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: "#fff" },
-  row: { flexDirection: "row", paddingVertical: 5, paddingHorizontal: 6, borderBottomWidth: 1, borderBottomColor: "#eef2f4" },
+  row: {
+    flexDirection: "row",
+    paddingVertical: 5,
+    paddingHorizontal: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eef2f4",
+  },
   rowAlt: { backgroundColor: "#f8fafb" },
   cell: { fontSize: 8 },
   colDesc: { width: "34%" },
@@ -40,16 +99,44 @@ const styles = StyleSheet.create({
   spacer: { flexGrow: 1 },
   summaryRow: { flexDirection: "row" },
   notes: { width: "55%", paddingRight: 12 },
-  notesTitle: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: ACCENT, textTransform: "uppercase", marginBottom: 3 },
+  notesTitle: {
+    fontSize: 7.5,
+    fontFamily: "Helvetica-Bold",
+    color: ACCENT,
+    textTransform: "uppercase",
+    marginBottom: 3,
+  },
   notesText: { fontSize: 8, color: MUTED, lineHeight: 1.5 },
   totCol: { width: "45%" },
-  totLine: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 3, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: DIVIDER },
+  totLine: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: DIVIDER,
+  },
   totLabel: { fontSize: 8.5, color: MUTED },
   totValue: { fontSize: 8.5 },
-  grandTot: { flexDirection: "row", justifyContent: "space-between", paddingVertical: 5, paddingHorizontal: 8, backgroundColor: LIGHT_BG, borderRadius: 4, marginTop: 2 },
+  grandTot: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    backgroundColor: LIGHT_BG,
+    borderRadius: 4,
+    marginTop: 2,
+  },
   grandLabel: { fontSize: 11, fontFamily: "Helvetica-Bold", color: ACCENT },
   grandValue: { fontSize: 11, fontFamily: "Helvetica-Bold", color: ACCENT },
-  footer: { marginTop: 12, paddingTop: 5, borderTopWidth: 2, borderTopColor: ACCENT, flexDirection: "row", justifyContent: "space-between" },
+  footer: {
+    marginTop: 12,
+    paddingTop: 5,
+    borderTopWidth: 2,
+    borderTopColor: ACCENT,
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
   footerText: { fontSize: 7.5, color: MUTED },
 });
 
@@ -85,6 +172,9 @@ export type PdfPurchasePageProps = {
   vehicleNumber?: string | null;
   items: PdfPurchaseItem[];
   subtotal: number;
+  additionalCharges?: AdditionalCharge[] | null;
+  taxableCharges?: TaxableCharge[] | null;
+  roundOff?: number;
   taxType: string;
   taxRate: number;
   cgstAmount: number;
@@ -101,9 +191,11 @@ function money(v: number) {
 
 function fdate(v?: string | null) {
   return v
-    ? new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(
-        new Date(`${v}T00:00:00`),
-      )
+    ? new Intl.DateTimeFormat("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }).format(new Date(`${v}T00:00:00`))
     : "—";
 }
 
@@ -112,11 +204,22 @@ export default function PdfPurchasePage(props: PdfPurchasePageProps) {
   const taxRows: [string, number][] =
     props.taxType === "cgst_sgst"
       ? [
-          [`CGST (${((props.taxRate * 100) / 2).toFixed(1)}%)`, Number(props.cgstAmount)],
-          [`SGST (${((props.taxRate * 100) / 2).toFixed(1)}%)`, Number(props.sgstAmount)],
+          [
+            `CGST (${((props.taxRate * 100) / 2).toFixed(1)}%)`,
+            Number(props.cgstAmount),
+          ],
+          [
+            `SGST (${((props.taxRate * 100) / 2).toFixed(1)}%)`,
+            Number(props.sgstAmount),
+          ],
         ]
       : props.taxType === "igst"
-        ? [[`IGST (${(props.taxRate * 100).toFixed(1)}%)`, Number(props.igstAmount)]]
+        ? [
+            [
+              `IGST (${(props.taxRate * 100).toFixed(1)}%)`,
+              Number(props.igstAmount),
+            ],
+          ]
         : [];
 
   return (
@@ -128,7 +231,13 @@ export default function PdfPurchasePage(props: PdfPurchasePageProps) {
           {props.logoSrc ? (
             <Image style={styles.logo} src={props.logoSrc} />
           ) : (
-            <Text style={{ fontSize: 14, fontFamily: "Helvetica-Bold", color: ACCENT }}>
+            <Text
+              style={{
+                fontSize: 14,
+                fontFamily: "Helvetica-Bold",
+                color: ACCENT,
+              }}
+            >
               {company.name}
             </Text>
           )}
@@ -137,10 +246,12 @@ export default function PdfPurchasePage(props: PdfPurchasePageProps) {
           <Text style={styles.docTitle}>PURCHASE</Text>
           <View style={styles.metaBlock}>
             <Text style={styles.metaLine}>
-              <Text style={{ fontFamily: "Helvetica-Bold" }}>No:</Text> {props.docNumber}
+              <Text style={{ fontFamily: "Helvetica-Bold" }}>No:</Text>{" "}
+              {props.docNumber}
             </Text>
             <Text style={styles.metaLine}>
-              <Text style={{ fontFamily: "Helvetica-Bold" }}>Date:</Text> {fdate(props.docDate)}
+              <Text style={{ fontFamily: "Helvetica-Bold" }}>Date:</Text>{" "}
+              {fdate(props.docDate)}
             </Text>
           </View>
         </View>
@@ -162,17 +273,31 @@ export default function PdfPurchasePage(props: PdfPurchasePageProps) {
       <View style={styles.supplierBox}>
         <Text style={styles.supplierLabel}>Supplier</Text>
         <Text style={styles.supplierName}>{supplier.name || "—"}</Text>
-        {supplier.address ? <Text style={styles.supplierText}>{supplier.address}</Text> : null}
+        {supplier.address ? (
+          <Text style={styles.supplierText}>{supplier.address}</Text>
+        ) : null}
         {supplier.contactPerson || supplier.contactNumber ? (
           <Text style={styles.supplierText}>
-            Attn: {[supplier.contactPerson, supplier.contactNumber].filter(Boolean).join(" | ")}
+            Attn:{" "}
+            {[supplier.contactPerson, supplier.contactNumber]
+              .filter(Boolean)
+              .join(" | ")}
           </Text>
         ) : null}
-        {supplier.gst ? <Text style={styles.supplierText}>GST: {supplier.gst}</Text> : null}
-        {supplier.placeOfSupply ? <Text style={styles.supplierText}>Place of Supply: {supplier.placeOfSupply}</Text> : null}
+        {supplier.gst ? (
+          <Text style={styles.supplierText}>GST: {supplier.gst}</Text>
+        ) : null}
+        {supplier.placeOfSupply ? (
+          <Text style={styles.supplierText}>
+            Place of Supply: {supplier.placeOfSupply}
+          </Text>
+        ) : null}
       </View>
 
-      {(props.irn || props.ackNumber || props.biltyNumber || props.vehicleNumber) ? (
+      {props.irn ||
+      props.ackNumber ||
+      props.biltyNumber ||
+      props.vehicleNumber ? (
         <View style={[styles.companyStrip, { marginBottom: 10 }]}>
           <View style={styles.companyCol}>
             <Text style={styles.companyName}>E-Invoice & Logistics</Text>
@@ -181,12 +306,18 @@ export default function PdfPurchasePage(props: PdfPurchasePageProps) {
                 props.irn ? `IRN: ${props.irn}` : null,
                 props.ackNumber ? `Ack No: ${props.ackNumber}` : null,
                 props.ackDate ? `Ack Date: ${fdate(props.ackDate)}` : null,
-              ].filter(Boolean).join("  |  ") || "\u00a0"}
+              ]
+                .filter(Boolean)
+                .join("  |  ") || "\u00a0"}
               {"\n"}
               {[
                 props.biltyNumber ? `Bilty/LR No: ${props.biltyNumber}` : null,
-                props.vehicleNumber ? `Vehicle No: ${props.vehicleNumber}` : null,
-              ].filter(Boolean).join("  |  ") || "\u00a0"}
+                props.vehicleNumber
+                  ? `Vehicle No: ${props.vehicleNumber}`
+                  : null,
+              ]
+                .filter(Boolean)
+                .join("  |  ") || "\u00a0"}
             </Text>
           </View>
         </View>
@@ -204,16 +335,33 @@ export default function PdfPurchasePage(props: PdfPurchasePageProps) {
         {props.items.map((item, i) => {
           const dimParts = [
             item.thickness ? `${item.thickness}mm` : null,
-            item.width_mm && item.length_mm ? `${item.width_mm}×${item.length_mm}` : null,
+            item.width_mm && item.length_mm
+              ? `${item.width_mm}×${item.length_mm}`
+              : null,
           ].filter(Boolean);
           return (
-            <View key={`r-${i}`} style={[styles.row, i % 2 ? styles.rowAlt : {}]}>
-              <Text style={[styles.cell, styles.colDesc]}>{item.description}</Text>
-              <Text style={[styles.cell, styles.colSize]}>{dimParts.join(" · ") || item.size || "—"}</Text>
-              <Text style={[styles.cell, styles.colHsn]}>{item.hsn_code || "—"}</Text>
-              <Text style={[styles.cell, styles.colQty]}>{item.qty} {item.unit || ""}</Text>
-              <Text style={[styles.cell, styles.colRate]}>{money(item.rate)}</Text>
-              <Text style={[styles.cell, styles.colAmount]}>{money(item.total)}</Text>
+            <View
+              key={`r-${i}`}
+              style={[styles.row, i % 2 ? styles.rowAlt : {}]}
+            >
+              <Text style={[styles.cell, styles.colDesc]}>
+                {item.description}
+              </Text>
+              <Text style={[styles.cell, styles.colSize]}>
+                {dimParts.join(" · ") || item.size || "—"}
+              </Text>
+              <Text style={[styles.cell, styles.colHsn]}>
+                {item.hsn_code || "—"}
+              </Text>
+              <Text style={[styles.cell, styles.colQty]}>
+                {item.qty} {item.unit || ""}
+              </Text>
+              <Text style={[styles.cell, styles.colRate]}>
+                {money(item.rate)}
+              </Text>
+              <Text style={[styles.cell, styles.colAmount]}>
+                {money(item.total)}
+              </Text>
             </View>
           );
         })}
@@ -225,23 +373,53 @@ export default function PdfPurchasePage(props: PdfPurchasePageProps) {
           {props.remarks ? (
             <>
               <Text style={styles.notesTitle}>Remarks</Text>
-              <Text style={styles.notesText}>{props.remarks}{"\n"}{"\n"}</Text>
+              <Text style={styles.notesText}>
+                {props.remarks}
+                {"\n"}
+                {"\n"}
+              </Text>
             </>
           ) : null}
           <Text style={styles.notesTitle}>Notes</Text>
-          <Text style={styles.notesText}>This is a computer-generated purchase register entry.</Text>
+          <Text style={styles.notesText}>
+            This is a computer-generated purchase register entry.
+          </Text>
         </View>
         <View style={styles.totCol}>
           <View style={styles.totLine}>
             <Text style={styles.totLabel}>Subtotal</Text>
             <Text style={styles.totValue}>{money(props.subtotal)}</Text>
           </View>
+          {(props.taxableCharges ?? []).map((charge, i) => (
+            <View key={`tc-${i}`} style={styles.totLine}>
+              <Text style={styles.totLabel}>{charge.label || "Charge"}</Text>
+              <Text style={styles.totValue}>
+                {money(Number(charge.amount) || 0)}
+              </Text>
+            </View>
+          ))}
           {taxRows.map(([label, amount]) => (
             <View key={String(label)} style={styles.totLine}>
               <Text style={styles.totLabel}>{label}</Text>
               <Text style={styles.totValue}>{money(amount)}</Text>
             </View>
           ))}
+          {(props.additionalCharges ?? []).map((charge, i) => (
+            <View key={`ac-${i}`} style={styles.totLine}>
+              <Text style={styles.totLabel}>{charge.label || "Charge"}</Text>
+              <Text style={styles.totValue}>
+                {money(Number(charge.amount) || 0)}
+              </Text>
+            </View>
+          ))}
+          {props.roundOff ? (
+            <View style={styles.totLine}>
+              <Text style={styles.totLabel}>Round Off</Text>
+              <Text style={styles.totValue}>
+                {money(Number(props.roundOff))}
+              </Text>
+            </View>
+          ) : null}
           <View style={styles.grandTot}>
             <Text style={styles.grandLabel}>Total Amount</Text>
             <Text style={styles.grandValue}>{money(props.totalAmount)}</Text>
@@ -250,7 +428,9 @@ export default function PdfPurchasePage(props: PdfPurchasePageProps) {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>National Glass House — {company.website}</Text>
+        <Text style={styles.footerText}>
+          National Glass House — {company.website}
+        </Text>
         <Text style={styles.footerText}>{props.docNumber}</Text>
       </View>
     </View>
