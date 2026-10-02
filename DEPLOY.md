@@ -49,12 +49,18 @@ git push -u origin main
 | `OCR_API_KEY`                   | Google AI Studio key (optional)                                      |
 | `OCR_BASE_URL`                  | `https://generativelanguage.googleapis.com/v1beta/openai` (optional) |
 | `OCR_MODEL`                     | `gemini-3.6-flash` (optional)                                        |
+| `OCR_FALLBACK_MODEL`            | `gemini-3.5-flash` (optional)                                        |
 
 The three `OCR_*` variables enable the "Scan purchase invoice" feature (photo or
 PDF). Set all three together — the code falls back to DeepSeek defaults
 (`https://api.deepseek.com`, `deepseek-v4-flash-vision-exp`) if only the key is
 set, and a Gemini key against the DeepSeek URL will fail. Any OpenAI-compatible
 vision provider works as long as key, base URL and model match.
+
+If extraction fails with a 503 "high demand" error, that model pool is full on
+Google's side — either retry in a minute or set `OCR_FALLBACK_MODEL` (e.g.
+`gemini-3.5-flash` or `gemini-3.5-flash-lite`) and the app tries it once
+automatically before giving up. Avoid the 2.x models (restricted/shut down).
 
 6. Click **"Deploy"** — takes ~2 minutes
 7. Once done, Vercel gives you a URL like `https://your-app.vercel.app`

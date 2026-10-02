@@ -1,8 +1,11 @@
 // AI invoice extraction adapter.
 // Provider is configured via env vars so it can be swapped without code changes:
-//   OCR_API_KEY   — API key (required to enable extraction)
-//   OCR_BASE_URL  — default: https://api.deepseek.com
-//   OCR_MODEL     — default: deepseek-v4-flash-vision-exp
+//   OCR_API_KEY        — API key (required to enable extraction)
+//   OCR_BASE_URL       — default: https://api.deepseek.com
+//   OCR_MODEL          — default: deepseek-v4-flash-vision-exp
+//   OCR_FALLBACK_MODEL — optional second model tried once when the primary
+//                        is overloaded (429/5xx) or unknown (404), e.g. a
+//                        cheaper Flash from the same provider.
 // Photos and PDFs are sent as data-URI attachments in the same image_url
 // content part. PDF input needs a provider that accepts application/pdf
 // there (Gemini does; OpenAI's chat/completions does not).
@@ -186,20 +189,19 @@ export function isOcrConfigured(): boolean {
   return Boolean(process.env.OCR_API_KEY);
 }
 
-export async function extractPurchaseInvoice(
-  base64File: string,
-  mimeType: string
-): Promise<OcrResult> {
-  const apiKey = process.env.OCR_API_KEY;
-  if (!apiKey) {
-    return {
-      ok: false,
-      reason: "OCR_API_KEY is not configured on the server.",
-    };
-  }
-  const baseUrl = process.env.OCR_BASE_URL || "https://api.deepseek.com";
-  const model = process.env.OCR_MODEL || "deepseek-v4-flash-vision-exp";
+const BUSY_REASON =
+  "The extraction model is busy right now (high demand). Please wait a minute and tap Extract again.";
 
+async function callModel(
+  baseUrl: string,
+  apiKey: string,
+  model: string,
+  mimeType: string,
+  base64File: string
+): Promise<
+  | { ok: true; content: string }
+  | { ok: false; status: number; retryable: boolean; reason: string }
+> {
   let res: Response;
   try {
     res = await fetch(`${baseUrl}/chat/completions`, {
@@ -233,14 +235,26 @@ export async function extractPurchaseInvoice(
   } catch {
     return {
       ok: false,
+      status: 0,
+      retryable: true,
       reason: "Could not reach the extraction service. Check your connection.",
     };
   }
 
   if (!res.ok) {
+    // Overload (429/5xx) and unknown model (404) are worth one retry with the
+    // fallback model. Auth errors (401/403) and bad requests (400) would fail
+    // the same way, so surface them immediately.
+    const retryable =
+      res.status === 404 || res.status === 429 || res.status >= 500;
+    if (retryable) {
+      return { ok: false, status: res.status, retryable, reason: BUSY_REASON };
+    }
     const body = await res.text().catch(() => "");
     return {
       ok: false,
+      status: res.status,
+      retryable,
       reason: `Extraction service error (${res.status}). ${body.slice(0, 200)}`,
     };
   }
@@ -250,7 +264,43 @@ export async function extractPurchaseInvoice(
   };
   const content = json.choices?.[0]?.message?.content ?? "";
   if (!content) {
-    return { ok: false, reason: "Empty response from extraction service." };
+    return {
+      ok: false,
+      status: res.status,
+      retryable: false,
+      reason: "Empty response from extraction service.",
+    };
+  }
+  return { ok: true, content };
+}
+
+export async function extractPurchaseInvoice(
+  base64File: string,
+  mimeType: string
+): Promise<OcrResult> {
+  const apiKey = process.env.OCR_API_KEY;
+  if (!apiKey) {
+    return {
+      ok: false,
+      reason: "OCR_API_KEY is not configured on the server.",
+    };
+  }
+  const baseUrl = process.env.OCR_BASE_URL || "https://api.deepseek.com";
+  const model = process.env.OCR_MODEL || "deepseek-v4-flash-vision-exp";
+  const fallback = process.env.OCR_FALLBACK_MODEL;
+  const models = fallback && fallback !== model ? [model, fallback] : [model];
+
+  let content = "";
+  for (const m of models) {
+    const attempt = await callModel(baseUrl, apiKey, m, mimeType, base64File);
+    if (attempt.ok) {
+      content = attempt.content;
+      break;
+    }
+    if (!attempt.retryable || m === models[models.length - 1]) {
+      return { ok: false, reason: attempt.reason };
+    }
+    // Otherwise fall through to the fallback model.
   }
 
   try {
