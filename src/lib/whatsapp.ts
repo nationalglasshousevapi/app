@@ -29,12 +29,47 @@ export function documentShareMessage({
   pdfUrl?: string;
   website?: string;
 }) {
-  const total = totalAmount.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  const total = totalAmount.toLocaleString("en-IN", {
+    maximumFractionDigits: 2,
+  });
   return (
     `Dear ${customerName},\n\n` +
     `Please find your ${docTypeLabel} ${docNumber} from National Glass House.\n` +
     `Total: ₹ ${total}\n\n` +
     (pdfUrl ? `View PDF: ${pdfUrl}\n\n` : "") +
+    (website ? `${website}\n\n` : "") +
+    `Thank you!`
+  );
+}
+
+export function ledgerShareMessage({
+  customerName,
+  openingBalance,
+  totalInvoiced,
+  totalPaid,
+  balanceDue,
+  pdfUrl,
+  website,
+}: {
+  customerName: string;
+  openingBalance: number;
+  totalInvoiced: number;
+  totalPaid: number;
+  balanceDue: number;
+  pdfUrl?: string;
+  website?: string;
+}) {
+  const fmt = (n: number) =>
+    n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  const balance = Math.abs(balanceDue);
+  return (
+    `Dear ${customerName},\n\n` +
+    `Here is your account statement from National Glass House.\n\n` +
+    `Opening balance: ₹ ${fmt(openingBalance)}\n` +
+    `Invoiced: ₹ ${fmt(totalInvoiced)}\n` +
+    `Paid: ₹ ${fmt(totalPaid)}\n` +
+    `Balance ${balanceDue > 0 ? "due" : "in credit"}: ₹ ${fmt(balance)}\n\n` +
+    (pdfUrl ? `View statement: ${pdfUrl}\n\n` : "") +
     (website ? `${website}\n\n` : "") +
     `Thank you!`
   );

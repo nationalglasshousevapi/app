@@ -53,7 +53,8 @@ export function getAppBaseUrl(req?: {
 
   // 2. Vercel deployment URL (may be preview — use only if no production URL)
   const vercelUrl =
-    process.env.VERCEL_URL?.trim() || process.env.NEXT_PUBLIC_VERCEL_URL?.trim();
+    process.env.VERCEL_URL?.trim() ||
+    process.env.NEXT_PUBLIC_VERCEL_URL?.trim();
   if (vercelUrl) {
     return normalizeBaseUrl(vercelUrl);
   }
@@ -81,14 +82,20 @@ export function getAppBaseUrl(req?: {
       const forwardedProto = headerGet(headers, "x-forwarded-proto");
       const proto =
         forwardedProto?.split(",")[0].trim() ||
-        (rawHost.startsWith("localhost") || rawHost.startsWith("127.") ? "http" : "https");
+        (rawHost.startsWith("localhost") || rawHost.startsWith("127.")
+          ? "http"
+          : "https");
       return `${proto}://${rawHost}`.replace(/\/$/, "");
     }
 
     // NextRequest.nextUrl fallback
     const nextUrl = (req as unknown as { nextUrl?: URL }).nextUrl;
     if (nextUrl?.host) {
-      const proto = nextUrl.protocol ? nextUrl.protocol.replace(":", "") : (nextUrl.host.startsWith("localhost") ? "http" : "https");
+      const proto = nextUrl.protocol
+        ? nextUrl.protocol.replace(":", "")
+        : nextUrl.host.startsWith("localhost")
+          ? "http"
+          : "https";
       return `${proto}://${nextUrl.host}`.replace(/\/$/, "");
     }
   }
@@ -101,13 +108,26 @@ export function buildPublicPdfUrl(
   documentId: string,
   exp: string,
   sig: string,
-  req?: { headers: Headers; nextUrl?: URL },
+  req?: { headers: Headers; nextUrl?: URL }
 ): string {
   const base = getAppBaseUrl(req as any);
   return `${base}/api/public/documents/${documentId}/pdf?exp=${exp}&sig=${sig}`;
 }
 
-export function buildDocumentPdfUrl(documentId: string, req?: { headers: Headers; nextUrl?: URL }): string {
+export function buildDocumentPdfUrl(
+  documentId: string,
+  req?: { headers: Headers; nextUrl?: URL }
+): string {
   const base = getAppBaseUrl(req as any);
   return `${base}/api/documents/${documentId}/pdf`;
+}
+
+export function buildPublicLedgerUrl(
+  customerId: string,
+  exp: string,
+  sig: string,
+  req?: { headers: Headers; nextUrl?: URL }
+): string {
+  const base = getAppBaseUrl(req as any);
+  return `${base}/api/public/customers/${customerId}/ledger/pdf?exp=${exp}&sig=${sig}`;
 }

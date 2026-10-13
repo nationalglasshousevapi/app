@@ -4,6 +4,7 @@ import LedgerTable from "@/components/accounts/LedgerTable";
 import PaymentModal from "@/components/accounts/PaymentModal";
 import BackButton from "@/components/BackButton";
 import LedgerDateFilter from "@/components/accounts/LedgerDateFilter";
+import LedgerShareActions from "@/components/LedgerShareActions";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export default async function CustomerLedgerPage({
   // Fetch customer
   const { data: customer } = await sb
     .from("customers")
-    .select("name, opening_balance")
+    .select("name, opening_balance, contact_number")
     .eq("id", customerId)
     .single();
 
@@ -51,8 +52,14 @@ export default async function CustomerLedgerPage({
       .eq("customer_id", customerId)
       .lt("payment_date", fromDate);
 
-    const preInvTotal = (preInvs ?? []).reduce((s, inv) => s + Number(inv.total_amount), 0);
-    const prePayTotal = (prePays ?? []).reduce((s, p) => s + Number(p.amount), 0);
+    const preInvTotal = (preInvs ?? []).reduce(
+      (s, inv) => s + Number(inv.total_amount),
+      0
+    );
+    const prePayTotal = (prePays ?? []).reduce(
+      (s, p) => s + Number(p.amount),
+      0
+    );
     openingAtStart = openingAtStart + preInvTotal - prePayTotal;
   }
 
@@ -161,7 +168,10 @@ export default async function CustomerLedgerPage({
     }
   }
 
-  const totalInvoiced = (invoices ?? []).reduce((s, inv) => s + Number(inv.total_amount), 0);
+  const totalInvoiced = (invoices ?? []).reduce(
+    (s, inv) => s + Number(inv.total_amount),
+    0
+  );
   const totalPaid = (payments ?? []).reduce((s, p) => s + Number(p.amount), 0);
   const hasFilter = !!fromDate || !!toDate;
 
@@ -172,31 +182,59 @@ export default async function CustomerLedgerPage({
       {/* Customer header */}
       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold text-ink">{customer.name}</h1>
+          <h1 className="font-display text-2xl font-bold text-ink">
+            {customer.name}
+          </h1>
           <p className="text-sm text-slate-500 mt-1">Customer Ledger</p>
+          <div className="mt-3">
+            <LedgerShareActions
+              customerId={customerId}
+              customerName={customer.name}
+              contactNumber={customer.contact_number}
+            />
+          </div>
         </div>
 
         <div className="flex gap-3 md:gap-4">
           <div className="card p-4 md:p-5 min-w-[120px] md:min-w-[150px]">
             <div className="flex items-start justify-between gap-2">
-              <div className="text-sm font-semibold text-slate-500">Invoiced</div>
-              <span className="h-2 w-2 bg-brand-500 shrink-0 mt-1" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }} />
+              <div className="text-sm font-semibold text-slate-500">
+                Invoiced
+              </div>
+              <span
+                className="h-2 w-2 bg-brand-500 shrink-0 mt-1"
+                style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }}
+              />
             </div>
-            <div className="font-display text-2xl md:text-3xl font-bold tracking-tight text-ink mt-2">{inr(totalInvoiced)}</div>
+            <div className="font-display text-2xl md:text-3xl font-bold tracking-tight text-ink mt-2">
+              {inr(totalInvoiced)}
+            </div>
           </div>
           <div className="card p-4 md:p-5 min-w-[120px] md:min-w-[150px]">
             <div className="flex items-start justify-between gap-2">
               <div className="text-sm font-semibold text-slate-500">Paid</div>
-              <span className="h-2 w-2 bg-signal-green shrink-0 mt-1" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }} />
+              <span
+                className="h-2 w-2 bg-signal-green shrink-0 mt-1"
+                style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }}
+              />
             </div>
-            <div className="font-display text-2xl md:text-3xl font-bold tracking-tight text-ink mt-2">{inr(totalPaid)}</div>
+            <div className="font-display text-2xl md:text-3xl font-bold tracking-tight text-ink mt-2">
+              {inr(totalPaid)}
+            </div>
           </div>
           <div className="card p-4 md:p-5 min-w-[120px] md:min-w-[150px]">
             <div className="flex items-start justify-between gap-2">
-              <div className="text-sm font-semibold text-slate-500">Balance</div>
-              <span className="h-2 w-2 bg-signal-rust shrink-0 mt-1" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }} />
+              <div className="text-sm font-semibold text-slate-500">
+                Balance
+              </div>
+              <span
+                className="h-2 w-2 bg-signal-rust shrink-0 mt-1"
+                style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }}
+              />
             </div>
-            <div className={`font-display text-2xl md:text-3xl font-bold tracking-tight mt-2 ${runningBalance > 0 ? "text-red-600" : "text-green-600"}`}>
+            <div
+              className={`font-display text-2xl md:text-3xl font-bold tracking-tight mt-2 ${runningBalance > 0 ? "text-red-600" : "text-green-600"}`}
+            >
               {inr(Math.abs(runningBalance))}
             </div>
           </div>
@@ -213,31 +251,57 @@ export default async function CustomerLedgerPage({
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6 mb-6">
           <div className="card p-4">
             <div className="flex items-start justify-between gap-2">
-              <div className="text-xs font-semibold text-slate-500">Opening Balance</div>
-              <span className="h-2 w-2 bg-slate-400 shrink-0 mt-0.5" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }} />
+              <div className="text-xs font-semibold text-slate-500">
+                Opening Balance
+              </div>
+              <span
+                className="h-2 w-2 bg-slate-400 shrink-0 mt-0.5"
+                style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }}
+              />
             </div>
-            <div className="font-display text-xl font-bold tracking-tight text-ink mt-1.5">{inr(Math.abs(openingAtStart))}</div>
+            <div className="font-display text-xl font-bold tracking-tight text-ink mt-1.5">
+              {inr(Math.abs(openingAtStart))}
+            </div>
           </div>
           <div className="card p-4">
             <div className="flex items-start justify-between gap-2">
-              <div className="text-xs font-semibold text-slate-500">Invoiced</div>
-              <span className="h-2 w-2 bg-brand-500 shrink-0 mt-0.5" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }} />
+              <div className="text-xs font-semibold text-slate-500">
+                Invoiced
+              </div>
+              <span
+                className="h-2 w-2 bg-brand-500 shrink-0 mt-0.5"
+                style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }}
+              />
             </div>
-            <div className="font-display text-xl font-bold tracking-tight text-ink mt-1.5">{inr(totalInvoiced)}</div>
+            <div className="font-display text-xl font-bold tracking-tight text-ink mt-1.5">
+              {inr(totalInvoiced)}
+            </div>
           </div>
           <div className="card p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="text-xs font-semibold text-slate-500">Paid</div>
-              <span className="h-2 w-2 bg-signal-green shrink-0 mt-0.5" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }} />
+              <span
+                className="h-2 w-2 bg-signal-green shrink-0 mt-0.5"
+                style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }}
+              />
             </div>
-            <div className="font-display text-xl font-bold tracking-tight text-ink mt-1.5">{inr(totalPaid)}</div>
+            <div className="font-display text-xl font-bold tracking-tight text-ink mt-1.5">
+              {inr(totalPaid)}
+            </div>
           </div>
           <div className="card p-4">
             <div className="flex items-start justify-between gap-2">
-              <div className="text-xs font-semibold text-slate-500">Ending Balance</div>
-              <span className="h-2 w-2 bg-signal-rust shrink-0 mt-0.5" style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }} />
+              <div className="text-xs font-semibold text-slate-500">
+                Ending Balance
+              </div>
+              <span
+                className="h-2 w-2 bg-signal-rust shrink-0 mt-0.5"
+                style={{ clipPath: "polygon(0 0, 100% 0, 100% 100%, 0 100%)" }}
+              />
             </div>
-            <div className={`font-display text-xl font-bold tracking-tight mt-1.5 ${runningBalance > 0 ? "text-red-600" : "text-green-600"}`}>
+            <div
+              className={`font-display text-xl font-bold tracking-tight mt-1.5 ${runningBalance > 0 ? "text-red-600" : "text-green-600"}`}
+            >
               {inr(Math.abs(runningBalance))}
             </div>
           </div>
@@ -247,7 +311,9 @@ export default async function CustomerLedgerPage({
       {/* Ledger + Payment form side by side */}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <h2 className="font-display text-lg font-bold text-ink mb-4">Ledger</h2>
+          <h2 className="font-display text-lg font-bold text-ink mb-4">
+            Ledger
+          </h2>
           <LedgerTable
             entries={entries}
             customerId={customerId}

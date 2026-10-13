@@ -17,11 +17,37 @@ export const DOC_TYPES: { value: DocType; label: string; short: string }[] = [
   { value: "purchase", label: "Purchase", short: "PUR" },
 ];
 
-// Document types that can be converted into an invoice
-export const CONVERTIBLE_TYPES: DocType[] = ["order", "quotation", "performa_invoice", "estimate"];
+// Document types that can be converted into an invoice (legacy list, kept for tests/back-compat)
+export const CONVERTIBLE_TYPES: DocType[] = [
+  "order",
+  "quotation",
+  "performa_invoice",
+  "estimate",
+];
+
+// Ordered sales-document progression. A document can be converted into any
+// document type that appears after it in this flow, which lets users follow a
+// quotation -> order -> performa invoice -> invoice path or skip steps.
+const CONVERSION_FLOW: DocType[] = [
+  "quotation",
+  "order",
+  "performa_invoice",
+  "invoice",
+];
+
+export function conversionTargets(docType: string): DocType[] {
+  if (docType === "estimate") return ["invoice"];
+  const idx = CONVERSION_FLOW.indexOf(docType as DocType);
+  if (idx === -1) return [];
+  return CONVERSION_FLOW.slice(idx + 1);
+}
+
+export function canConvertDocument(docType: string): boolean {
+  return conversionTargets(docType).length > 0;
+}
 
 export function canConvertToInvoice(docType: string): boolean {
-  return (CONVERTIBLE_TYPES as string[]).includes(docType);
+  return conversionTargets(docType).includes("invoice");
 }
 
 export function docTypeLabel(t: string): string {

@@ -4,7 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DOC_TYPES, docTypeLabel, DocType } from "@/lib/docTypes";
 import { inr } from "@/lib/format";
-import { computeAdditionalChargesTotal, computeTax, computeTaxableChargesTotal, computeTotal } from "@/lib/documents";
+import {
+  computeAdditionalChargesTotal,
+  computeTax,
+  computeTaxableChargesTotal,
+  computeTotal,
+} from "@/lib/documents";
 import type { AdditionalCharge, TaxableCharge } from "@/lib/documents";
 import CustomerPicker from "./CustomerPicker";
 import NewCustomerModal from "./NewCustomerModal";
@@ -56,7 +61,9 @@ function today() {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function blankDocument(defaultType: DocType = "invoice"): DocumentFormValue {
+export function blankDocument(
+  defaultType: DocType = "order"
+): DocumentFormValue {
   const isOrder = defaultType === "order";
   return {
     doc_type: defaultType,
@@ -115,9 +122,10 @@ export default function DocumentForm({
   const docNumberEditedRef = useRef(false);
   const isNewInvoice = !initial.id && !value.customer_id;
   const router = useRouter();
-  const { save: saveDraft, clear: clearDraft } = useDraftPersistence<DocumentFormValue>(
-    `ngh_draft_document_${initial.doc_type}`,
-  );
+  const { save: saveDraft, clear: clearDraft } =
+    useDraftPersistence<DocumentFormValue>(
+      `ngh_draft_document_${initial.doc_type}`
+    );
 
   useEffect(() => {
     saveDraft(value);
@@ -127,7 +135,9 @@ export default function DocumentForm({
   useEffect(() => {
     if (value.id || docNumberEditedRef.current) return;
     setNextNumberLoading(true);
-    fetch(`/api/documents/next-number?doc_type=${value.doc_type}&doc_date=${value.doc_date}`)
+    fetch(
+      `/api/documents/next-number?doc_type=${value.doc_type}&doc_date=${value.doc_date}`
+    )
       .then((res) => res.json())
       .then((data) => {
         if (data.next_number) {
@@ -199,12 +209,12 @@ export default function DocumentForm({
       }
     }
 
-    const baselineSameAsBilling = !baseline.id || (
-      baseline.ship_to_name === baseline.bill_to_name &&
-      baseline.ship_to_address === baseline.bill_to_address &&
-      baseline.ship_to_contact_person === baseline.bill_to_contact_person &&
-      baseline.ship_to_contact_number === baseline.bill_to_contact_number
-    );
+    const baselineSameAsBilling =
+      !baseline.id ||
+      (baseline.ship_to_name === baseline.bill_to_name &&
+        baseline.ship_to_address === baseline.bill_to_address &&
+        baseline.ship_to_contact_person === baseline.bill_to_contact_person &&
+        baseline.ship_to_contact_number === baseline.bill_to_contact_number);
     if (sameAsBilling !== baselineSameAsBilling) {
       return true;
     }
@@ -214,7 +224,10 @@ export default function DocumentForm({
     const initCharges = baseline.additional_charges || [];
     if (currCharges.length !== initCharges.length) return true;
     for (let i = 0; i < currCharges.length; i++) {
-      if (currCharges[i].label !== initCharges[i]?.label || currCharges[i].amount !== initCharges[i]?.amount) {
+      if (
+        currCharges[i].label !== initCharges[i]?.label ||
+        currCharges[i].amount !== initCharges[i]?.amount
+      ) {
         return true;
       }
     }
@@ -224,7 +237,10 @@ export default function DocumentForm({
     const initTaxable = baseline.taxable_charges || [];
     if (currTaxable.length !== initTaxable.length) return true;
     for (let i = 0; i < currTaxable.length; i++) {
-      if (currTaxable[i].label !== initTaxable[i]?.label || currTaxable[i].amount !== initTaxable[i]?.amount) {
+      if (
+        currTaxable[i].label !== initTaxable[i]?.label ||
+        currTaxable[i].amount !== initTaxable[i]?.amount
+      ) {
         return true;
       }
     }
@@ -266,14 +282,32 @@ export default function DocumentForm({
   const PREDEFINED_CHARGES = ["Transport", "Labour", "Packing & Forwarding"];
 
   const totals = useMemo(() => {
-    const subtotal = value.items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
+    const subtotal = value.items.reduce(
+      (sum, it) => sum + (it.qty || 0) * (it.rate || 0),
+      0
+    );
     const discount = value.discount_amount || 0;
     const taxableCharges = value.taxable_charges || [];
     const additionalCharges = value.additional_charges || [];
     const taxableChargesTotal = computeTaxableChargesTotal(taxableCharges);
-    const additionalChargesTotal = computeAdditionalChargesTotal(additionalCharges);
-    const { cgst, sgst, igst } = computeTax(subtotal, value.tax_type, value.tax_rate, discount, taxableCharges);
-    const { totalAmount: total, roundOff } = computeTotal(subtotal, cgst, sgst, igst, discount, additionalCharges, taxableCharges);
+    const additionalChargesTotal =
+      computeAdditionalChargesTotal(additionalCharges);
+    const { cgst, sgst, igst } = computeTax(
+      subtotal,
+      value.tax_type,
+      value.tax_rate,
+      discount,
+      taxableCharges
+    );
+    const { totalAmount: total, roundOff } = computeTotal(
+      subtotal,
+      cgst,
+      sgst,
+      igst,
+      discount,
+      additionalCharges,
+      taxableCharges
+    );
     return {
       subtotal,
       discount,
@@ -286,7 +320,14 @@ export default function DocumentForm({
       roundOff,
       total,
     };
-  }, [value.items, value.tax_type, value.tax_rate, value.discount_amount, value.additional_charges, value.taxable_charges]);
+  }, [
+    value.items,
+    value.tax_type,
+    value.tax_rate,
+    value.discount_amount,
+    value.additional_charges,
+    value.taxable_charges,
+  ]);
 
   function validate(): Record<string, string> {
     const errors: Record<string, string> = {};
@@ -315,7 +356,6 @@ export default function DocumentForm({
     });
   }
 
-
   async function save(e: React.FormEvent) {
     e.preventDefault();
     setSaveError("");
@@ -331,17 +371,26 @@ export default function DocumentForm({
     const payload = {
       ...value,
       ship_to_name: sameAsBilling ? value.bill_to_name : value.ship_to_name,
-      ship_to_address: sameAsBilling ? value.bill_to_address : value.ship_to_address,
-      ship_to_contact_person: sameAsBilling ? value.bill_to_contact_person : value.ship_to_contact_person,
-      ship_to_contact_number: sameAsBilling ? value.bill_to_contact_number : value.ship_to_contact_number,
+      ship_to_address: sameAsBilling
+        ? value.bill_to_address
+        : value.ship_to_address,
+      ship_to_contact_person: sameAsBilling
+        ? value.bill_to_contact_person
+        : value.ship_to_contact_person,
+      ship_to_contact_number: sameAsBilling
+        ? value.bill_to_contact_number
+        : value.ship_to_contact_number,
     };
 
     try {
-      const res = await fetch(value.id ? `/api/documents/${value.id}` : "/api/documents", {
-        method: value.id ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await fetch(
+        value.id ? `/api/documents/${value.id}` : "/api/documents",
+        {
+          method: value.id ? "PUT" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
         setSaveError(json.error ?? "Unable to save. Please try again.");
@@ -359,366 +408,597 @@ export default function DocumentForm({
       clearDraft();
       router.refresh();
     } catch {
-      setSaveError("Unable to reach the server. Check your connection and try again.");
+      setSaveError(
+        "Unable to reach the server. Check your connection and try again."
+      );
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <><form onSubmit={save} className="space-y-4">
-      {/* Step 1: Customer — always shown first */}
-      <div className="card p-4 md:p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">1</span>
-          <div>
-            <h2 className="font-bold text-slate-900 text-lg">Select customer</h2>
-            <p className="text-xs text-slate-500">Search saved customers or create a new one.</p>
-          </div>
-        </div>
-        {value.customer_id ? (
-          <div className="flex items-center gap-2">
-            <div className="flex-1 rounded-xl bg-brand-50 border border-brand-100 p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-semibold text-slate-900">{value.bill_to_name}</p>
-                  {value.bill_to_gst && <p className="text-xs text-slate-400 mt-0.5">GST: {value.bill_to_gst}</p>}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      patch({
-                        customer_id: null,
-                        bill_to_name: "",
-                        bill_to_address: "",
-                        bill_to_contact_person: "",
-                        bill_to_contact_number: "",
-                        bill_to_email: "",
-                        bill_to_gst: "",
-                        ship_to_name: "",
-                        ship_to_address: "",
-                        ship_to_contact_person: "",
-                        ship_to_contact_number: "",
-                      });
-                      setSameAsBilling(true);
-                      setCustomerPickerKey((k) => k + 1);
-                    }}
-                    className="text-xs text-slate-500 hover:text-red-600 underline"
-                  >
-                    Change
-                  </button>
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowNewCustomerModal(true)}
-              className="btn-secondary px-3 py-3.5 shrink-0 text-sm"
-              title="Create new customer"
-            >
-              + New
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <CustomerPicker key={customerPickerKey} onSelect={selectCustomer} initialName={value.bill_to_name} />
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowNewCustomerModal(true)}
-              className="btn-secondary px-3 py-3.5 shrink-0 text-sm"
-              title="Create new customer"
-            >
-              + New
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Remaining sections — hidden for new docs until a customer is selected */}
-      {!isNewInvoice && (
-        <>
-          {/* Document details */}
-          <div className="card p-4 md:p-6 grid md:grid-cols-4 gap-4">
-            <div className="md:col-span-4 flex items-center gap-3 pb-1">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">2</span>
-              <h2 className="font-bold text-slate-900 text-lg">Document details</h2>
-              {value.id ? (
-                value.doc_number && (
-                  <span className="ml-auto text-xs font-mono font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-full px-3 py-1">
-                    {docTypeLabel(value.doc_type)} #{value.doc_number}
-                  </span>
-                )
-              ) : (
-                <div className="ml-auto">
-                  <label className="text-xs text-slate-500 mb-0.5 block">Document Number</label>
-                  <input
-                    className="input text-xs font-mono font-semibold min-w-[180px]"
-                    value={value.doc_number || ""}
-                    placeholder={nextNumberLoading ? "Loading…" : "Auto-generated"}
-                    onChange={(e) => {
-                      docNumberEditedRef.current = true;
-                      patch({ doc_number: e.target.value });
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+    <>
+      <form onSubmit={save} className="space-y-4">
+        {/* Step 1: Customer — always shown first */}
+        <div className="card p-4 md:p-6 space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">
+              1
+            </span>
             <div>
-              <label className="label">Document Type</label>
-              <select
-                className="input"
-                value={value.doc_type}
-                disabled={!!value.id}
-                onChange={(e) => patch({ doc_type: e.target.value as DocType })}
-              >
-                {DOC_TYPES.filter((t) => t.value !== "receipt" && t.value !== "purchase").map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-              {value.id && <p className="text-xs text-gray-400 mt-1">Type can't be changed after creation</p>}
-            </div>
-            <div>
-              <label className="label">Date <span className="text-red-500">*</span></label>
-              <CalendarInput value={value.doc_date} onChange={(v) => patch({ doc_date: v })} required />
-            </div>
-            <div>
-              <label className="label">Order Number</label>
-              <input
-                className="input"
-                value={value.order_number}
-                onChange={(e) => patch({ order_number: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="label">Order Date</label>
-              <CalendarInput value={value.order_date} onChange={(v) => patch({ order_date: v })} />
+              <h2 className="font-bold text-slate-900 text-lg">
+                Select customer
+              </h2>
+              <p className="text-xs text-slate-500">
+                Search saved customers or create a new one.
+              </p>
             </div>
           </div>
-
-          {/* Billing / Shipping details — read-only summary with optional customize */}
-          <div className="card p-4 md:p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">3</span>
-              <div className="flex-1">
-                <h2 className="font-bold text-slate-900 text-lg">Billing details</h2>
-              </div>
-              {value.customer_id && (
-                <button
-                  type="button"
-                  onClick={() => setCustomizingBilling((v) => !v)}
-                  className="btn-secondary text-xs px-3 py-1.5"
-                >
-                  {customizingBilling ? "Done" : "Customize"}
-                </button>
-              )}
-            </div>
-
-            {customizingBilling ? (
-              /* Editable mode — when "Customize" is active */
-              <div className="space-y-4">
-                <p className="text-xs text-slate-500">Override billing details for this document only.</p>
-                <div className="grid md:grid-cols-2 gap-4">
+          {value.customer_id ? (
+            <div className="flex items-center gap-2">
+              <div className="flex-1 rounded-xl bg-brand-50 border border-brand-100 p-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <label className="label">Name <span className="text-red-500">*</span></label>
-                    <input
-                      className={`input ${fieldErrors.bill_to_name ? "border-red-400 focus:ring-red-400/30" : ""}`}
-                      value={value.bill_to_name}
-                      onChange={(e) => { patch({ bill_to_name: e.target.value }); clearFieldError("bill_to_name"); }}
-                      required
-                    />
-                    {fieldErrors.bill_to_name && (
-                      <p className="text-xs text-red-500 mt-1">{fieldErrors.bill_to_name}</p>
+                    <p className="font-semibold text-slate-900">
+                      {value.bill_to_name}
+                    </p>
+                    {value.bill_to_gst && (
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        GST: {value.bill_to_gst}
+                      </p>
                     )}
                   </div>
-                  <div>
-                    <label className="label">GST</label>
-                    <input
-                      className="input"
-                      value={value.bill_to_gst}
-                      onChange={(e) => patch({ bill_to_gst: e.target.value })}
-                    />
-                  </div>
-                  <div className="md:col-span-2">
-                    <label className="label">Address</label>
-                    <input
-                      className="input"
-                      value={value.bill_to_address}
-                      onChange={(e) => patch({ bill_to_address: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Contact Person</label>
-                    <input
-                      className="input"
-                      value={value.bill_to_contact_person}
-                      onChange={(e) => patch({ bill_to_contact_person: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <label className="label">Contact Number</label>
-                    <input
-                      className="input"
-                      value={value.bill_to_contact_number}
-                      onChange={(e) => patch({ bill_to_contact_number: e.target.value })}
-                    />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        patch({
+                          customer_id: null,
+                          bill_to_name: "",
+                          bill_to_address: "",
+                          bill_to_contact_person: "",
+                          bill_to_contact_number: "",
+                          bill_to_email: "",
+                          bill_to_gst: "",
+                          ship_to_name: "",
+                          ship_to_address: "",
+                          ship_to_contact_person: "",
+                          ship_to_contact_number: "",
+                        });
+                        setSameAsBilling(true);
+                        setCustomerPickerKey((k) => k + 1);
+                      }}
+                      className="text-xs text-slate-500 hover:text-red-600 underline"
+                    >
+                      Change
+                    </button>
                   </div>
                 </div>
-
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-600 rounded-xl bg-slate-50 px-3 py-2.5">
-                  <input
-                    type="checkbox"
-                    checked={sameAsBilling}
-                    onChange={(e) => setSameAsBilling(e.target.checked)}
-                  />
-                  Ship to same as billing
-                </label>
-
-                <div
-                  className={`overflow-hidden transition-all duration-200 ease-in-out ${
-                    !sameAsBilling ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'
-                  }`}
-                >
-                  <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-                    <div>
-                      <label className="label">Ship To Name</label>
-                      <input
-                        className="input"
-                        value={value.ship_to_name}
-                        onChange={(e) => patch({ ship_to_name: e.target.value })}
-                      />
-                    </div>
-                    <div>
-                      <label className="label">Ship To Address</label>
-                      <input
-                        className="input"
-                        value={value.ship_to_address}
-                        onChange={(e) => patch({ ship_to_address: e.target.value })}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* Read-only summary — compact single line */
-              <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-2.5 flex items-center flex-wrap gap-x-3 gap-y-1 text-sm">
-                <span className="font-semibold text-slate-900">{value.bill_to_name}</span>
-                {value.bill_to_gst && <span className="text-slate-400">|</span>}
-                {value.bill_to_gst && <span className="text-slate-500">GST: {value.bill_to_gst}</span>}
-                {value.bill_to_address && <span className="text-slate-400">|</span>}
-                {value.bill_to_address && <span className="text-slate-500 truncate max-w-[200px]">{value.bill_to_address}</span>}
-                {(value.bill_to_contact_person || value.bill_to_contact_number) && <span className="text-slate-400">|</span>}
-                {value.bill_to_contact_person && <span className="text-slate-500">{value.bill_to_contact_person}</span>}
-                {value.bill_to_contact_number && <span className="text-slate-500">{value.bill_to_contact_number}</span>}
-              </div>
-            )}
-          </div>
-
-          {/* Items and pricing */}
-          <div className="card p-4 md:p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">4</span>
-              <div className="flex-1">
-                <h2 className="font-bold text-slate-900 text-lg">Items and pricing</h2>
-                <p className="text-xs text-slate-500">Add each product or service as a separate line.</p>
               </div>
               <button
                 type="button"
-                onClick={() => setShowManageDescriptions(true)}
-                className="btn-secondary text-xs px-3 py-1.5"
+                onClick={() => setShowNewCustomerModal(true)}
+                className="btn-secondary px-3 py-3.5 shrink-0 text-sm"
+                title="Create new customer"
               >
-                Manage descriptions
+                + New
               </button>
             </div>
-            <LineItemsEditor items={value.items} onChange={(items) => patch({ items })} />
-          </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <CustomerPicker
+                  key={customerPickerKey}
+                  onSelect={selectCustomer}
+                  initialName={value.bill_to_name}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNewCustomerModal(true)}
+                className="btn-secondary px-3 py-3.5 shrink-0 text-sm"
+                title="Create new customer"
+              >
+                + New
+              </button>
+            </div>
+          )}
+        </div>
 
-          {/* Tax, charges, and notes */}
-          <div className="card p-4 md:p-6 grid md:grid-cols-2 gap-4">
-            <div className="space-y-4">
+        {/* Remaining sections — hidden for new docs until a customer is selected */}
+        {!isNewInvoice && (
+          <>
+            {/* Document details */}
+            <div className="card p-4 md:p-6 grid md:grid-cols-4 gap-4">
+              <div className="md:col-span-4 flex items-center gap-3 pb-1">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">
+                  2
+                </span>
+                <h2 className="font-bold text-slate-900 text-lg">
+                  Document details
+                </h2>
+                {value.id ? (
+                  value.doc_number && (
+                    <span className="ml-auto text-xs font-mono font-semibold text-brand-700 bg-brand-50 border border-brand-100 rounded-full px-3 py-1">
+                      {docTypeLabel(value.doc_type)} #{value.doc_number}
+                    </span>
+                  )
+                ) : (
+                  <div className="ml-auto">
+                    <label className="text-xs text-slate-500 mb-0.5 block">
+                      Document Number
+                    </label>
+                    <input
+                      className="input text-xs font-mono font-semibold min-w-[180px]"
+                      value={value.doc_number || ""}
+                      placeholder={
+                        nextNumberLoading ? "Loading…" : "Auto-generated"
+                      }
+                      onChange={(e) => {
+                        docNumberEditedRef.current = true;
+                        patch({ doc_number: e.target.value });
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+              <div>
+                <label className="label">Document Type</label>
+                <select
+                  className="input"
+                  value={value.doc_type}
+                  disabled={!!value.id}
+                  onChange={(e) => {
+                    const docType = e.target.value as DocType;
+                    patch({
+                      doc_type: docType,
+                      // Orders default to No GST; other sales docs default to 18% CGST+SGST.
+                      tax_type: docType === "order" ? "none" : "cgst_sgst",
+                      tax_rate: docType === "order" ? 0 : 0.18,
+                    });
+                  }}
+                >
+                  {DOC_TYPES.filter(
+                    (t) => t.value !== "receipt" && t.value !== "purchase"
+                  ).map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+                {value.id && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Type can't be changed after creation
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="label">
+                  Date <span className="text-red-500">*</span>
+                </label>
+                <CalendarInput
+                  value={value.doc_date}
+                  onChange={(v) => patch({ doc_date: v })}
+                  required
+                />
+              </div>
+              <div>
+                <label className="label">Order Number</label>
+                <input
+                  className="input"
+                  value={value.order_number}
+                  onChange={(e) => patch({ order_number: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="label">Order Date</label>
+                <CalendarInput
+                  value={value.order_date}
+                  onChange={(v) => patch({ order_date: v })}
+                />
+              </div>
+            </div>
+
+            {/* Billing / Shipping details — read-only summary with optional customize */}
+            <div className="card p-4 md:p-6 space-y-4">
               <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">5</span>
-                <h2 className="font-bold text-slate-900 text-lg">Tax &amp; charges</h2>
-              </div>
-
-              {/* Tax — auto-set 18% for taxable, 0% for none */}
-              <div className="space-y-2">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Tax</h3>
-                <div>
-                  <label className="label">Tax Type</label>
-                  <select
-                    className="input"
-                    value={value.tax_type}
-                    onChange={(e) => {
-                      const t = e.target.value as DocumentFormValue["tax_type"];
-                      patch({
-                        tax_type: t,
-                        // Auto-set rate to 18% for taxable types, 0% for none
-                        tax_rate: t === "none" ? 0 : 0.18,
-                      });
-                    }}
-                  >
-                    <option value="cgst_sgst">CGST + SGST (9% + 9%)</option>
-                    <option value="igst">IGST (18%)</option>
-                    <option value="none">No Tax</option>
-                  </select>
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">
+                  3
+                </span>
+                <div className="flex-1">
+                  <h2 className="font-bold text-slate-900 text-lg">
+                    Billing details
+                  </h2>
                 </div>
+                {value.customer_id && (
+                  <button
+                    type="button"
+                    onClick={() => setCustomizingBilling((v) => !v)}
+                    className="btn-secondary text-xs px-3 py-1.5"
+                  >
+                    {customizingBilling ? "Done" : "Customize"}
+                  </button>
+                )}
               </div>
 
-              {/* Taxable charges — quick add common charges + custom */}
-              <div className="space-y-2">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Charges</h3>
+              {customizingBilling ? (
+                /* Editable mode — when "Customize" is active */
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-500">
+                    Override billing details for this document only.
+                  </p>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="label">
+                        Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        className={`input ${fieldErrors.bill_to_name ? "border-red-400 focus:ring-red-400/30" : ""}`}
+                        value={value.bill_to_name}
+                        onChange={(e) => {
+                          patch({ bill_to_name: e.target.value });
+                          clearFieldError("bill_to_name");
+                        }}
+                        required
+                      />
+                      {fieldErrors.bill_to_name && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {fieldErrors.bill_to_name}
+                        </p>
+                      )}
+                    </div>
+                    <div>
+                      <label className="label">GST</label>
+                      <input
+                        className="input"
+                        value={value.bill_to_gst}
+                        onChange={(e) => patch({ bill_to_gst: e.target.value })}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="label">Address</label>
+                      <input
+                        className="input"
+                        value={value.bill_to_address}
+                        onChange={(e) =>
+                          patch({ bill_to_address: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Contact Person</label>
+                      <input
+                        className="input"
+                        value={value.bill_to_contact_person}
+                        onChange={(e) =>
+                          patch({ bill_to_contact_person: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Contact Number</label>
+                      <input
+                        className="input"
+                        value={value.bill_to_contact_number}
+                        onChange={(e) =>
+                          patch({ bill_to_contact_number: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
 
-                {/* Predefined charge quick-add buttons */}
-                <div className="flex flex-wrap gap-2">
-                  {PREDEFINED_CHARGES.map((label) => {
-                    const alreadyAdded = (value.taxable_charges || []).some((c) => c.label === label);
-                    return (
+                  <label className="flex items-center gap-2 text-sm font-medium text-slate-600 rounded-xl bg-slate-50 px-3 py-2.5">
+                    <input
+                      type="checkbox"
+                      checked={sameAsBilling}
+                      onChange={(e) => setSameAsBilling(e.target.checked)}
+                    />
+                    Ship to same as billing
+                  </label>
+
+                  <div
+                    className={`overflow-hidden transition-all duration-200 ease-in-out ${
+                      !sameAsBilling
+                        ? "max-h-40 opacity-100"
+                        : "max-h-0 opacity-0"
+                    }`}
+                  >
+                    <div className="grid md:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
+                      <div>
+                        <label className="label">Ship To Name</label>
+                        <input
+                          className="input"
+                          value={value.ship_to_name}
+                          onChange={(e) =>
+                            patch({ ship_to_name: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="label">Ship To Address</label>
+                        <input
+                          className="input"
+                          value={value.ship_to_address}
+                          onChange={(e) =>
+                            patch({ ship_to_address: e.target.value })
+                          }
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Read-only summary — compact single line */
+                <div className="rounded-xl bg-slate-50 border border-slate-100 px-4 py-2.5 flex items-center flex-wrap gap-x-3 gap-y-1 text-sm">
+                  <span className="font-semibold text-slate-900">
+                    {value.bill_to_name}
+                  </span>
+                  {value.bill_to_gst && (
+                    <span className="text-slate-400">|</span>
+                  )}
+                  {value.bill_to_gst && (
+                    <span className="text-slate-500">
+                      GST: {value.bill_to_gst}
+                    </span>
+                  )}
+                  {value.bill_to_address && (
+                    <span className="text-slate-400">|</span>
+                  )}
+                  {value.bill_to_address && (
+                    <span className="text-slate-500 truncate max-w-[200px]">
+                      {value.bill_to_address}
+                    </span>
+                  )}
+                  {(value.bill_to_contact_person ||
+                    value.bill_to_contact_number) && (
+                    <span className="text-slate-400">|</span>
+                  )}
+                  {value.bill_to_contact_person && (
+                    <span className="text-slate-500">
+                      {value.bill_to_contact_person}
+                    </span>
+                  )}
+                  {value.bill_to_contact_number && (
+                    <span className="text-slate-500">
+                      {value.bill_to_contact_number}
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Items and pricing */}
+            <div className="card p-4 md:p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">
+                  4
+                </span>
+                <div className="flex-1">
+                  <h2 className="font-bold text-slate-900 text-lg">
+                    Items and pricing
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Add each product or service as a separate line.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowManageDescriptions(true)}
+                  className="btn-secondary text-xs px-3 py-1.5"
+                >
+                  Manage descriptions
+                </button>
+              </div>
+              <LineItemsEditor
+                items={value.items}
+                onChange={(items) => patch({ items })}
+              />
+            </div>
+
+            {/* Tax, charges, and notes */}
+            <div className="card p-4 md:p-6 grid md:grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-sm font-bold text-brand-700 shrink-0">
+                    5
+                  </span>
+                  <h2 className="font-bold text-slate-900 text-lg">
+                    Tax &amp; charges
+                  </h2>
+                </div>
+
+                {/* Tax — auto-set 18% for taxable, 0% for none */}
+                <div className="space-y-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">
+                    Tax
+                  </h3>
+                  <div>
+                    <label className="label">Tax Type</label>
+                    <select
+                      className="input"
+                      value={value.tax_type}
+                      onChange={(e) => {
+                        const t = e.target
+                          .value as DocumentFormValue["tax_type"];
+                        patch({
+                          tax_type: t,
+                          // Auto-set rate to 18% for taxable types, 0% for none
+                          tax_rate: t === "none" ? 0 : 0.18,
+                        });
+                      }}
+                    >
+                      <option value="cgst_sgst">CGST + SGST (9% + 9%)</option>
+                      <option value="igst">IGST (18%)</option>
+                      <option value="none">No Tax</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Taxable charges — quick add common charges + custom */}
+                <div className="space-y-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">
+                    Charges
+                  </h3>
+
+                  {/* Predefined charge quick-add buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    {PREDEFINED_CHARGES.map((label) => {
+                      const alreadyAdded = (value.taxable_charges || []).some(
+                        (c) => c.label === label
+                      );
+                      return (
+                        <button
+                          key={label}
+                          type="button"
+                          disabled={alreadyAdded}
+                          onClick={() =>
+                            patch({
+                              taxable_charges: [
+                                ...(value.taxable_charges || []),
+                                { label, amount: 0 },
+                              ],
+                            })
+                          }
+                          className={`text-xs px-3 py-1.5 rounded-full border min-h-[32px] font-medium transition ${
+                            alreadyAdded
+                              ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                              : "bg-white text-slate-600 border-slate-200 hover:border-brand-500 hover:text-brand-700"
+                          }`}
+                        >
+                          + {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Active taxable charges */}
+                  {(value.taxable_charges || []).length > 0 && (
+                    <div className="space-y-2 pt-1">
+                      {(value.taxable_charges || []).map((charge, idx) => (
+                        <div
+                          key={idx}
+                          className="grid grid-cols-[1fr_auto_auto] gap-2 items-center"
+                        >
+                          <input
+                            className="input"
+                            placeholder="Charge name"
+                            value={charge.label}
+                            onChange={(e) => {
+                              const next = [...(value.taxable_charges || [])];
+                              next[idx] = {
+                                ...next[idx],
+                                label: e.target.value,
+                              };
+                              patch({ taxable_charges: next });
+                            }}
+                          />
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium pointer-events-none">
+                              ₹
+                            </span>
+                            <input
+                              className="input w-28 pl-7"
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              placeholder="0"
+                              value={charge.amount || ""}
+                              onChange={(e) => {
+                                const next = [...(value.taxable_charges || [])];
+                                next[idx] = {
+                                  ...next[idx],
+                                  amount: Number(e.target.value),
+                                };
+                                patch({ taxable_charges: next });
+                              }}
+                            />
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              patch({
+                                taxable_charges: (
+                                  value.taxable_charges || []
+                                ).filter((_, i) => i !== idx),
+                              })
+                            }
+                            className="btn-danger text-xs px-2 py-1.5"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        patch({
+                          taxable_charges: [
+                            ...(value.taxable_charges || []),
+                            { label: "", amount: 0 },
+                          ],
+                        })
+                      }
+                      className="btn-secondary text-xs px-2.5 py-1"
+                    >
+                      + Add custom charge
+                    </button>
+                    <p className="text-xs text-slate-400">
+                      These are added to the taxable amount for GST calculation.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Additional charges — non-taxable one-offs */}
+                <div className="space-y-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">
+                    Additional Charges (non-taxable)
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    One-off charges like Polish, Bevel etc. These are added
+                    after tax calculation.
+                  </p>
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">
+                        Other Charges
+                      </span>
                       <button
-                        key={label}
                         type="button"
-                        disabled={alreadyAdded}
                         onClick={() =>
                           patch({
-                            taxable_charges: [
-                              ...(value.taxable_charges || []),
-                              { label, amount: 0 },
+                            additional_charges: [
+                              ...(value.additional_charges || []),
+                              { label: "", amount: 0 },
                             ],
                           })
                         }
-                        className={`text-xs px-3 py-1.5 rounded-full border min-h-[32px] font-medium transition ${
-                          alreadyAdded
-                            ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
-                            : "bg-white text-slate-600 border-slate-200 hover:border-brand-500 hover:text-brand-700"
-                        }`}
+                        className="btn-secondary text-xs px-2.5 py-1"
                       >
-                        + {label}
+                        + Add
                       </button>
-                    );
-                  })}
-                </div>
-
-                {/* Active taxable charges */}
-                {(value.taxable_charges || []).length > 0 && (
-                  <div className="space-y-2 pt-1">
-                    {(value.taxable_charges || []).map((charge, idx) => (
-                      <div key={idx} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
+                    </div>
+                    {(value.additional_charges || []).map((charge, idx) => (
+                      <div
+                        key={idx}
+                        className="grid grid-cols-[1fr_auto_auto] gap-2 items-center"
+                      >
                         <input
                           className="input"
-                          placeholder="Charge name"
+                          placeholder="e.g. Polish, Bevel..."
                           value={charge.label}
                           onChange={(e) => {
-                            const next = [...(value.taxable_charges || [])];
+                            const next = [...(value.additional_charges || [])];
                             next[idx] = { ...next[idx], label: e.target.value };
-                            patch({ taxable_charges: next });
+                            patch({ additional_charges: next });
                           }}
                         />
                         <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium pointer-events-none">₹</span>
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium pointer-events-none">
+                            ₹
+                          </span>
                           <input
                             className="input w-28 pl-7"
                             type="number"
@@ -727,9 +1007,14 @@ export default function DocumentForm({
                             placeholder="0"
                             value={charge.amount || ""}
                             onChange={(e) => {
-                              const next = [...(value.taxable_charges || [])];
-                              next[idx] = { ...next[idx], amount: Number(e.target.value) };
-                              patch({ taxable_charges: next });
+                              const next = [
+                                ...(value.additional_charges || []),
+                              ];
+                              next[idx] = {
+                                ...next[idx],
+                                amount: Number(e.target.value),
+                              };
+                              patch({ additional_charges: next });
                             }}
                           />
                         </div>
@@ -737,7 +1022,9 @@ export default function DocumentForm({
                           type="button"
                           onClick={() =>
                             patch({
-                              taxable_charges: (value.taxable_charges || []).filter((_, i) => i !== idx),
+                              additional_charges: (
+                                value.additional_charges || []
+                              ).filter((_, i) => i !== idx),
                             })
                           }
                           className="btn-danger text-xs px-2 py-1.5"
@@ -747,265 +1034,220 @@ export default function DocumentForm({
                       </div>
                     ))}
                   </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      patch({
-                        taxable_charges: [
-                          ...(value.taxable_charges || []),
-                          { label: "", amount: 0 },
-                        ],
-                      })
-                    }
-                    className="btn-secondary text-xs px-2.5 py-1"
-                  >
-                    + Add custom charge
-                  </button>
-                  <p className="text-xs text-slate-400">These are added to the taxable amount for GST calculation.</p>
                 </div>
-              </div>
 
-              {/* Additional charges — non-taxable one-offs */}
-              <div className="space-y-2">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Additional Charges (non-taxable)</h3>
-                <p className="text-xs text-slate-400">One-off charges like Polish, Bevel etc. These are added after tax calculation.</p>
-                <div className="space-y-2 pt-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Other Charges</span>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        patch({
-                          additional_charges: [
-                            ...(value.additional_charges || []),
-                            { label: "", amount: 0 },
-                          ],
-                        })
+                {/* Adjustments section */}
+                <div className="space-y-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">
+                    Adjustments
+                  </h3>
+                  <div>
+                    <label className="label">Discount</label>
+                    <input
+                      className="input"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="0"
+                      value={value.discount_amount || ""}
+                      onChange={(e) =>
+                        patch({ discount_amount: Number(e.target.value) })
                       }
-                      className="btn-secondary text-xs px-2.5 py-1"
-                    >
-                      + Add
-                    </button>
+                    />
                   </div>
-                  {(value.additional_charges || []).map((charge, idx) => (
-                    <div key={idx} className="grid grid-cols-[1fr_auto_auto] gap-2 items-center">
-                      <input
-                        className="input"
-                        placeholder="e.g. Polish, Bevel..."
-                        value={charge.label}
-                        onChange={(e) => {
-                          const next = [...(value.additional_charges || [])];
-                          next[idx] = { ...next[idx], label: e.target.value };
-                          patch({ additional_charges: next });
-                        }}
-                      />
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-medium pointer-events-none">₹</span>
-                        <input
-                          className="input w-28 pl-7"
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          placeholder="0"
-                          value={charge.amount || ""}
-                          onChange={(e) => {
-                            const next = [...(value.additional_charges || [])];
-                            next[idx] = { ...next[idx], amount: Number(e.target.value) };
-                            patch({ additional_charges: next });
-                          }}
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          patch({
-                            additional_charges: (value.additional_charges || []).filter((_, i) => i !== idx),
-                          })
-                        }
-                        className="btn-danger text-xs px-2 py-1.5"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
                 </div>
-              </div>
 
-              {/* Adjustments section */}
-              <div className="space-y-2">
-                <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">Adjustments</h3>
                 <div>
-                  <label className="label">Discount</label>
-                  <input
+                  <label className="label">Remarks</label>
+                  <textarea
                     className="input"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0"
-                    value={value.discount_amount || ""}
-                    onChange={(e) => patch({ discount_amount: Number(e.target.value) })}
+                    rows={3}
+                    value={value.remarks}
+                    onChange={(e) => patch({ remarks: e.target.value })}
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="label">Remarks</label>
-                <textarea
-                  className="input"
-                  rows={3}
-                  value={value.remarks}
-                  onChange={(e) => patch({ remarks: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-brand-100 bg-brand-50/50 p-4 space-y-1.5 self-start md:sticky md:top-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-700 mb-3">Document total</p>
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Subtotal</span>
-                <span>{inr(totals.subtotal, 2)}</span>
-              </div>
-              {(value.taxable_charges || []).filter(c => c.amount > 0).map((charge, idx) => (
-                <div key={`tc-${idx}`} className="flex justify-between text-sm">
-                  <span className="text-slate-500">{charge.label}</span>
-                  <span>{inr(charge.amount, 2)}</span>
-                </div>
-              ))}
-              {totals.discount > 0 && (
+              <div className="rounded-2xl border border-brand-100 bg-brand-50/50 p-4 space-y-1.5 self-start md:sticky md:top-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-700 mb-3">
+                  Document total
+                </p>
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">Discount</span>
-                  <span className="text-red-600">- {inr(totals.discount, 2)}</span>
+                  <span className="text-slate-500">Subtotal</span>
+                  <span>{inr(totals.subtotal, 2)}</span>
                 </div>
-              )}
-              {(value.additional_charges || []).filter(c => c.amount > 0).map((charge, idx) => (
-                <div key={idx} className="flex justify-between text-sm">
-                  <span className="text-slate-500">{charge.label}</span>
-                  <span>{inr(charge.amount, 2)}</span>
+                {(value.taxable_charges || [])
+                  .filter((c) => c.amount > 0)
+                  .map((charge, idx) => (
+                    <div
+                      key={`tc-${idx}`}
+                      className="flex justify-between text-sm"
+                    >
+                      <span className="text-slate-500">{charge.label}</span>
+                      <span>{inr(charge.amount, 2)}</span>
+                    </div>
+                  ))}
+                {totals.discount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Discount</span>
+                    <span className="text-red-600">
+                      - {inr(totals.discount, 2)}
+                    </span>
+                  </div>
+                )}
+                {(value.additional_charges || [])
+                  .filter((c) => c.amount > 0)
+                  .map((charge, idx) => (
+                    <div key={idx} className="flex justify-between text-sm">
+                      <span className="text-slate-500">{charge.label}</span>
+                      <span>{inr(charge.amount, 2)}</span>
+                    </div>
+                  ))}
+                <div className="pt-2 border-t border-brand-100" />
+                {value.tax_type === "cgst_sgst" && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">Taxable amount</span>
+                      <span>{inr(totals.taxableAmount, 2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-500">
+                      <span>
+                        CGST @ {((value.tax_rate * 100) / 2).toFixed(1)}%
+                      </span>
+                      <span>{inr(totals.cgst, 2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-500">
+                      <span>
+                        SGST @ {((value.tax_rate * 100) / 2).toFixed(1)}%
+                      </span>
+                      <span>{inr(totals.sgst, 2)}</span>
+                    </div>
+                  </>
+                )}
+                {value.tax_type === "igst" && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-slate-500">Taxable amount</span>
+                      <span>{inr(totals.taxableAmount, 2)}</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-slate-500">
+                      <span>IGST @ {(value.tax_rate * 100).toFixed(1)}%</span>
+                      <span>{inr(totals.igst, 2)}</span>
+                    </div>
+                  </>
+                )}
+                <div className="flex justify-between text-sm pt-2 border-t border-brand-100">
+                  <span className="text-slate-500">Round Off</span>
+                  <span className={totals.roundOff < 0 ? "text-red-600" : ""}>
+                    {totals.roundOff < 0 ? "" : "+"}
+                    {inr(totals.roundOff, 2)}
+                  </span>
                 </div>
-              ))}
-              <div className="pt-2 border-t border-brand-100" />
-              {value.tax_type === "cgst_sgst" && (
-                <>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Taxable amount</span>
-                    <span>{inr(totals.taxableAmount, 2)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-slate-500">
-                    <span>CGST @ {((value.tax_rate * 100) / 2).toFixed(1)}%</span>
-                    <span>{inr(totals.cgst, 2)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-slate-500">
-                    <span>SGST @ {((value.tax_rate * 100) / 2).toFixed(1)}%</span>
-                    <span>{inr(totals.sgst, 2)}</span>
-                  </div>
-                </>
-              )}
-              {value.tax_type === "igst" && (
-                <>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-slate-500">Taxable amount</span>
-                    <span>{inr(totals.taxableAmount, 2)}</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-slate-500">
-                    <span>IGST @ {(value.tax_rate * 100).toFixed(1)}%</span>
-                    <span>{inr(totals.igst, 2)}</span>
-                  </div>
-                </>
-              )}
-              <div className="flex justify-between text-sm pt-2 border-t border-brand-100">
-                <span className="text-slate-500">Round Off</span>
-                <span className={totals.roundOff < 0 ? "text-red-600" : ""}>
-                  {totals.roundOff < 0 ? "" : "+"}{inr(totals.roundOff, 2)}
-                </span>
-              </div>
-              <div className="flex justify-between text-lg font-bold pt-3 border-t border-brand-100">
-                <span>Total</span>
-                <span>{inr(totals.total, 2)}</span>
+                <div className="flex justify-between text-lg font-bold pt-3 border-t border-brand-100">
+                  <span>Total</span>
+                  <span>{inr(totals.total, 2)}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Actions */}
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-            <button type="submit" disabled={saving} className="btn-primary w-full sm:w-auto">
-              {saving ? "Saving…" : value.id ? "Save changes" : `Save ${docTypeLabel(value.doc_type)}`}
-            </button>
-            <div className="flex items-center gap-3 flex-wrap">
-              {value.id ? (
-                <>
-                  <a
-                    href={`/api/documents/${value.id}/pdf`}
-                    target="_blank"
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <button
+                type="submit"
+                disabled={saving}
+                className="btn-primary w-full sm:w-auto"
+              >
+                {saving
+                  ? "Saving…"
+                  : value.id
+                    ? "Save changes"
+                    : `Save ${docTypeLabel(value.doc_type)}`}
+              </button>
+              <div className="flex items-center gap-3 flex-wrap">
+                {value.id ? (
+                  <>
+                    <a
+                      href={`/api/documents/${value.id}/pdf`}
+                      target="_blank"
+                      className="btn-secondary"
+                      title="Preview as PDF (renders server-side)"
+                    >
+                      Preview PDF
+                    </a>
+                    <a
+                      href={`/api/documents/${value.id}/pdf`}
+                      download={`${value.doc_number || "document"}.pdf`}
+                      className="btn-secondary"
+                    >
+                      Download PDF
+                    </a>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
                     className="btn-secondary"
-                    title="Preview as PDF (renders server-side)"
+                    title="Save the document first to preview PDF"
                   >
-                    Preview PDF
-                  </a>
-                  <a
-                    href={`/api/documents/${value.id}/pdf`}
-                    download={`${value.doc_number || "document"}.pdf`}
-                    className="btn-secondary"
-                  >
-                    Download PDF
-                  </a>
-                </>
-              ) : (
+                    Save first to preview
+                  </button>
+                )}
+                {value.id && isDirty && (
+                  <span className="text-xs text-amber-600 font-medium">
+                    Save changes to update PDF
+                  </span>
+                )}
+              </div>
+            </div>
+            {saveError ? (
+              <div
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                {saveError}
+              </div>
+            ) : null}
+            {saveSuccess && (
+              <div
+                role="alert"
+                className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-center justify-between"
+              >
+                <span>
+                  ✓ Saved as <strong>{saveSuccess}</strong>
+                </span>
+                <a
+                  href={`/documents/${value.id}`}
+                  className="text-emerald-700 underline font-medium ml-2 shrink-0"
+                >
+                  View document →
+                </a>
                 <button
                   type="button"
-                  disabled
-                  className="btn-secondary"
-                  title="Save the document first to preview PDF"
+                  onClick={() => setSaveSuccess(null)}
+                  className="ml-3 text-emerald-500 hover:text-emerald-700 shrink-0"
                 >
-                  Save first to preview
+                  ✕
                 </button>
-              )}
-              {value.id && isDirty && (
-                <span className="text-xs text-amber-600 font-medium">
-                  Save changes to update PDF
-                </span>
-              )}
-            </div>
-          </div>
-          {saveError ? (
-            <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {saveError}
-            </div>
-          ) : null}
-          {saveSuccess && (
-            <div role="alert" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-center justify-between">
-              <span>✓ Saved as <strong>{saveSuccess}</strong></span>
-              <a href={`/documents/${value.id}`} className="text-emerald-700 underline font-medium ml-2 shrink-0">
-                View document →
-              </a>
-              <button
-                type="button"
-                onClick={() => setSaveSuccess(null)}
-                className="ml-3 text-emerald-500 hover:text-emerald-700 shrink-0"
-              >
-                ✕
-              </button>
-            </div>
-          )}
-        </>
-      )}
+              </div>
+            )}
+          </>
+        )}
 
-      {/* New Customer Modal */}
-      {showNewCustomerModal && (
-        <NewCustomerModal
-          onClose={() => setShowNewCustomerModal(false)}
-          onCreated={handleCustomerCreated}
-        />
-      )}
+        {/* New Customer Modal */}
+        {showNewCustomerModal && (
+          <NewCustomerModal
+            onClose={() => setShowNewCustomerModal(false)}
+            onCreated={handleCustomerCreated}
+          />
+        )}
 
-      {/* Manage Descriptions Modal */}
-      {showManageDescriptions && (
-        <ManageDescriptionsModal
-          onClose={() => setShowManageDescriptions(false)}
-        />
-      )}
-    </form>
+        {/* Manage Descriptions Modal */}
+        {showManageDescriptions && (
+          <ManageDescriptionsModal
+            onClose={() => setShowManageDescriptions(false)}
+          />
+        )}
+      </form>
     </>
   );
 }

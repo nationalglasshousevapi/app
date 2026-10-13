@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
-import { CONVERTIBLE_TYPES, docTypeShort, financialYearFor } from "@/lib/docTypes";
+import {
+  DocType,
+  conversionTargets,
+  docTypeShort,
+  financialYearFor,
+} from "@/lib/docTypes";
 import { PAYMENT_MODES } from "@/lib/paymentModes";
 import { computeTax, computeTotal } from "@/lib/documents";
 
@@ -14,7 +19,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid request." }, { status: 400 });
   }
 
-  const { id, record_payment, payment_mode, with_gst, add_gst, gst_type, tax_type } = (body ?? {}) as {
+  const {
+    id,
+    record_payment,
+    payment_mode,
+    with_gst,
+    add_gst,
+    gst_type,
+    tax_type,
+    to_type,
+  } = (body ?? {}) as {
     id?: string;
     record_payment?: boolean;
     payment_mode?: string;
@@ -22,9 +36,13 @@ export async function POST(req: NextRequest) {
     add_gst?: boolean;
     gst_type?: string;
     tax_type?: string;
+    to_type?: string;
   };
   if (!id) {
-    return NextResponse.json({ error: "Source document ID is required." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Source document ID is required." },
+      { status: 400 }
+    );
   }
 
   const sb = supabaseServer();
@@ -35,68 +53,136 @@ export async function POST(req: NextRequest) {
     .eq("id", id)
     .single();
   if (sourceError || !source) {
-    return NextResponse.json({ error: sourceError?.message ?? "Source document not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: sourceError?.message ?? "Source document not found" },
+      { status: 404 }
+    );
   }
 
-  if (!CONVERTIBLE_TYPES.includes(source.doc_type)) {
-    return NextResponse.json({ error: "Only orders, quotations, performa invoices and estimates can be converted to an invoice." }, { status: 400 });
+  const targets = conversionTargets(source.doc_type);
+  if (targets.length === 0) {
+    return NextResponse.json(
+      { error: "This document type cannot be converted." },
+      { status: 400 }
+    );
   }
   if (source.status === "cancelled") {
-    return NextResponse.json({ error: "Cancelled documents cannot be converted." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Cancelled documents cannot be converted." },
+      { status: 400 }
+    );
   }
   if (source.status === "converted") {
-    return NextResponse.json({ error: "This document has already been converted to an invoice." }, { status: 400 });
+    return NextResponse.json(
+      { error: "This document has already been converted." },
+      { status: 400 }
+    );
   }
 
-  if (record_payment && payment_mode && !(validModes as string[]).includes(payment_mode)) {
-    return NextResponse.json({ error: "Invalid payment mode." }, { status: 400 });
+  // Default to invoice (legacy behaviour); otherwise validate the requested target.
+  const targetType: DocType = (to_type ?? "invoice") as DocType;
+  if (!targets.includes(targetType)) {
+    return NextResponse.json(
+      {
+        error: `This ${source.doc_type} can only be converted to: ${targets.join(", ")}.`,
+      },
+      { status: 400 }
+    );
   }
 
-  // Determine whether to add GST on conversion (Order without GST -> Invoice with GST)
-  const shouldAddGst = Boolean(with_gst ?? add_gst);
-  // Explicit tax_type override takes precedence over gst_type / with_gst
-  let invoiceTaxType: string = source.tax_type;
-  let invoiceTaxRate: number = Number(source.tax_rate ?? 0);
+  const isInvoiceTarget = targetType === "invoice";
+
+  if (
+    isInvoiceTarget &&
+    record_payment &&
+    payment_mode &&
+    !(validModes as string[]).includes(payment_mode)
+  ) {
+    return NextResponse.json(
+      { error: "Invalid payment mode." },
+      { status: 400 }
+    );
+  }
+
+  // GST is only added/remapped when producing an invoice. For other targets the
+  // tax settings are copied through unchanged.
+  const shouldAddGst = isInvoiceTarget && Boolean(with_gst ?? add_gst);
+  let docTaxType: string = source.tax_type;
+  let docTaxRate: number = Number(source.tax_rate ?? 0);
   const validGstTypes = ["cgst_sgst", "igst", "none"] as const;
   const requestedGstType = (gst_type ?? tax_type) as string | undefined;
 
-  if (requestedGstType && !(validGstTypes as readonly string[]).includes(requestedGstType)) {
-    return NextResponse.json({ error: "Invalid GST type. Use cgst_sgst, igst or none." }, { status: 400 });
+  if (
+    requestedGstType &&
+    !(validGstTypes as readonly string[]).includes(requestedGstType)
+  ) {
+    return NextResponse.json(
+      { error: "Invalid GST type. Use cgst_sgst, igst or none." },
+      { status: 400 }
+    );
   }
 
-  if (requestedGstType && requestedGstType !== "none" && source.tax_type === "none") {
-    // Explicit request to add GST (e.g. with_gst + gst_type=igst)
-    invoiceTaxType = requestedGstType;
-    invoiceTaxRate = 0.18;
-  } else if (shouldAddGst && source.tax_type === "none") {
-    invoiceTaxType = requestedGstType && requestedGstType !== "none" ? requestedGstType : "cgst_sgst";
-    invoiceTaxRate = 0.18;
-  } else if (requestedGstType) {
-    // Allow switching tax type even when source already has GST (e.g. cgst_sgst -> igst)
-    // Keep rate consistent: taxable => 0.18, none => 0
-    invoiceTaxType = requestedGstType;
-    invoiceTaxRate = requestedGstType === "none" ? 0 : 0.18;
+  if (isInvoiceTarget) {
+    if (
+      requestedGstType &&
+      requestedGstType !== "none" &&
+      source.tax_type === "none"
+    ) {
+      docTaxType = requestedGstType;
+      docTaxRate = 0.18;
+    } else if (shouldAddGst && source.tax_type === "none") {
+      docTaxType =
+        requestedGstType && requestedGstType !== "none"
+          ? requestedGstType
+          : "cgst_sgst";
+      docTaxRate = 0.18;
+    } else if (requestedGstType) {
+      docTaxType = requestedGstType;
+      docTaxRate = requestedGstType === "none" ? 0 : 0.18;
+    }
   }
 
-  // Compute invoice totals — recompute if tax settings differ from source (e.g. Order without GST -> Invoice with GST)
-  let invoiceSubtotal = Number(source.subtotal);
-  let invoiceDiscount = Number(source.discount_amount ?? 0);
-  const invoiceAdditional = (source.additional_charges ?? []) as { label: string; amount: number }[];
-  const invoiceTaxable = (source.taxable_charges ?? []) as { label: string; amount: number }[];
-  let invoiceCgst = Number(source.cgst_amount ?? 0);
-  let invoiceSgst = Number(source.sgst_amount ?? 0);
-  let invoiceIgst = Number(source.igst_amount ?? 0);
-  let invoiceRoundOff = Number(source.round_off ?? 0);
-  let invoiceTotal = Number(source.total_amount ?? 0);
-  const taxChanged = invoiceTaxType !== source.tax_type || invoiceTaxRate !== Number(source.tax_rate ?? 0);
+  // Compute totals — recompute only if tax settings differ from source.
+  let docSubtotal = Number(source.subtotal);
+  let docDiscount = Number(source.discount_amount ?? 0);
+  const docAdditional = (source.additional_charges ?? []) as {
+    label: string;
+    amount: number;
+  }[];
+  const docTaxable = (source.taxable_charges ?? []) as {
+    label: string;
+    amount: number;
+  }[];
+  let docCgst = Number(source.cgst_amount ?? 0);
+  let docSgst = Number(source.sgst_amount ?? 0);
+  let docIgst = Number(source.igst_amount ?? 0);
+  let docRoundOff = Number(source.round_off ?? 0);
+  let docTotal = Number(source.total_amount ?? 0);
+  const taxChanged =
+    docTaxType !== source.tax_type ||
+    docTaxRate !== Number(source.tax_rate ?? 0);
   if (taxChanged) {
-    const { cgst, sgst, igst } = computeTax(invoiceSubtotal, invoiceTaxType, invoiceTaxRate, invoiceDiscount, invoiceTaxable);
-    const { totalAmount, roundOff } = computeTotal(invoiceSubtotal, cgst, sgst, igst, invoiceDiscount, invoiceAdditional, invoiceTaxable);
-    invoiceCgst = cgst;
-    invoiceSgst = sgst;
-    invoiceIgst = igst;
-    invoiceRoundOff = roundOff;
-    invoiceTotal = totalAmount;
+    const { cgst, sgst, igst } = computeTax(
+      docSubtotal,
+      docTaxType,
+      docTaxRate,
+      docDiscount,
+      docTaxable
+    );
+    const { totalAmount, roundOff } = computeTotal(
+      docSubtotal,
+      cgst,
+      sgst,
+      igst,
+      docDiscount,
+      docAdditional,
+      docTaxable
+    );
+    docCgst = cgst;
+    docSgst = sgst;
+    docIgst = igst;
+    docRoundOff = roundOff;
+    docTotal = totalAmount;
   }
 
   // Fetch source items
@@ -106,23 +192,26 @@ export async function POST(req: NextRequest) {
     .eq("document_id", id)
     .order("position", { ascending: true });
 
-  // Generate invoice number (atomic)
+  // Generate document number for the target type (atomic)
   const docDate = new Date();
   const fy = financialYearFor(docDate);
-  const { data: seqData, error: seqError } = await sb.rpc("next_document_number", {
-    p_doc_type: "invoice",
-    p_financial_year: fy,
-  });
+  const { data: seqData, error: seqError } = await sb.rpc(
+    "next_document_number",
+    {
+      p_doc_type: targetType,
+      p_financial_year: fy,
+    }
+  );
   if (seqError) {
     return NextResponse.json({ error: seqError.message }, { status: 500 });
   }
-  const docNumber = `${docTypeShort("invoice")}-${fy}-${String(seqData).padStart(4, "0")}`;
+  const docNumber = `${docTypeShort(targetType)}-${fy}-${String(seqData).padStart(4, "0")}`;
 
-  // Create the invoice, linking the source via order_number
-  const { data: invoice, error: invoiceError } = await sb
+  // Create the target document, linking the source via order_number
+  const { data: created, error: createdError } = await sb
     .from("documents")
     .insert({
-      doc_type: "invoice",
+      doc_type: targetType,
       doc_number: docNumber,
       financial_year: fy,
       doc_date: docDate.toISOString().slice(0, 10),
@@ -139,31 +228,31 @@ export async function POST(req: NextRequest) {
       ship_to_address: source.ship_to_address,
       ship_to_contact_person: source.ship_to_contact_person,
       ship_to_contact_number: source.ship_to_contact_number,
-      subtotal: invoiceSubtotal,
-      tax_type: invoiceTaxType,
-      tax_rate: invoiceTaxRate,
-      cgst_amount: invoiceCgst,
-      sgst_amount: invoiceSgst,
-      igst_amount: invoiceIgst,
-      round_off: invoiceRoundOff,
-      discount_amount: invoiceDiscount || 0,
-      additional_charges: invoiceAdditional ?? [],
-      taxable_charges: invoiceTaxable ?? [],
-      total_amount: invoiceTotal,
+      subtotal: docSubtotal,
+      tax_type: docTaxType,
+      tax_rate: docTaxRate,
+      cgst_amount: docCgst,
+      sgst_amount: docSgst,
+      igst_amount: docIgst,
+      round_off: docRoundOff,
+      discount_amount: docDiscount || 0,
+      additional_charges: docAdditional ?? [],
+      taxable_charges: docTaxable ?? [],
+      total_amount: docTotal,
       remarks: source.remarks,
-      status: record_payment ? "paid" : "draft",
+      status: isInvoiceTarget && record_payment ? "paid" : "draft",
     })
     .select()
     .single();
 
-  if (invoiceError) {
-    return NextResponse.json({ error: invoiceError.message }, { status: 500 });
+  if (createdError) {
+    return NextResponse.json({ error: createdError.message }, { status: 500 });
   }
 
   // Copy line items
   if (sourceItems?.length) {
     const rows = sourceItems.map((it, idx) => ({
-      document_id: invoice.id,
+      document_id: created.id,
       position: idx,
       description: it.description,
       size: it.size,
@@ -181,17 +270,21 @@ export async function POST(req: NextRequest) {
     }));
     const { error: itemsError } = await sb.from("document_items").insert(rows);
     if (itemsError) {
-      await sb.from("documents").delete().eq("id", invoice.id);
-      return NextResponse.json({ error: `Could not copy line items: ${itemsError.message}` }, { status: 500 });
+      await sb.from("documents").delete().eq("id", created.id);
+      return NextResponse.json(
+        { error: `Could not copy line items: ${itemsError.message}` },
+        { status: 500 }
+      );
     }
   }
 
   // Mark source as converted
   await sb.from("documents").update({ status: "converted" }).eq("id", id);
 
-  // Record payment + generate receipt if requested
+  // Payment + receipt only apply when converting to an invoice.
   let payment: unknown = null;
-  if (record_payment) {
+  const shouldRecordPayment = isInvoiceTarget && Boolean(record_payment);
+  if (shouldRecordPayment) {
     // If the source order already collected an advance, only the remaining
     // balance is paid now (the advance payment row already exists). Source
     // documents don't store a paid-total column, so sum the linked payments.
@@ -200,13 +293,21 @@ export async function POST(req: NextRequest) {
       .from("payments")
       .select("amount")
       .eq("document_id", id);
-    const paidSoFar = (paidRows ?? []).reduce((s, p) => s + Number(p.amount), 0);
-    const amount = Math.max(0, invoiceTotal - paidSoFar);
+    const paidSoFar = (paidRows ?? []).reduce(
+      (s, p) => s + Number(p.amount),
+      0
+    );
+    const amount = Math.max(0, docTotal - paidSoFar);
     const paymentMode = payment_mode ?? "cash";
     if (amount <= 0) {
       return NextResponse.json(
-        { document: invoice, payment: null, message: "This order is already fully paid. Invoice created without a new payment." },
-        { status: 201 },
+        {
+          document: created,
+          payment: null,
+          message:
+            "This order is already fully paid. Invoice created without a new payment.",
+        },
+        { status: 201 }
       );
     }
 
@@ -223,7 +324,7 @@ export async function POST(req: NextRequest) {
       customer = c;
     }
     if (!customerId || !customer) {
-      const { data: created } = await sb
+      const { data: createdCustomer } = await sb
         .from("customers")
         .insert({
           name: source.bill_to_name || "Cash Customer",
@@ -235,11 +336,14 @@ export async function POST(req: NextRequest) {
         })
         .select()
         .single();
-      customerId = created?.id ?? null;
-      customer = created;
+      customerId = createdCustomer?.id ?? null;
+      customer = createdCustomer;
       // Keep the new invoice linked to the customer
       if (customerId) {
-        await sb.from("documents").update({ customer_id: customerId }).eq("id", invoice.id);
+        await sb
+          .from("documents")
+          .update({ customer_id: customerId })
+          .eq("id", created.id);
       }
     }
 
@@ -257,18 +361,25 @@ export async function POST(req: NextRequest) {
       .select()
       .single();
     if (paymentError) {
-      return NextResponse.json({ error: `Invoice created but payment could not be recorded: ${paymentError.message}` }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: `Invoice created but payment could not be recorded: ${paymentError.message}`,
+        },
+        { status: 500 }
+      );
     }
     payment = paymentRow;
 
     // Auto-generate receipt
-
-    const { data: seqData, error: seqError } = await sb.rpc("next_document_number", {
-      p_doc_type: "receipt",
-      p_financial_year: fy,
-    });
-    if (!seqError) {
-      const receiptNumber = `${docTypeShort("receipt")}-${fy}-${String(seqData).padStart(4, "0")}`;
+    const { data: receiptSeq, error: receiptSeqError } = await sb.rpc(
+      "next_document_number",
+      {
+        p_doc_type: "receipt",
+        p_financial_year: fy,
+      }
+    );
+    if (!receiptSeqError) {
+      const receiptNumber = `${docTypeShort("receipt")}-${fy}-${String(receiptSeq).padStart(4, "0")}`;
       const { data: receiptDoc } = await sb
         .from("documents")
         .insert({
@@ -299,10 +410,13 @@ export async function POST(req: NextRequest) {
         .single();
 
       if (receiptDoc) {
-        await sb.from("payments").update({ document_id: receiptDoc.id }).eq("id", paymentRow.id);
+        await sb
+          .from("payments")
+          .update({ document_id: receiptDoc.id })
+          .eq("id", paymentRow.id);
       }
     }
   }
 
-  return NextResponse.json({ document: invoice, payment });
+  return NextResponse.json({ document: created, payment });
 }
