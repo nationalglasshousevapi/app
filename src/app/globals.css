@@ -12,6 +12,15 @@ body {
   @apply bg-white border border-slate-200/80 rounded-xl;
 }
 
+/* ── Modals ── */
+/* Caps the dialog to the visible viewport (minus the overlay padding) so tall
+   forms scroll inside the dialog instead of spilling off-screen. `dvh` tracks
+   the mobile/zoomed browser chrome; the `vh` line is the fallback. */
+.modal-panel {
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+}
+
 /* ── Buttons ── */
 .btn {
   @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 min-h-[48px] active:scale-[0.97];
@@ -68,7 +77,10 @@ body {
     line-height: 1.25rem;
   }
 
-  .btn, .btn-primary, .btn-secondary, .btn-danger {
+  .btn,
+  .btn-primary,
+  .btn-secondary,
+  .btn-danger {
     min-height: 38px;
     padding: 6px 14px;
   }
@@ -93,7 +105,8 @@ body {
   }
 
   /* Hide navigation, sidebar, and the left (input) panel */
-  nav, aside,
+  nav,
+  aside,
   .grid-cols-1 > .space-y-5:first-child {
     display: none !important;
   }

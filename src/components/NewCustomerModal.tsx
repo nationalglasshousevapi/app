@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { motion } from "framer-motion";
+import Modal from "@/components/Modal";
 
 type Customer = {
   id: string;
@@ -62,111 +62,97 @@ export default function NewCustomerModal({
   }
 
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-      onClick={onClose}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.15 }}
-    >
-      <motion.div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-auto overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, scale: 0.95, y: -8 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ type: "spring", damping: 25, stiffness: 300 }}
-      >
-        <div className="p-6 pb-0">
-          <h2 className="font-display text-xl font-bold text-ink">Add Customer</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            Save their details once to fill invoices faster.
-          </p>
+    <Modal
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      title="Add Customer"
+      description="Save their details once to fill invoices faster."
+      maxWidth="lg"
+      closeOnBackdrop={false}
+      busy={saving}
+      footer={
+        <div className="flex justify-end gap-3">
+          <button type="button" onClick={onClose} className="btn-secondary">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="btn-primary disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save Customer"}
+          </button>
         </div>
+      }
+    >
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="md:col-span-2">
+          <label className="label">Name *</label>
+          <input
+            className="input"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="label">Address</label>
+          <input
+            className="input"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label">Contact Person</label>
+          <input
+            className="input"
+            value={contactPerson}
+            onChange={(e) => setContactPerson(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label">Contact Number</label>
+          <input
+            className="input"
+            value={contactNumber}
+            onChange={(e) => setContactNumber(e.target.value)}
+          />
+        </div>
+        <div className="md:col-span-2">
+          <label className="label">Email</label>
+          <input
+            className="input"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label">GST</label>
+          <input
+            className="input"
+            value={gst}
+            onChange={(e) => setGst(e.target.value)}
+          />
+        </div>
+        <div>
+          <label className="label">
+            Opening Balance{" "}
+            <span className="text-slate-400 font-normal">(optional)</span>
+          </label>
+          <input
+            className="input"
+            type="number"
+            step="0.01"
+            value={openingBalance}
+            onChange={(e) => setOpeningBalance(e.target.value)}
+            placeholder="0"
+          />
+        </div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
-              <label className="label">Name *</label>
-              <input
-                className="input"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="label">Address</label>
-              <input
-                className="input"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="label">Contact Person</label>
-              <input
-                className="input"
-                value={contactPerson}
-                onChange={(e) => setContactPerson(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="label">Contact Number</label>
-              <input
-                className="input"
-                value={contactNumber}
-                onChange={(e) => setContactNumber(e.target.value)}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="label">Email</label>
-              <input
-                className="input"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="label">GST</label>
-              <input
-                className="input"
-                value={gst}
-                onChange={(e) => setGst(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="label">
-                Opening Balance{" "}
-                <span className="text-slate-400 font-normal">(optional)</span>
-              </label>
-              <input
-                className="input"
-                type="number"
-                step="0.01"
-                value={openingBalance}
-                onChange={(e) => setOpeningBalance(e.target.value)}
-                placeholder="0"
-              />
-            </div>
-          </div>
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-
-          <div className="flex justify-end gap-3 pt-2">
-            <button type="button" onClick={onClose} className="btn-secondary">
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="btn-primary disabled:opacity-50"
-            >
-              {saving ? "Saving..." : "Save Customer"}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </motion.div>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+    </Modal>
   );
 }

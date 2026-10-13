@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { PAYMENT_MODES } from "@/lib/paymentModes";
 import CalendarInput from "@/components/CalendarInput";
+import Modal from "@/components/Modal";
 import { inr } from "@/lib/format";
 
 interface Props {
@@ -48,7 +48,9 @@ export default function PaymentModal({ customerId, balanceDue }: Props) {
       return;
     }
     if (parsed > balanceDue) {
-      setError(`Amount (${inr(parsed)}) exceeds balance due (${inr(balanceDue)}).`);
+      setError(
+        `Amount (${inr(parsed)}) exceeds balance due (${inr(balanceDue)}).`
+      );
       return;
     }
 
@@ -92,142 +94,143 @@ export default function PaymentModal({ customerId, balanceDue }: Props) {
       >
         <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
           <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
-          <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
+          <path
+            fillRule="evenodd"
+            d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"
+            clipRule="evenodd"
+          />
         </svg>
         Record Payment
       </button>
 
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            onClick={() => { if (!saving) setOpen(false); }}
-          >
-            <motion.div
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-auto overflow-hidden"
-              initial={{ opacity: 0, scale: 0.95, y: -8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 8 }}
-              transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              onClick={(e) => e.stopPropagation()}
+      <Modal
+        open={open}
+        onClose={() => {
+          if (!saving) setOpen(false);
+        }}
+        onSubmit={handleSubmit}
+        title="Record Payment"
+        description={
+          <>
+            Balance due:{" "}
+            <span
+              className={`font-semibold ${balanceDue > 0 ? "text-red-600" : "text-green-600"}`}
             >
-              <div className="p-6 pb-0">
-                <h2 className="font-display text-xl font-bold text-ink">
-                  Record Payment
-                </h2>
-                <p className="text-sm text-slate-500 mt-1">
-                  Balance due:{" "}
-                  <span className={`font-semibold ${balanceDue > 0 ? "text-red-600" : "text-green-600"}`}>
-                    {inr(Math.abs(balanceDue))}
-                  </span>
-                </p>
-              </div>
+              {inr(Math.abs(balanceDue))}
+            </span>
+          </>
+        }
+        closeOnBackdrop={false}
+        busy={saving}
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              disabled={saving}
+              className="btn-secondary"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="btn-primary disabled:opacity-50"
+            >
+              {saving
+                ? "Saving..."
+                : generateReceipt
+                  ? "Record & Generate Receipt"
+                  : "Record Payment"}
+            </button>
+          </div>
+        }
+      >
+        <div>
+          <label className="label">Amount</label>
+          <input
+            type="number"
+            step="0.01"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="input"
+            placeholder="0.00"
+            required
+            autoFocus
+          />
+        </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div>
-                  <label className="label">Amount</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="input"
-                    placeholder="0.00"
-                    required
-                    autoFocus
-                  />
-                </div>
+        <div>
+          <label className="label">Payment Date</label>
+          <CalendarInput
+            value={paymentDate}
+            onChange={setPaymentDate}
+            required
+          />
+        </div>
 
-                <div>
-                  <label className="label">Payment Date</label>
-                  <CalendarInput value={paymentDate} onChange={setPaymentDate} required />
-                </div>
+        <div>
+          <label className="label">Payment Mode</label>
+          <select
+            value={mode}
+            onChange={(e) => setMode(e.target.value)}
+            className="input"
+          >
+            {PAYMENT_MODES.map((pm) => (
+              <option key={pm.value} value={pm.value}>
+                {pm.label}
+              </option>
+            ))}
+          </select>
+        </div>
 
-                <div>
-                  <label className="label">Payment Mode</label>
-                  <select
-                    value={mode}
-                    onChange={(e) => setMode(e.target.value)}
-                    className="input"
-                  >
-                    {PAYMENT_MODES.map((pm) => (
-                      <option key={pm.value} value={pm.value}>{pm.label}</option>
-                    ))}
-                  </select>
-                </div>
+        <div>
+          <label className="label">
+            Reference Number{" "}
+            <span className="text-slate-400 font-normal">(optional)</span>
+          </label>
+          <input
+            type="text"
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+            className="input"
+            placeholder="Cheque no, UTR, UPI ref..."
+          />
+        </div>
 
-                <div>
-                  <label className="label">
-                    Reference Number{" "}
-                    <span className="text-slate-400 font-normal">(optional)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={reference}
-                    onChange={(e) => setReference(e.target.value)}
-                    className="input"
-                    placeholder="Cheque no, UTR, UPI ref..."
-                  />
-                </div>
+        <div>
+          <label className="label">
+            Notes <span className="text-slate-400 font-normal">(optional)</span>
+          </label>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            className="input"
+          />
+        </div>
 
-                <div>
-                  <label className="label">
-                    Notes{" "}
-                    <span className="text-slate-400 font-normal">(optional)</span>
-                  </label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={2}
-                    className="input"
-                  />
-                </div>
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-700 rounded-xl bg-brand-50/50 border border-brand-100 px-4 py-3 cursor-pointer hover:bg-brand-50 transition">
+          <input
+            type="checkbox"
+            checked={generateReceipt}
+            onChange={(e) => setGenerateReceipt(e.target.checked)}
+            className="rounded border-slate-300"
+          />
+          <div>
+            <span className="font-semibold">Generate Receipt</span>
+            <p className="text-xs text-slate-500 mt-0.5">
+              A receipt will be created and can be shared with the customer.
+            </p>
+          </div>
+        </label>
 
-                <label className="flex items-center gap-2 text-sm font-medium text-slate-700 rounded-xl bg-brand-50/50 border border-brand-100 px-4 py-3 cursor-pointer hover:bg-brand-50 transition">
-                  <input
-                    type="checkbox"
-                    checked={generateReceipt}
-                    onChange={(e) => setGenerateReceipt(e.target.checked)}
-                    className="rounded border-slate-300"
-                  />
-                  <div>
-                    <span className="font-semibold">Generate Receipt</span>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      A receipt will be created and can be shared with the customer.
-                    </p>
-                  </div>
-                </label>
-
-                {error && (
-                  <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{error}</p>
-                )}
-
-                <div className="flex justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setOpen(false)}
-                    disabled={saving}
-                    className="btn-secondary"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="btn-primary disabled:opacity-50"
-                  >
-                    {saving ? "Saving..." : generateReceipt ? "Record & Generate Receipt" : "Record Payment"}
-                  </button>
-                </div>
-              </form>
-            </motion.div>
-          </motion.div>
+        {error && (
+          <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">
+            {error}
+          </p>
         )}
-      </AnimatePresence>
+      </Modal>
     </>
   );
 }
