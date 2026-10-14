@@ -29,7 +29,7 @@ export default function DocumentsLoading() {
       </div>
 
       {/* Document cards (mobile) */}
-      <div className="space-y-3 md:hidden">
+      <div className="space-y-3 xl:hidden">
         {[1, 2, 3, 4, 5].map((i) => (
           <div key={i} className="card p-4 space-y-3">
             <div className="flex items-start justify-between">
@@ -46,7 +46,7 @@ export default function DocumentsLoading() {
       </div>
 
       {/* Table (desktop) */}
-      <div className="hidden md:block card overflow-hidden">
+      <div className="hidden xl:block card overflow-hidden">
         <div className="divide-y divide-slate-100">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="flex items-center gap-4 px-6 py-4">

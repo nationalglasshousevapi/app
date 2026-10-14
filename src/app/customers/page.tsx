@@ -28,7 +28,9 @@ const EMPTY = {
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [invoiceCounts, setInvoiceCounts] = useState<Record<string, number>>({});
+  const [invoiceCounts, setInvoiceCounts] = useState<Record<string, number>>(
+    {}
+  );
   const [balanceData, setBalanceData] = useState<Record<string, number>>({});
   const [editingCustomer, setEditingCustomer] = useState<any>(null);
   const [q, setQ] = useState("");
@@ -44,7 +46,7 @@ export default function CustomersPage() {
     setLoading(true);
     const [custRes, statsRes, ledgerRes] = await Promise.all([
       fetch(
-        `/api/customers?page=${pageNum}&page_size=${PAGE_SIZE}${query ? `&q=${encodeURIComponent(query)}` : ""}`,
+        `/api/customers?page=${pageNum}&page_size=${PAGE_SIZE}${query ? `&q=${encodeURIComponent(query)}` : ""}`
       ),
       fetch("/api/customers/stats"),
       fetch("/api/accounts/balances"),
@@ -79,7 +81,12 @@ export default function CustomersPage() {
     await fetch("/api/customers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, opening_balance: form.opening_balance ? parseFloat(form.opening_balance) : 0 }),
+      body: JSON.stringify({
+        ...form,
+        opening_balance: form.opening_balance
+          ? parseFloat(form.opening_balance)
+          : 0,
+      }),
     });
     setForm(EMPTY);
     setShowForm(false);
@@ -93,7 +100,8 @@ export default function CustomersPage() {
   }
 
   async function deleteCustomer(id: string) {
-    if (!confirm("Delete this customer? This does not affect past documents.")) return;
+    if (!confirm("Delete this customer? This does not affect past documents."))
+      return;
     await fetch(`/api/customers/${id}`, { method: "DELETE" });
     load(q, page);
   }
@@ -106,16 +114,24 @@ export default function CustomersPage() {
           <h1 className="page-title">Customers</h1>
           <p className="page-subtitle">{customers.length} saved customers</p>
         </div>
-        <button className="btn-primary w-full sm:w-auto" onClick={() => setShowForm((s) => !s)}>
+        <button
+          className="btn-primary w-full sm:w-auto"
+          onClick={() => setShowForm((s) => !s)}
+        >
           {showForm ? "Cancel" : "+ Add customer"}
         </button>
       </div>
 
       {showForm && (
-        <form onSubmit={addCustomer} className="card p-6 md:p-8 grid md:grid-cols-2 gap-4">
+        <form
+          onSubmit={addCustomer}
+          className="card p-6 md:p-8 grid md:grid-cols-2 gap-4"
+        >
           <div className="md:col-span-2">
             <h2 className="font-bold text-lg">Add a customer</h2>
-            <p className="text-sm text-slate-500">Save their details once to fill invoices faster.</p>
+            <p className="text-sm text-slate-500">
+              Save their details once to fill invoices faster.
+            </p>
           </div>
           <div>
             <label className="label">Name *</label>
@@ -147,7 +163,9 @@ export default function CustomersPage() {
             <input
               className="input"
               value={form.contact_person}
-              onChange={(e) => setForm({ ...form, contact_person: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, contact_person: e.target.value })
+              }
             />
           </div>
           <div>
@@ -155,7 +173,9 @@ export default function CustomersPage() {
             <input
               className="input"
               value={form.contact_number}
-              onChange={(e) => setForm({ ...form, contact_number: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, contact_number: e.target.value })
+              }
             />
           </div>
           <div className="md:col-span-2">
@@ -168,13 +188,18 @@ export default function CustomersPage() {
             />
           </div>
           <div>
-            <label className="label">Opening Balance <span className="text-slate-400 font-normal">(optional)</span></label>
+            <label className="label">
+              Opening Balance{" "}
+              <span className="text-slate-400 font-normal">(optional)</span>
+            </label>
             <input
               className="input"
               type="number"
               step="0.01"
               value={form.opening_balance}
-              onChange={(e) => setForm({ ...form, opening_balance: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, opening_balance: e.target.value })
+              }
               placeholder="0"
             />
           </div>
@@ -195,15 +220,116 @@ export default function CustomersPage() {
         />
         {loading && q && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <svg className="animate-spin h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            <svg
+              className="animate-spin h-4 w-4 text-slate-400"
+              viewBox="0 0 24 24"
+              fill="none"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
             </svg>
           </div>
         )}
       </div>
 
-      <div className="card overflow-x-auto">
+      <div className="space-y-3 xl:hidden">
+        {loading &&
+          Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={`cskel-${i}`}
+              className="card p-4 animate-pulse space-y-3"
+            >
+              <div className="h-4 w-40 rounded bg-slate-200" />
+              <div className="h-3 w-24 rounded bg-slate-200" />
+            </div>
+          ))}
+        {customers.map((c) => (
+          <div key={c.id} className="card p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <Link
+                  href={`/customers/${c.id}`}
+                  className="font-semibold text-brand-700 hover:underline"
+                >
+                  {c.name}
+                </Link>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  {c.contact_number || c.contact_person || "—"}
+                </p>
+                {c.gst && (
+                  <p className="text-xs text-slate-400">GST: {c.gst}</p>
+                )}
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-[11px] text-slate-400">Balance</p>
+                <Link
+                  href={`/accounts/${c.id}`}
+                  className="font-mono font-semibold text-brand-600"
+                >
+                  {inr(balanceData[c.id] ?? 0)}
+                </Link>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+              <span className="text-xs text-slate-400">
+                {invoiceCounts[c.id] ?? 0} invoice / order
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-brand-600 hover:bg-brand-50 rounded-lg transition"
+                  onClick={() => editCustomer(c.id)}
+                  title="Edit customer"
+                >
+                  <svg
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    width="16"
+                    height="16"
+                  >
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                  </svg>
+                </button>
+                <button
+                  className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-red-500 hover:bg-red-50 rounded-lg transition"
+                  onClick={() => deleteCustomer(c.id)}
+                  title="Delete customer"
+                >
+                  <svg
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    width="16"
+                    height="16"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {!loading && !customers.length && (
+          <div className="card p-6 text-center text-gray-400">
+            No customers found
+          </div>
+        )}
+      </div>
+
+      <div className="card overflow-x-auto hidden xl:block">
         <table className="w-full text-sm">
           <thead className="bg-slate-50/80">
             <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-100">
@@ -217,54 +343,93 @@ export default function CustomersPage() {
             </tr>
           </thead>
           <tbody>
-            {loading && (
+            {loading &&
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={`skel-${i}`} className="animate-pulse">
-                  <td className="p-4"><div className="h-4 w-32 rounded bg-slate-200" /></td>
-                  <td className="p-4"><div className="h-4 w-24 rounded bg-slate-200" /></td>
-                  <td className="p-4"><div className="h-4 w-28 rounded bg-slate-200" /></td>
-                  <td className="p-4"><div className="h-4 w-20 rounded bg-slate-200" /></td>
-                  <td className="p-4"><div className="h-4 w-8 mx-auto rounded bg-slate-200" /></td>
-                  <td className="p-4 text-right"><div className="h-4 w-20 ml-auto rounded bg-slate-200" /></td>
-                  <td className="p-4"><div className="h-4 w-16 ml-auto rounded bg-slate-200" /></td>
+                  <td className="p-4">
+                    <div className="h-4 w-32 rounded bg-slate-200" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-4 w-24 rounded bg-slate-200" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-4 w-28 rounded bg-slate-200" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-4 w-20 rounded bg-slate-200" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-4 w-8 mx-auto rounded bg-slate-200" />
+                  </td>
+                  <td className="p-4 text-right">
+                    <div className="h-4 w-20 ml-auto rounded bg-slate-200" />
+                  </td>
+                  <td className="p-4">
+                    <div className="h-4 w-16 ml-auto rounded bg-slate-200" />
+                  </td>
                 </tr>
-              ))
-            )}
+              ))}
             {customers.map((c) => (
               <tr key={c.id} className="table-row">
                 <td className="p-4">
-                  <Link href={`/customers/${c.id}`} className="font-semibold text-brand-700 hover:underline">
+                  <Link
+                    href={`/customers/${c.id}`}
+                    className="font-semibold text-brand-700 hover:underline"
+                  >
                     {c.name}
                   </Link>
                 </td>
-                <td className="p-4 text-slate-500">{c.contact_person || "—"}</td>
-                <td className="p-4 text-slate-500">{c.contact_number || "—"}</td>
+                <td className="p-4 text-slate-500">
+                  {c.contact_person || "—"}
+                </td>
+                <td className="p-4 text-slate-500">
+                  {c.contact_number || "—"}
+                </td>
                 <td className="p-4 text-slate-500">{c.gst || "—"}</td>
                 <td className="p-4 text-center">
-                  <span className="font-semibold text-slate-700">{invoiceCounts[c.id] ?? 0}</span>
+                  <span className="font-semibold text-slate-700">
+                    {invoiceCounts[c.id] ?? 0}
+                  </span>
                 </td>
                 <td className="p-4 text-right font-mono">
-                  <Link href={`/accounts/${c.id}`} className="text-brand-600 hover:underline">
+                  <Link
+                    href={`/accounts/${c.id}`}
+                    className="text-brand-600 hover:underline"
+                  >
                     {inr(balanceData[c.id] ?? 0)}
                   </Link>
                 </td>
                 <td className="p-4 text-right flex items-center justify-end gap-1">
                   <button
-                    className="inline-flex items-center justify-center p-2 text-brand-600 hover:bg-brand-50 rounded-lg transition"
+                    className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-brand-600 hover:bg-brand-50 rounded-lg transition"
                     onClick={() => editCustomer(c.id)}
                     title="Edit customer"
                   >
-                    <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+                    <svg
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      width="16"
+                      height="16"
+                    >
                       <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                     </svg>
                   </button>
                   <button
-                    className="inline-flex items-center justify-center p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                    className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] text-red-500 hover:bg-red-50 rounded-lg transition"
                     onClick={() => deleteCustomer(c.id)}
                     title="Delete customer"
                   >
-                    <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-                      <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                    <svg
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      width="16"
+                      height="16"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
                     </svg>
                   </button>
                 </td>

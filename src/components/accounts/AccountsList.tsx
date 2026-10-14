@@ -16,7 +16,12 @@ type CustomerAccount = {
   invoice_count: number;
 };
 
-type SortField = "customer_name" | "opening_balance" | "total_invoiced" | "total_paid" | "balance_due";
+type SortField =
+  | "customer_name"
+  | "opening_balance"
+  | "total_invoiced"
+  | "total_paid"
+  | "balance_due";
 type FilterPreset = "all" | "outstanding" | "paid" | "overdue";
 
 interface Props {
@@ -45,10 +50,7 @@ export default function AccountsList({ customers }: Props) {
     // Search
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      list = list.filter(
-        (c) =>
-          c.customer_name.toLowerCase().includes(q)
-      );
+      list = list.filter((c) => c.customer_name.toLowerCase().includes(q));
     }
 
     // Filter preset
@@ -57,27 +59,48 @@ export default function AccountsList({ customers }: Props) {
     } else if (filterPreset === "paid") {
       list = list.filter((c) => c.balance_due <= 0);
     } else if (filterPreset === "overdue") {
-      list = list.filter((c) => Number(c.total_invoiced) > 0 && c.balance_due > Number(c.total_invoiced) * 0.5);
+      list = list.filter(
+        (c) =>
+          Number(c.total_invoiced) > 0 &&
+          c.balance_due > Number(c.total_invoiced) * 0.5
+      );
     }
 
     // Sort
     list = [...list].sort((a, b) => {
       const aVal = a[sortField];
       const bVal = b[sortField];
-      const cmp = typeof aVal === "string" ? (aVal as string).localeCompare(bVal as string) : (Number(aVal) - Number(bVal));
+      const cmp =
+        typeof aVal === "string"
+          ? (aVal as string).localeCompare(bVal as string)
+          : Number(aVal) - Number(bVal);
       return sortDir === "asc" ? cmp : -cmp;
     });
 
     return list;
   }, [customers, search, sortField, sortDir, filterPreset]);
 
-  const totalReceivable = useMemo(() => customers.reduce((s, c) => s + Number(c.balance_due), 0), [customers]);
-  const totalInvoiced = useMemo(() => customers.reduce((s, c) => s + Number(c.total_invoiced), 0), [customers]);
-  const totalPaid = useMemo(() => customers.reduce((s, c) => s + Number(c.total_paid), 0), [customers]);
+  const totalReceivable = useMemo(
+    () => customers.reduce((s, c) => s + Number(c.balance_due), 0),
+    [customers]
+  );
+  const totalInvoiced = useMemo(
+    () => customers.reduce((s, c) => s + Number(c.total_invoiced), 0),
+    [customers]
+  );
+  const totalPaid = useMemo(
+    () => customers.reduce((s, c) => s + Number(c.total_paid), 0),
+    [customers]
+  );
 
   function SortIcon({ field }: { field: SortField }) {
-    if (sortField !== field) return <span className="text-slate-300 ml-1">↕</span>;
-    return <span className="text-brass-500 ml-1">{sortDir === "asc" ? "↑" : "↓"}</span>;
+    if (sortField !== field)
+      return <span className="text-slate-300 ml-1">↕</span>;
+    return (
+      <span className="text-brass-500 ml-1">
+        {sortDir === "asc" ? "↑" : "↓"}
+      </span>
+    );
   }
 
   return (
@@ -85,16 +108,26 @@ export default function AccountsList({ customers }: Props) {
       {/* Stat cards */}
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <div className="card p-5">
-          <div className="text-sm font-semibold text-slate-500">Total Receivable</div>
-          <div className="font-display text-2xl font-bold text-ink mt-1">{inr(totalReceivable)}</div>
+          <div className="text-sm font-semibold text-slate-500">
+            Total Receivable
+          </div>
+          <div className="font-display text-2xl font-bold text-ink mt-1">
+            {inr(totalReceivable)}
+          </div>
         </div>
         <div className="card p-5">
-          <div className="text-sm font-semibold text-slate-500">Total Invoiced</div>
-          <div className="font-display text-2xl font-bold text-ink mt-1">{inr(totalInvoiced)}</div>
+          <div className="text-sm font-semibold text-slate-500">
+            Total Invoiced
+          </div>
+          <div className="font-display text-2xl font-bold text-ink mt-1">
+            {inr(totalInvoiced)}
+          </div>
         </div>
         <div className="card p-5">
           <div className="text-sm font-semibold text-slate-500">Total Paid</div>
-          <div className="font-display text-2xl font-bold text-ink mt-1">{inr(totalPaid)}</div>
+          <div className="font-display text-2xl font-bold text-ink mt-1">
+            {inr(totalPaid)}
+          </div>
         </div>
       </div>
 
@@ -112,17 +145,19 @@ export default function AccountsList({ customers }: Props) {
 
         {/* Filter chips */}
         <div className="flex flex-wrap gap-2">
-          {([
-            { key: "all", label: "All" },
-            { key: "outstanding", label: "With Outstanding" },
-            { key: "paid", label: "Paid in Full" },
-            { key: "overdue", label: "Overdue" },
-          ] as { key: FilterPreset; label: string }[]).map((p) => (
+          {(
+            [
+              { key: "all", label: "All" },
+              { key: "outstanding", label: "With Outstanding" },
+              { key: "paid", label: "Paid in Full" },
+              { key: "overdue", label: "Overdue" },
+            ] as { key: FilterPreset; label: string }[]
+          ).map((p) => (
             <button
               key={p.key}
               type="button"
               onClick={() => setFilterPreset(p.key)}
-              className={`text-sm px-3 py-2 rounded-full border min-h-[40px] inline-flex items-center ${
+              className={`text-sm px-3 py-2 rounded-full border min-h-[44px] inline-flex items-center ${
                 filterPreset === p.key
                   ? "bg-brass-500 text-white border-brass-500 shadow-sm"
                   : "border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -138,10 +173,15 @@ export default function AccountsList({ customers }: Props) {
       </div>
 
       {/* Mobile cards */}
-      <div className="mt-4 space-y-3 md:hidden">
+      <div className="mt-4 space-y-3 xl:hidden">
         {filtered.map((c) => {
           const bd = Number(c.balance_due);
-          const statusColor = bd <= 0 ? "text-green-600" : bd > Number(c.total_invoiced) * 0.5 ? "text-red-600" : "text-amber-600";
+          const statusColor =
+            bd <= 0
+              ? "text-green-600"
+              : bd > Number(c.total_invoiced) * 0.5
+                ? "text-red-600"
+                : "text-amber-600";
           return (
             <Link
               key={c.customer_id}
@@ -150,35 +190,50 @@ export default function AccountsList({ customers }: Props) {
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="font-semibold text-brand-700">{c.customer_name}</p>
-                  <p className="text-xs text-slate-400">{c.invoice_count} invoice{c.invoice_count !== 1 ? "s" : ""} / order{c.invoice_count !== 1 ? "s" : ""}</p>
+                  <p className="font-semibold text-brand-700">
+                    {c.customer_name}
+                  </p>
+                  <p className="text-xs text-slate-400">
+                    {c.invoice_count} invoice{c.invoice_count !== 1 ? "s" : ""}{" "}
+                    / order{c.invoice_count !== 1 ? "s" : ""}
+                  </p>
                 </div>
-                <p className={`font-semibold font-mono ${statusColor}`}>{inr(bd)}</p>
+                <p className={`font-semibold font-mono ${statusColor}`}>
+                  {inr(bd)}
+                </p>
               </div>
               <div className="grid grid-cols-3 gap-2 text-xs pt-2 border-t border-slate-100">
                 <div>
                   <span className="text-slate-400">Opening</span>
-                  <p className="font-mono font-medium">{inr(Number(c.opening_balance))}</p>
+                  <p className="font-mono font-medium">
+                    {inr(Number(c.opening_balance))}
+                  </p>
                 </div>
                 <div>
                   <span className="text-slate-400">Invoiced</span>
-                  <p className="font-mono font-medium">{inr(Number(c.total_invoiced))}</p>
+                  <p className="font-mono font-medium">
+                    {inr(Number(c.total_invoiced))}
+                  </p>
                 </div>
                 <div>
                   <span className="text-slate-400">Paid</span>
-                  <p className="font-mono font-medium">{inr(Number(c.total_paid))}</p>
+                  <p className="font-mono font-medium">
+                    {inr(Number(c.total_paid))}
+                  </p>
                 </div>
               </div>
             </Link>
           );
         })}
         {!filtered.length && (
-          <div className="card p-6 text-center text-gray-400">No customers found</div>
+          <div className="card p-6 text-center text-gray-400">
+            No customers found
+          </div>
         )}
       </div>
 
       {/* Desktop table */}
-      <div className="card mt-6 overflow-x-auto hidden md:block">
+      <div className="card mt-6 overflow-x-auto hidden xl:block">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50/80">
             <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-100">
@@ -217,18 +272,27 @@ export default function AccountsList({ customers }: Props) {
               >
                 Balance Due <SortIcon field="balance_due" />
               </th>
-              <th scope="col" className="p-4 font-semibold text-center">Invoices / Orders</th>
+              <th scope="col" className="p-4 font-semibold text-center">
+                Invoices / Orders
+              </th>
             </tr>
           </thead>
           <tbody>
             {!filtered.length ? (
               <tr>
-                <td colSpan={6} className="p-4 text-center text-slate-400">No customers found.</td>
+                <td colSpan={6} className="p-4 text-center text-slate-400">
+                  No customers found.
+                </td>
               </tr>
             ) : (
               filtered.map((c) => {
                 const bd = Number(c.balance_due);
-                const statusColor = bd <= 0 ? "text-green-600" : bd > Number(c.total_invoiced) * 0.5 ? "text-red-600" : "text-amber-600";
+                const statusColor =
+                  bd <= 0
+                    ? "text-green-600"
+                    : bd > Number(c.total_invoiced) * 0.5
+                      ? "text-red-600"
+                      : "text-amber-600";
                 return (
                   <motion.tr
                     key={c.customer_id}
@@ -236,16 +300,33 @@ export default function AccountsList({ customers }: Props) {
                     onClick={() => router.push(`/accounts/${c.customer_id}`)}
                     initial={{ opacity: 0, x: -4 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: filtered.indexOf(c) * 0.02, duration: 0.15 }}
+                    transition={{
+                      delay: filtered.indexOf(c) * 0.02,
+                      duration: 0.15,
+                    }}
                   >
                     <td className="p-4">
-                      <span className="text-brand-600 font-semibold">{c.customer_name}</span>
+                      <span className="text-brand-600 font-semibold">
+                        {c.customer_name}
+                      </span>
                     </td>
-                    <td className="p-4 text-right font-mono">{inr(Number(c.opening_balance))}</td>
-                    <td className="p-4 text-right font-mono">{inr(Number(c.total_invoiced))}</td>
-                    <td className="p-4 text-right font-mono">{inr(Number(c.total_paid))}</td>
-                    <td className={`p-4 text-right font-mono font-semibold ${statusColor}`}>{inr(bd)}</td>
-                    <td className="p-4 text-center text-slate-500 text-xs">{c.invoice_count} docs</td>
+                    <td className="p-4 text-right font-mono">
+                      {inr(Number(c.opening_balance))}
+                    </td>
+                    <td className="p-4 text-right font-mono">
+                      {inr(Number(c.total_invoiced))}
+                    </td>
+                    <td className="p-4 text-right font-mono">
+                      {inr(Number(c.total_paid))}
+                    </td>
+                    <td
+                      className={`p-4 text-right font-mono font-semibold ${statusColor}`}
+                    >
+                      {inr(bd)}
+                    </td>
+                    <td className="p-4 text-center text-slate-500 text-xs">
+                      {c.invoice_count} docs
+                    </td>
                   </motion.tr>
                 );
               })

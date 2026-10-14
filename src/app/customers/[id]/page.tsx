@@ -12,7 +12,12 @@ export default async function CustomerDetailPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { month?: string; quarter?: string; from?: string; to?: string };
+  searchParams: {
+    month?: string;
+    quarter?: string;
+    from?: string;
+    to?: string;
+  };
 }) {
   const sb = supabaseServer();
   const { id } = params;
@@ -30,10 +35,10 @@ export default async function CustomerDetailPage({
 
   if (!customer) {
     return (
-      <main className="mx-auto max-w-4xl px-4 py-8">
+      <div className="mx-auto max-w-4xl">
         <BackButton href="/customers" label="Back to Customers" />
         <p className="text-slate-500 mt-6">Customer not found.</p>
-      </main>
+      </div>
     );
   }
 
@@ -80,7 +85,9 @@ export default async function CustomerDetailPage({
   // Fetch documents for this customer
   let docQuery = sb
     .from("documents")
-    .select("id, doc_type, doc_number, doc_date, total_amount, status, discount_amount, taxable_charges, cgst_amount, sgst_amount, igst_amount, subtotal")
+    .select(
+      "id, doc_type, doc_number, doc_date, total_amount, status, discount_amount, taxable_charges, cgst_amount, sgst_amount, igst_amount, subtotal"
+    )
     .eq("customer_id", id)
     .order("doc_date", { ascending: false })
     .order("created_at", { ascending: false });
@@ -92,10 +99,23 @@ export default async function CustomerDetailPage({
   const { data: documents } = await docQuery;
 
   // Calculate totals for filtered documents
-  const filteredTotal = (documents ?? []).reduce((s, d) => s + Number(d.total_amount), 0);
-  const filteredSubtotal = (documents ?? []).reduce((s, d) => s + Number(d.subtotal), 0);
-  const filteredDiscount = (documents ?? []).reduce((s, d) => s + Number(d.discount_amount), 0);
-  const filteredTax = (documents ?? []).reduce((s, d) => s + Number(d.cgst_amount) + Number(d.sgst_amount) + Number(d.igst_amount), 0);
+  const filteredTotal = (documents ?? []).reduce(
+    (s, d) => s + Number(d.total_amount),
+    0
+  );
+  const filteredSubtotal = (documents ?? []).reduce(
+    (s, d) => s + Number(d.subtotal),
+    0
+  );
+  const filteredDiscount = (documents ?? []).reduce(
+    (s, d) => s + Number(d.discount_amount),
+    0
+  );
+  const filteredTax = (documents ?? []).reduce(
+    (s, d) =>
+      s + Number(d.cgst_amount) + Number(d.sgst_amount) + Number(d.igst_amount),
+    0
+  );
   const filteredDocCount = (documents ?? []).length;
 
   const STATUS_STYLES: Record<string, string> = {
@@ -106,54 +126,73 @@ export default async function CustomerDetailPage({
   };
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8 space-y-7">
+    <div className="mx-auto max-w-5xl space-y-7">
       <BackButton href="/customers" label="Back to Customers" />
 
       {/* Customer header */}
       <div className="card p-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold text-ink">{customer.name}</h1>
+            <h1 className="font-display text-2xl font-bold text-ink">
+              {customer.name}
+            </h1>
             <p className="text-sm text-slate-500 mt-1">Customer details</p>
           </div>
-          <Link href={`/accounts/${id}`} className="btn-secondary w-full sm:w-auto text-center">
+          <Link
+            href={`/accounts/${id}`}
+            className="btn-secondary w-full sm:w-auto text-center"
+          >
             View Ledger
           </Link>
         </div>
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
           {customer.address && (
             <div>
-              <span className="block text-xs font-semibold text-slate-500">Address</span>
+              <span className="block text-xs font-semibold text-slate-500">
+                Address
+              </span>
               <span className="text-ink">{customer.address}</span>
             </div>
           )}
           {customer.contact_person && (
             <div>
-              <span className="block text-xs font-semibold text-slate-500">Contact Person</span>
+              <span className="block text-xs font-semibold text-slate-500">
+                Contact Person
+              </span>
               <span className="text-ink">{customer.contact_person}</span>
             </div>
           )}
           {customer.contact_number && (
             <div>
-              <span className="block text-xs font-semibold text-slate-500">Phone</span>
+              <span className="block text-xs font-semibold text-slate-500">
+                Phone
+              </span>
               <span className="text-ink">{customer.contact_number}</span>
             </div>
           )}
           {customer.email && (
             <div>
-              <span className="block text-xs font-semibold text-slate-500">Email</span>
+              <span className="block text-xs font-semibold text-slate-500">
+                Email
+              </span>
               <span className="text-ink">{customer.email}</span>
             </div>
           )}
           {customer.gst && (
             <div>
-              <span className="block text-xs font-semibold text-slate-500">GST</span>
+              <span className="block text-xs font-semibold text-slate-500">
+                GST
+              </span>
               <span className="text-ink">{customer.gst}</span>
             </div>
           )}
           <div>
-            <span className="block text-xs font-semibold text-slate-500">Balance Due</span>
-            <span className={`font-semibold ${balanceDue > 0 ? "text-red-600" : "text-green-600"}`}>
+            <span className="block text-xs font-semibold text-slate-500">
+              Balance Due
+            </span>
+            <span
+              className={`font-semibold ${balanceDue > 0 ? "text-red-600" : "text-green-600"}`}
+            >
               {inr(balanceDue)}
             </span>
           </div>
@@ -163,23 +202,35 @@ export default async function CustomerDetailPage({
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4 text-center">
-          <div className="text-xs text-slate-500 font-semibold">Total Invoiced (incl. orders)</div>
-          <div className="font-display font-bold text-ink mt-1 text-lg">{inr(totalInvoicedOverall)}</div>
+          <div className="text-xs text-slate-500 font-semibold">
+            Total Invoiced (incl. orders)
+          </div>
+          <div className="font-display font-bold text-ink mt-1 text-lg">
+            {inr(totalInvoicedOverall)}
+          </div>
         </div>
         <div className="card p-4 text-center">
           <div className="text-xs text-slate-500 font-semibold">Total Paid</div>
-          <div className="font-display font-bold text-ink mt-1 text-lg">{inr(totalPaidOverall)}</div>
+          <div className="font-display font-bold text-ink mt-1 text-lg">
+            {inr(totalPaidOverall)}
+          </div>
         </div>
         <div className="card p-4 text-center">
-          <div className="text-xs text-slate-500 font-semibold">Balance Due</div>
-          <div className={`font-display font-bold mt-1 text-lg ${balanceDue > 0 ? "text-red-600" : "text-green-600"}`}>
+          <div className="text-xs text-slate-500 font-semibold">
+            Balance Due
+          </div>
+          <div
+            className={`font-display font-bold mt-1 text-lg ${balanceDue > 0 ? "text-red-600" : "text-green-600"}`}
+          >
             {inr(balanceDue)}
           </div>
         </div>
         <div className="card p-4 text-center">
           <div className="text-xs text-slate-500 font-semibold">Documents</div>
           <div className="font-display font-bold text-ink mt-1 text-lg">
-            {totalInvoicedOverall > 0 ? `${documents?.length ?? 0} (filtered)` : "0"}
+            {totalInvoicedOverall > 0
+              ? `${documents?.length ?? 0} (filtered)`
+              : "0"}
           </div>
         </div>
       </div>
@@ -207,16 +258,24 @@ export default async function CustomerDetailPage({
         {(documents ?? []).length > 0 && (
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-3 p-4 bg-brand-50/50 rounded-xl border border-brand-100">
             <div>
-              <div className="text-xs text-slate-500 font-semibold">Documents</div>
+              <div className="text-xs text-slate-500 font-semibold">
+                Documents
+              </div>
               <div className="font-bold text-ink">{filteredDocCount}</div>
             </div>
             <div>
-              <div className="text-xs text-slate-500 font-semibold">Subtotal</div>
+              <div className="text-xs text-slate-500 font-semibold">
+                Subtotal
+              </div>
               <div className="font-bold text-ink">{inr(filteredSubtotal)}</div>
             </div>
             <div>
-              <div className="text-xs text-slate-500 font-semibold">Discount</div>
-              <div className="font-bold text-red-600">{inr(filteredDiscount)}</div>
+              <div className="text-xs text-slate-500 font-semibold">
+                Discount
+              </div>
+              <div className="font-bold text-red-600">
+                {inr(filteredDiscount)}
+              </div>
             </div>
             <div>
               <div className="text-xs text-slate-500 font-semibold">Tax</div>
@@ -235,7 +294,9 @@ export default async function CustomerDetailPage({
         {!documents?.length ? (
           <div className="p-8 text-center">
             <p className="text-slate-500 font-medium">
-              {selectedMonth ? "No documents found for this month." : "No documents yet for this customer."}
+              {selectedMonth
+                ? "No documents found for this month."
+                : "No documents yet for this customer."}
             </p>
             <Link
               href={`/documents/new?customer_id=${id}`}
@@ -248,30 +309,50 @@ export default async function CustomerDetailPage({
           <table className="w-full text-sm">
             <thead className="bg-slate-50/80">
               <tr className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500 border-b border-slate-100">
-                <th scope="col" className="p-4">Number</th>
-                <th scope="col" className="p-4">Type</th>
-                <th scope="col" className="p-4">Date</th>
-                <th scope="col" className="p-4">Status</th>
-                <th scope="col" className="p-4 text-right">Amount</th>
-                <th scope="col" className="p-3"><span className="sr-only">Actions</span></th>
+                <th scope="col" className="p-4">
+                  Number
+                </th>
+                <th scope="col" className="p-4">
+                  Type
+                </th>
+                <th scope="col" className="p-4">
+                  Date
+                </th>
+                <th scope="col" className="p-4">
+                  Status
+                </th>
+                <th scope="col" className="p-4 text-right">
+                  Amount
+                </th>
+                <th scope="col" className="p-3">
+                  <span className="sr-only">Actions</span>
+                </th>
               </tr>
             </thead>
             <tbody>
               {(documents ?? []).map((doc) => (
                 <tr key={doc.id} className="table-row">
-                  <td className="p-4 font-semibold text-ink font-mono">{doc.doc_number}</td>
+                  <td className="p-4 font-semibold text-ink font-mono">
+                    {doc.doc_number}
+                  </td>
                   <td className="p-4">
                     <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
                       {docTypeLabel(doc.doc_type)}
                     </span>
                   </td>
-                  <td className="p-4 text-slate-500">{formatDateReadable(doc.doc_date)}</td>
+                  <td className="p-4 text-slate-500">
+                    {formatDateReadable(doc.doc_date)}
+                  </td>
                   <td className="p-4">
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[doc.status] ?? STATUS_STYLES.draft}`}>
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[doc.status] ?? STATUS_STYLES.draft}`}
+                    >
                       {doc.status}
                     </span>
                   </td>
-                  <td className="p-4 text-right font-semibold font-mono">{inr(Number(doc.total_amount))}</td>
+                  <td className="p-4 text-right font-semibold font-mono">
+                    {inr(Number(doc.total_amount))}
+                  </td>
                   <td className="p-4 text-right">
                     <Link
                       href={`/documents/${doc.id}`}
@@ -286,6 +367,6 @@ export default async function CustomerDetailPage({
           </table>
         )}
       </div>
-    </main>
+    </div>
   );
 }

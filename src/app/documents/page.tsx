@@ -20,10 +20,16 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: "bg-red-50 text-signal-rust",
 };
 
-function getDateRange(year: string, months?: string): { from?: string; to?: string } {
+function getDateRange(
+  year: string,
+  months?: string
+): { from?: string; to?: string } {
   const y = parseInt(year, 10);
   if (!months) return { from: `${y}-01-01`, to: `${y}-12-31` };
-  const list = months.split(",").map(Number).filter((m) => m >= 1 && m <= 12);
+  const list = months
+    .split(",")
+    .map(Number)
+    .filter((m) => m >= 1 && m <= 12);
   if (list.length === 0) return { from: `${y}-01-01`, to: `${y}-12-31` };
   const minMonth = Math.min(...list);
   const maxMonth = Math.max(...list);
@@ -36,7 +42,14 @@ function getDateRange(year: string, months?: string): { from?: string; to?: stri
 export default async function DocumentsPage({
   searchParams,
 }: {
-  searchParams: { type?: string; customer_id?: string; q?: string; year?: string; months?: string; page?: string };
+  searchParams: {
+    type?: string;
+    customer_id?: string;
+    q?: string;
+    year?: string;
+    months?: string;
+    page?: string;
+  };
 }) {
   const sb = supabaseServer();
 
@@ -50,14 +63,21 @@ export default async function DocumentsPage({
     .select("*", { count: "exact", head: true })
     .neq("doc_type", "purchase");
 
-  if (searchParams.type) countQuery = countQuery.eq("doc_type", searchParams.type);
-  if (searchParams.customer_id) countQuery = countQuery.eq("customer_id", searchParams.customer_id);
+  if (searchParams.type)
+    countQuery = countQuery.eq("doc_type", searchParams.type);
+  if (searchParams.customer_id)
+    countQuery = countQuery.eq("customer_id", searchParams.customer_id);
   if (searchParams.q?.trim()) {
     const term = `%${searchParams.q.trim()}%`;
-    countQuery = countQuery.or(`doc_number.ilike.${term},bill_to_name.ilike.${term}`);
+    countQuery = countQuery.or(
+      `doc_number.ilike.${term},bill_to_name.ilike.${term}`
+    );
   }
   if (searchParams.year) {
-    const { from: fromDate, to: toDate } = getDateRange(searchParams.year, searchParams.months);
+    const { from: fromDate, to: toDate } = getDateRange(
+      searchParams.year,
+      searchParams.months
+    );
     if (fromDate && toDate) {
       countQuery = countQuery.gte("doc_date", fromDate).lte("doc_date", toDate);
     }
@@ -69,20 +89,26 @@ export default async function DocumentsPage({
   // Fetch current page
   let query = sb
     .from("documents")
-    .select("id, doc_type, doc_number, doc_date, bill_to_name, bill_to_contact_number, total_amount, status, customer_id")
+    .select(
+      "id, doc_type, doc_number, doc_date, bill_to_name, bill_to_contact_number, total_amount, status, customer_id"
+    )
     .neq("doc_type", "purchase")
     .order("doc_date", { ascending: false })
     .order("created_at", { ascending: false })
     .range(from, to);
 
   if (searchParams.type) query = query.eq("doc_type", searchParams.type);
-  if (searchParams.customer_id) query = query.eq("customer_id", searchParams.customer_id);
+  if (searchParams.customer_id)
+    query = query.eq("customer_id", searchParams.customer_id);
   if (searchParams.q?.trim()) {
     const term = `%${searchParams.q.trim()}%`;
     query = query.or(`doc_number.ilike.${term},bill_to_name.ilike.${term}`);
   }
   if (searchParams.year) {
-    const { from: fromDate, to: toDate } = getDateRange(searchParams.year, searchParams.months);
+    const { from: fromDate, to: toDate } = getDateRange(
+      searchParams.year,
+      searchParams.months
+    );
     if (fromDate && toDate) {
       query = query.gte("doc_date", fromDate).lte("doc_date", toDate);
     }
@@ -97,7 +123,9 @@ export default async function DocumentsPage({
       .select("name")
       .eq("id", searchParams.customer_id)
       .single();
-    filterLabel = customer?.name ? `Invoices for ${customer.name}` : "Filtered documents";
+    filterLabel = customer?.name
+      ? `Invoices for ${customer.name}`
+      : "Filtered documents";
   } else if (searchParams.q) {
     filterLabel = `Search: "${searchParams.q}"`;
   } else if (searchParams.type) {
@@ -120,7 +148,8 @@ export default async function DocumentsPage({
         <div>
           <h1 className="page-title">Documents</h1>
           <p className="page-subtitle">
-            {filterLabel || `${(documents ?? []).length} of ${totalCount ?? 0} documents`}
+            {filterLabel ||
+              `${(documents ?? []).length} of ${totalCount ?? 0} documents`}
           </p>
         </div>
         <Link href="/documents/new" className="btn-primary w-full sm:w-auto">
@@ -134,7 +163,7 @@ export default async function DocumentsPage({
       <div className="card p-3 flex flex-wrap gap-2">
         <Link
           href="/documents"
-          className={`text-sm px-3 py-2 rounded-full border min-h-[40px] inline-flex items-center ${
+          className={`text-sm px-3 py-2 rounded-full border min-h-[44px] inline-flex items-center ${
             !searchParams.type && !searchParams.customer_id && !searchParams.q
               ? "bg-brass-500 text-white border-brass-500 shadow-sm"
               : "border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -146,7 +175,7 @@ export default async function DocumentsPage({
           <Link
             key={t}
             href={`/documents?type=${t}${searchParams.q ? `&q=${encodeURIComponent(searchParams.q)}` : ""}${searchParams.customer_id ? `&customer_id=${searchParams.customer_id}` : ""}`}
-            className={`text-sm px-3 py-2 rounded-full border min-h-[40px] inline-flex items-center ${
+            className={`text-sm px-3 py-2 rounded-full border min-h-[44px] inline-flex items-center ${
               searchParams.type === t
                 ? "bg-brass-500 text-white border-brass-500 shadow-sm"
                 : "border-slate-200 text-slate-600 hover:bg-slate-50"
@@ -157,21 +186,31 @@ export default async function DocumentsPage({
         ))}
       </div>
 
-      <div className="space-y-3 md:hidden">
+      <div className="space-y-3 xl:hidden">
         {(documents ?? []).map((doc) => (
           <div key={doc.id} className="card p-4 space-y-3">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="font-bold text-slate-900">{doc.doc_number}</p>
-                <p className="text-sm text-slate-500">{doc.bill_to_name || "—"}</p>
-                <p className="text-xs text-slate-400 mt-1">{formatDateShort(doc.doc_date)}</p>
+                <p className="text-sm text-slate-500">
+                  {doc.bill_to_name || "—"}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {formatDateShort(doc.doc_date)}
+                </p>
               </div>
               <div className="text-right space-y-2">
                 <p className="font-semibold">{inr(Number(doc.total_amount))}</p>
-                <StatusBadge documentId={doc.id} currentStatus={doc.status} docType={doc.doc_type} />
+                <StatusBadge
+                  documentId={doc.id}
+                  currentStatus={doc.status}
+                  docType={doc.doc_type}
+                />
               </div>
             </div>
-            <p className="text-xs text-slate-500">{docTypeLabel(doc.doc_type)}</p>
+            <p className="text-xs text-slate-500">
+              {docTypeLabel(doc.doc_type)}
+            </p>
             <DocumentActions
               id={doc.id}
               docNumber={doc.doc_number}
@@ -184,7 +223,9 @@ export default async function DocumentsPage({
           </div>
         ))}
         {!documents?.length && (
-          <div className="card p-6 text-center text-gray-400">No documents found</div>
+          <div className="card p-6 text-center text-gray-400">
+            No documents found
+          </div>
         )}
         {(documents?.length ?? 0) > 0 && (
           <div className="flex items-center justify-between pt-2">
@@ -194,16 +235,16 @@ export default async function DocumentsPage({
             <div className="flex items-center gap-2">
               {currentPage > 1 && (
                 <Link
-                  href={`/documents?${new URLSearchParams({ ...searchParams as Record<string, string>, page: String(currentPage - 1) }).toString()}`}
-                  className="btn-secondary text-xs px-3 py-2 min-h-[40px]"
+                  href={`/documents?${new URLSearchParams({ ...(searchParams as Record<string, string>), page: String(currentPage - 1) }).toString()}`}
+                  className="btn-secondary text-xs px-3 py-2 min-h-[44px]"
                 >
                   ← Previous
                 </Link>
               )}
               {currentPage < totalPages && (
                 <Link
-                  href={`/documents?${new URLSearchParams({ ...searchParams as Record<string, string>, page: String(currentPage + 1) }).toString()}`}
-                  className="btn-secondary text-xs px-3 py-2 min-h-[40px]"
+                  href={`/documents?${new URLSearchParams({ ...(searchParams as Record<string, string>), page: String(currentPage + 1) }).toString()}`}
+                  className="btn-secondary text-xs px-3 py-2 min-h-[44px]"
                 >
                   Next →
                 </Link>
@@ -213,32 +254,59 @@ export default async function DocumentsPage({
         )}
       </div>
 
-      <div className="card overflow-x-auto hidden md:block">
+      <div className="card overflow-x-auto hidden xl:block">
         <table className="w-full text-sm">
           <thead className="bg-slate-50/80">
             <tr className="text-left text-xs font-semibold text-slate-500 border-b border-slate-100">
-              <th scope="col" className="p-4">Number</th>
-              <th scope="col" className="p-4">Type</th>
-              <th scope="col" className="p-4">Date</th>
-              <th scope="col" className="p-4">Customer</th>
-              <th scope="col" className="p-4">Status</th>
-              <th scope="col" className="p-4 text-right">Amount</th>
-              <th scope="col" className="p-3"><span className="sr-only">Actions</span></th>
+              <th scope="col" className="p-4">
+                Number
+              </th>
+              <th scope="col" className="p-4">
+                Type
+              </th>
+              <th scope="col" className="p-4">
+                Date
+              </th>
+              <th scope="col" className="p-4">
+                Customer
+              </th>
+              <th scope="col" className="p-4">
+                Status
+              </th>
+              <th scope="col" className="p-4 text-right">
+                Amount
+              </th>
+              <th scope="col" className="p-3">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {(documents ?? []).map((doc) => (
               <tr key={doc.id} className="table-row">
                 <td className="p-4 font-semibold text-ink font-mono">
-                  <a href={`/api/documents/${doc.id}/pdf`} target="_blank" className="hover:underline">
+                  <a
+                    href={`/api/documents/${doc.id}/pdf`}
+                    target="_blank"
+                    className="hover:underline"
+                  >
                     {doc.doc_number}
                   </a>
                 </td>
-                <td className="p-4"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{docTypeLabel(doc.doc_type)}</span></td>
-                <td className="p-4 text-slate-500">{formatDateReadable(doc.doc_date)}</td>
+                <td className="p-4">
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                    {docTypeLabel(doc.doc_type)}
+                  </span>
+                </td>
+                <td className="p-4 text-slate-500">
+                  {formatDateReadable(doc.doc_date)}
+                </td>
                 <td className="p-4 font-medium">
                   {doc.customer_id ? (
-                    <Link href={`/documents?customer_id=${doc.customer_id}`} className="text-brand-700 hover:underline">
+                    <Link
+                      href={`/documents?customer_id=${doc.customer_id}`}
+                      className="text-brand-700 hover:underline"
+                    >
                       {doc.bill_to_name || "—"}
                     </Link>
                   ) : (
@@ -246,7 +314,11 @@ export default async function DocumentsPage({
                   )}
                 </td>
                 <td className="p-4">
-                  <StatusBadge documentId={doc.id} currentStatus={doc.status} docType={doc.doc_type} />
+                  <StatusBadge
+                    documentId={doc.id}
+                    currentStatus={doc.status}
+                    docType={doc.doc_type}
+                  />
                 </td>
                 <td className="p-4 text-right font-semibold">
                   {inr(Number(doc.total_amount))}
@@ -269,7 +341,10 @@ export default async function DocumentsPage({
               <tr>
                 <td colSpan={7} className="p-8 text-center">
                   <p className="text-slate-500 font-medium">No documents yet</p>
-                  <p className="text-slate-400 text-sm mt-1">Create your first invoice, quotation, or estimate to get started.</p>
+                  <p className="text-slate-400 text-sm mt-1">
+                    Create your first invoice, quotation, or estimate to get
+                    started.
+                  </p>
                 </td>
               </tr>
             )}
@@ -283,16 +358,16 @@ export default async function DocumentsPage({
             <div className="flex items-center gap-2">
               {currentPage > 1 && (
                 <Link
-                  href={`/documents?${new URLSearchParams({ ...searchParams as Record<string, string>, page: String(currentPage - 1) }).toString()}`}
-                  className="btn-secondary text-xs px-3 py-2 min-h-[40px]"
+                  href={`/documents?${new URLSearchParams({ ...(searchParams as Record<string, string>), page: String(currentPage - 1) }).toString()}`}
+                  className="btn-secondary text-xs px-3 py-2 min-h-[44px]"
                 >
                   ← Previous
                 </Link>
               )}
               {currentPage < totalPages && (
                 <Link
-                  href={`/documents?${new URLSearchParams({ ...searchParams as Record<string, string>, page: String(currentPage + 1) }).toString()}`}
-                  className="btn-secondary text-xs px-3 py-2 min-h-[40px]"
+                  href={`/documents?${new URLSearchParams({ ...(searchParams as Record<string, string>), page: String(currentPage + 1) }).toString()}`}
+                  className="btn-secondary text-xs px-3 py-2 min-h-[44px]"
                 >
                   Next →
                 </Link>

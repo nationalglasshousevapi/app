@@ -29,9 +29,9 @@ export default async function CustomerLedgerPage({
 
   if (!customer) {
     return (
-      <main className="mx-auto max-w-4xl px-4 py-8">
+      <div className="mx-auto max-w-4xl">
         <p className="text-slate-500">Customer not found.</p>
-      </main>
+      </div>
     );
   }
 
@@ -176,7 +176,7 @@ export default async function CustomerLedgerPage({
   const hasFilter = !!fromDate || !!toDate;
 
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
+    <div className="mx-auto max-w-5xl">
       <BackButton href="/accounts" label="Back to Accounts" />
 
       {/* Customer header */}
@@ -326,6 +326,6 @@ export default async function CustomerLedgerPage({
           <PaymentModal customerId={customerId} balanceDue={runningBalance} />
         </div>
       </div>
-    </main>
+    </div>
   );
 }

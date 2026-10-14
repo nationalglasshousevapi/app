@@ -62,7 +62,7 @@ export default function ExpenseManager() {
     try {
       // Only fetch the selected month's rows from the server
       const res = await fetch(
-        `/api/expenses?from_date=${targetMonth}-01&to_date=${targetMonth}-31`,
+        `/api/expenses?from_date=${targetMonth}-01&to_date=${targetMonth}-31`
       );
       const json = await res.json();
       setExpenses(json.expenses ?? []);
@@ -79,7 +79,7 @@ export default function ExpenseManager() {
 
   const monthExpenses = useMemo(
     () => expenses.filter((e) => e.expense_date.startsWith(month)),
-    [expenses, month],
+    [expenses, month]
   );
 
   const totals = useMemo(() => {
@@ -160,7 +160,12 @@ export default function ExpenseManager() {
       <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
         <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
           Month
-          <input type="month" className="input !w-auto" value={month} onChange={(e) => setMonth(e.target.value)} />
+          <input
+            type="month"
+            className="input !w-auto"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+          />
         </label>
         <button
           onClick={() => {
@@ -177,20 +182,34 @@ export default function ExpenseManager() {
       {/* Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Total spent</p>
-          <p className="text-xl font-bold font-mono mt-1">{inr(totals.total)}</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+            Total spent
+          </p>
+          <p className="text-xl font-bold font-mono mt-1">
+            {inr(totals.total)}
+          </p>
         </div>
         <div className="card p-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Paid in cash</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+            Paid in cash
+          </p>
           <p className="text-xl font-bold font-mono mt-1">{inr(totals.cash)}</p>
         </div>
         <div className="card p-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Digital</p>
-          <p className="text-xl font-bold font-mono mt-1">{inr(totals.digital)}</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+            Digital
+          </p>
+          <p className="text-xl font-bold font-mono mt-1">
+            {inr(totals.digital)}
+          </p>
         </div>
         <div className="card p-4">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Entries</p>
-          <p className="text-xl font-bold font-mono mt-1">{monthExpenses.length}</p>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+            Entries
+          </p>
+          <p className="text-xl font-bold font-mono mt-1">
+            {monthExpenses.length}
+          </p>
         </div>
       </div>
 
@@ -207,7 +226,9 @@ export default function ExpenseManager() {
                 type="date"
                 className="input"
                 value={form.expense_date}
-                onChange={(e) => setForm({ ...form, expense_date: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, expense_date: e.target.value })
+                }
               />
             </div>
             <div>
@@ -219,7 +240,9 @@ export default function ExpenseManager() {
                 className="input font-mono"
                 value={form.amount || ""}
                 placeholder="0"
-                onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) || 0 })}
+                onChange={(e) =>
+                  setForm({ ...form, amount: parseFloat(e.target.value) || 0 })
+                }
               />
             </div>
             <div>
@@ -230,7 +253,9 @@ export default function ExpenseManager() {
                 onChange={(e) => setForm({ ...form, category: e.target.value })}
               >
                 {EXPENSE_CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value}>{c.label}</option>
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -239,10 +264,14 @@ export default function ExpenseManager() {
               <select
                 className="input"
                 value={form.payment_mode}
-                onChange={(e) => setForm({ ...form, payment_mode: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, payment_mode: e.target.value })
+                }
               >
                 {PAYMENT_MODES.map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
+                  <option key={m.value} value={m.value}>
+                    {m.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -252,10 +281,13 @@ export default function ExpenseManager() {
                 className="input"
                 placeholder="e.g. 20 sheets 5mm glass from Gujarat Guardian"
                 value={form.description ?? ""}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
               />
             </div>
-            {(form.payment_mode === "bank_transfer" || form.payment_mode === "cheque") && (
+            {(form.payment_mode === "bank_transfer" ||
+              form.payment_mode === "cheque") && (
               <div className="sm:col-span-2">
                 <label className="label">
                   Reference number{" "}
@@ -264,13 +296,19 @@ export default function ExpenseManager() {
                 <input
                   className="input"
                   value={form.reference_number ?? ""}
-                  onChange={(e) => setForm({ ...form, reference_number: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, reference_number: e.target.value })
+                  }
                   placeholder="Cheque no, UTR, ref (optional)"
                 />
               </div>
             )}
           </div>
-          {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
+          {error && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+              {error}
+            </p>
+          )}
           <div className="flex gap-3">
             <button onClick={save} disabled={saving} className="btn-primary">
               {saving ? "Saving…" : editingId ? "Save changes" : "Add expense"}
@@ -292,34 +330,58 @@ export default function ExpenseManager() {
       {/* List */}
       <div className="card overflow-hidden">
         {loading ? (
-          <p className="text-sm text-slate-400 p-6 text-center font-body">Loading…</p>
+          <p className="text-sm text-slate-400 p-6 text-center font-body">
+            Loading…
+          </p>
         ) : monthExpenses.length === 0 ? (
           <p className="text-sm text-slate-400 p-10 text-center font-body">
-            No expenses recorded for {month}. Track shop purchases, labour and bills here.
+            No expenses recorded for {month}. Track shop purchases, labour and
+            bills here.
           </p>
         ) : (
           <>
             {/* Mobile */}
-            <div className="md:hidden divide-y divide-slate-100">
+            <div className="xl:hidden divide-y divide-slate-100">
               {monthExpenses.map((e) => (
                 <div key={e.id} className="p-4 space-y-2">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-sm text-ink">{categoryLabel(e.category)}</p>
-                      <p className="text-xs text-slate-400">{formatDateShort(e.expense_date)} · {modeLabel(e.payment_mode)}</p>
-                      {e.description && <p className="text-sm text-slate-500 font-body mt-1">{e.description}</p>}
+                      <p className="font-semibold text-sm text-ink">
+                        {categoryLabel(e.category)}
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        {formatDateShort(e.expense_date)} ·{" "}
+                        {modeLabel(e.payment_mode)}
+                      </p>
+                      {e.description && (
+                        <p className="text-sm text-slate-500 font-body mt-1">
+                          {e.description}
+                        </p>
+                      )}
                     </div>
-                    <p className="font-mono font-bold whitespace-nowrap">{inr(Number(e.amount), 2)}</p>
+                    <p className="font-mono font-bold whitespace-nowrap">
+                      {inr(Number(e.amount), 2)}
+                    </p>
                   </div>
                   <div className="flex gap-3 text-xs">
-                    <button onClick={() => startEdit(e)} className="text-brand-600 hover:underline font-semibold">Edit</button>
-                    <button onClick={() => remove(e.id)} className="text-red-500 hover:underline font-semibold">Delete</button>
+                    <button
+                      onClick={() => startEdit(e)}
+                      className="text-brand-600 hover:underline font-semibold"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => remove(e.id)}
+                      className="text-red-500 hover:underline font-semibold"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
             {/* Desktop */}
-            <table className="hidden md:table w-full text-sm font-body">
+            <table className="hidden xl:table w-full text-sm font-body">
               <thead>
                 <tr className="text-left text-xs font-semibold text-slate-500 border-b border-slate-100">
                   <th className="p-4">Date</th>
@@ -332,15 +394,38 @@ export default function ExpenseManager() {
               </thead>
               <tbody>
                 {monthExpenses.map((e) => (
-                  <tr key={e.id} className="border-b border-slate-50 last:border-0">
-                    <td className="p-4 whitespace-nowrap text-slate-500">{formatDateShort(e.expense_date)}</td>
-                    <td className="p-4 font-medium text-ink">{categoryLabel(e.category)}</td>
-                    <td className="p-4 text-slate-500 max-w-xs truncate">{e.description || "—"}</td>
-                    <td className="p-4 text-slate-500">{modeLabel(e.payment_mode)}</td>
-                    <td className="p-4 text-right font-mono font-semibold">{inr(Number(e.amount), 2)}</td>
+                  <tr
+                    key={e.id}
+                    className="border-b border-slate-50 last:border-0"
+                  >
+                    <td className="p-4 whitespace-nowrap text-slate-500">
+                      {formatDateShort(e.expense_date)}
+                    </td>
+                    <td className="p-4 font-medium text-ink">
+                      {categoryLabel(e.category)}
+                    </td>
+                    <td className="p-4 text-slate-500 max-w-xs truncate">
+                      {e.description || "—"}
+                    </td>
+                    <td className="p-4 text-slate-500">
+                      {modeLabel(e.payment_mode)}
+                    </td>
+                    <td className="p-4 text-right font-mono font-semibold">
+                      {inr(Number(e.amount), 2)}
+                    </td>
                     <td className="p-4 text-right whitespace-nowrap">
-                      <button onClick={() => startEdit(e)} className="text-brand-600 hover:underline text-xs font-semibold mr-3">Edit</button>
-                      <button onClick={() => remove(e.id)} className="text-red-500 hover:underline text-xs font-semibold">Delete</button>
+                      <button
+                        onClick={() => startEdit(e)}
+                        className="text-brand-600 hover:underline text-xs font-semibold mr-3"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => remove(e.id)}
+                        className="text-red-500 hover:underline text-xs font-semibold"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -353,18 +438,28 @@ export default function ExpenseManager() {
       {/* Category breakdown */}
       {totals.byCategory.length > 0 && (
         <div className="card p-5">
-          <h2 className="font-display font-bold text-ink mb-3">Where the money went</h2>
+          <h2 className="font-display font-bold text-ink mb-3">
+            Where the money went
+          </h2>
           <div className="space-y-2">
             {totals.byCategory.map(([cat, amt]) => {
-              const pct = totals.total > 0 ? Math.round((amt / totals.total) * 100) : 0;
+              const pct =
+                totals.total > 0 ? Math.round((amt / totals.total) * 100) : 0;
               return (
                 <div key={cat}>
                   <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="font-medium text-ink">{categoryLabel(cat)}</span>
-                    <span className="font-mono text-slate-600">{inr(amt)} · {pct}%</span>
+                    <span className="font-medium text-ink">
+                      {categoryLabel(cat)}
+                    </span>
+                    <span className="font-mono text-slate-600">
+                      {inr(amt)} · {pct}%
+                    </span>
                   </div>
                   <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                    <div className="h-full rounded-full bg-brand-500" style={{ width: `${pct}%` }} />
+                    <div
+                      className="h-full rounded-full bg-brand-500"
+                      style={{ width: `${pct}%` }}
+                    />
                   </div>
                 </div>
               );

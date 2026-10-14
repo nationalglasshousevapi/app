@@ -20,10 +20,15 @@ export default async function PurchasesPage({
   const from = (currentPage - 1) * PAGE_SIZE;
   const to = from + PAGE_SIZE - 1;
 
-  let countQuery = sb.from("documents").select("*", { count: "exact", head: true }).eq("doc_type", "purchase");
+  let countQuery = sb
+    .from("documents")
+    .select("*", { count: "exact", head: true })
+    .eq("doc_type", "purchase");
   if (searchParams.q?.trim()) {
     const term = `%${searchParams.q.trim()}%`;
-    countQuery = countQuery.or(`doc_number.ilike.${term},bill_to_name.ilike.${term}`);
+    countQuery = countQuery.or(
+      `doc_number.ilike.${term},bill_to_name.ilike.${term}`
+    );
   }
   const { count: totalCount } = await countQuery;
   const totalPages = Math.ceil((totalCount ?? 0) / PAGE_SIZE);
@@ -54,7 +59,10 @@ export default async function PurchasesPage({
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <Link href="/purchases/scan" className="btn-secondary w-full sm:w-auto">
+          <Link
+            href="/purchases/scan"
+            className="btn-secondary w-full sm:w-auto"
+          >
             📷 Scan invoice
           </Link>
           <Link href="/purchases/new" className="btn-primary w-full sm:w-auto">
@@ -65,34 +73,129 @@ export default async function PurchasesPage({
 
       <PurchaseSearch initialQuery={searchParams.q ?? ""} />
 
-      <div className="card overflow-x-auto">
+      <div className="space-y-3 xl:hidden">
+        {(purchases ?? []).map((p) => (
+          <div key={p.id} className="card p-4 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <a
+                  href={`/api/purchases/${p.id}/pdf`}
+                  target="_blank"
+                  className="font-semibold font-mono text-brand-700 hover:underline"
+                >
+                  {p.doc_number}
+                </a>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  {p.bill_to_name || "—"}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  {formatDateReadable(p.doc_date)}
+                </p>
+              </div>
+              <div className="text-right shrink-0 space-y-2">
+                <p className="font-semibold">{inr(Number(p.total_amount))}</p>
+                <StatusBadge
+                  documentId={p.id}
+                  currentStatus={p.status}
+                  docType="purchase"
+                />
+              </div>
+            </div>
+            <Link
+              href={`/purchases/${p.id}`}
+              className="inline-flex w-full items-center justify-center rounded-lg border border-slate-200 px-3 min-h-[44px] text-sm font-medium text-brand-600 hover:bg-brand-50"
+            >
+              Edit
+            </Link>
+          </div>
+        ))}
+        {!purchases?.length && (
+          <div className="card p-6 text-center text-gray-400">
+            No purchases found
+          </div>
+        )}
+        {(purchases?.length ?? 0) > 0 && (
+          <div className="flex items-center justify-between pt-2">
+            <p className="text-xs text-slate-500">
+              Page {currentPage} of {totalPages}
+            </p>
+            <div className="flex items-center gap-2">
+              {currentPage > 1 && (
+                <Link
+                  href={`/purchases?${new URLSearchParams({ ...(searchParams as Record<string, string>), page: String(currentPage - 1) }).toString()}`}
+                  className="btn-secondary text-xs px-3 py-2 min-h-[44px]"
+                >
+                  ← Previous
+                </Link>
+              )}
+              {currentPage < totalPages && (
+                <Link
+                  href={`/purchases?${new URLSearchParams({ ...(searchParams as Record<string, string>), page: String(currentPage + 1) }).toString()}`}
+                  className="btn-secondary text-xs px-3 py-2 min-h-[44px]"
+                >
+                  Next →
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="card overflow-x-auto hidden xl:block">
         <table className="w-full text-sm">
           <thead className="bg-slate-50/80">
             <tr className="text-left text-xs font-semibold text-slate-500 border-b border-slate-100">
-              <th scope="col" className="p-4">Number</th>
-              <th scope="col" className="p-4">Date</th>
-              <th scope="col" className="p-4">Supplier</th>
-              <th scope="col" className="p-4">Status</th>
-              <th scope="col" className="p-4 text-right">Amount</th>
-              <th scope="col" className="p-3"><span className="sr-only">Actions</span></th>
+              <th scope="col" className="p-4">
+                Number
+              </th>
+              <th scope="col" className="p-4">
+                Date
+              </th>
+              <th scope="col" className="p-4">
+                Supplier
+              </th>
+              <th scope="col" className="p-4">
+                Status
+              </th>
+              <th scope="col" className="p-4 text-right">
+                Amount
+              </th>
+              <th scope="col" className="p-3">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           <tbody>
             {(purchases ?? []).map((p) => (
               <tr key={p.id} className="table-row">
                 <td className="p-4 font-semibold text-ink font-mono">
-                  <a href={`/api/purchases/${p.id}/pdf`} target="_blank" className="hover:underline">
+                  <a
+                    href={`/api/purchases/${p.id}/pdf`}
+                    target="_blank"
+                    className="hover:underline"
+                  >
                     {p.doc_number}
                   </a>
                 </td>
-                <td className="p-4 text-slate-500">{formatDateReadable(p.doc_date)}</td>
+                <td className="p-4 text-slate-500">
+                  {formatDateReadable(p.doc_date)}
+                </td>
                 <td className="p-4 font-medium">{p.bill_to_name || "—"}</td>
                 <td className="p-4">
-                  <StatusBadge documentId={p.id} currentStatus={p.status} docType="purchase" />
+                  <StatusBadge
+                    documentId={p.id}
+                    currentStatus={p.status}
+                    docType="purchase"
+                  />
                 </td>
-                <td className="p-4 text-right font-semibold">{inr(Number(p.total_amount))}</td>
+                <td className="p-4 text-right font-semibold">
+                  {inr(Number(p.total_amount))}
+                </td>
                 <td className="p-4 text-right">
-                  <Link href={`/purchases/${p.id}`} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-600 hover:bg-brand-50">
+                  <Link
+                    href={`/purchases/${p.id}`}
+                    className="inline-flex items-center gap-1 rounded-lg px-3 min-h-[44px] text-xs font-medium text-brand-600 hover:bg-brand-50"
+                  >
                     Edit
                   </Link>
                 </td>
@@ -102,7 +205,9 @@ export default async function PurchasesPage({
               <tr>
                 <td colSpan={6} className="p-8 text-center">
                   <p className="text-slate-500 font-medium">No purchases yet</p>
-                  <p className="text-slate-400 text-sm mt-1">Record your first purchase entry to get started.</p>
+                  <p className="text-slate-400 text-sm mt-1">
+                    Record your first purchase entry to get started.
+                  </p>
                 </td>
               </tr>
             )}
@@ -117,7 +222,7 @@ export default async function PurchasesPage({
               {currentPage > 1 && (
                 <Link
                   href={`/purchases?${new URLSearchParams({ ...(searchParams as Record<string, string>), page: String(currentPage - 1) }).toString()}`}
-                  className="btn-secondary text-xs px-3 py-2 min-h-[40px]"
+                  className="btn-secondary text-xs px-3 py-2 min-h-[44px]"
                 >
                   ← Previous
                 </Link>
@@ -125,7 +230,7 @@ export default async function PurchasesPage({
               {currentPage < totalPages && (
                 <Link
                   href={`/purchases?${new URLSearchParams({ ...(searchParams as Record<string, string>), page: String(currentPage + 1) }).toString()}`}
-                  className="btn-secondary text-xs px-3 py-2 min-h-[40px]"
+                  className="btn-secondary text-xs px-3 py-2 min-h-[44px]"
                 >
                   Next →
                 </Link>

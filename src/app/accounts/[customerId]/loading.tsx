@@ -1,12 +1,14 @@
 function Skeleton({ className }: { className?: string }) {
   return (
-    <div className={`animate-pulse rounded-lg bg-slate-200 ${className ?? ""}`} />
+    <div
+      className={`animate-pulse rounded-lg bg-slate-200 ${className ?? ""}`}
+    />
   );
 }
 
 export default function CustomerLedgerLoading() {
   return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
+    <div className="mx-auto max-w-5xl">
       <Skeleton className="h-4 w-32 mb-6" />
 
       <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -30,7 +32,10 @@ export default function CustomerLedgerLoading() {
         <div className="lg:col-span-2 space-y-2">
           <Skeleton className="h-6 w-24 mb-4" />
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex items-center justify-between py-3 border-b border-slate-100">
+            <div
+              key={i}
+              className="flex items-center justify-between py-3 border-b border-slate-100"
+            >
               <Skeleton className="h-4 w-24" />
               <Skeleton className="h-4 w-36" />
               <Skeleton className="h-4 w-20" />
@@ -50,6 +55,6 @@ export default function CustomerLedgerLoading() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
