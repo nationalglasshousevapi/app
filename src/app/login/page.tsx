@@ -31,7 +31,10 @@ export default function LoginPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="card p-8 w-full max-w-sm space-y-6">
+    <form
+      onSubmit={handleSubmit}
+      className="card p-8 w-full max-w-sm space-y-6"
+    >
       <div className="flex flex-col items-center text-center">
         <Image
           src="/logo.png"
@@ -41,12 +44,19 @@ export default function LoginPage() {
           priority
           className="object-contain mb-3"
         />
-        <h1 className="font-display text-xl font-bold text-ink">National Glass House</h1>
-        <p className="text-sm text-slate-500 font-body mt-1">Sign in to manage invoices</p>
+        <h1 className="font-display text-xl font-bold text-ink">
+          National Glass House
+        </h1>
+        <p className="text-sm text-slate-500 font-body mt-1">
+          Sign in to manage invoices
+        </p>
       </div>
       <div>
-        <label className="label">Password</label>
+        <label className="label" htmlFor="password">
+          Password
+        </label>
         <input
+          id="password"
           type="password"
           className="input"
           value={password}

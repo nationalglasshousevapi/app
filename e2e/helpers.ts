@@ -8,6 +8,20 @@ dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
 export const TEST_PREFIX = "__TEST__";
 
+/**
+ * True when live Supabase creds + admin password are available, so E2E specs
+ * that need a real database can run. When false (e.g. `.env.local` holds only
+ * placeholder values), those specs should skip rather than fail on a login
+ * timeout.
+ */
+export function hasLiveCreds(): boolean {
+  return Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY &&
+    process.env.ADMIN_PASSWORD
+  );
+}
+
 export function env(name: string): string {
   const v = process.env[name];
   if (!v) throw new Error(`Missing env var ${name} — set it in .env.local`);
@@ -32,9 +46,13 @@ export async function api(): Promise<APIRequestContext> {
 
 /** Service-role Supabase client for seeding + cleanup. */
 export function sb(): SupabaseClient {
-  return createClient(env("NEXT_PUBLIC_SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), {
-    auth: { persistSession: false },
-  });
+  return createClient(
+    env("NEXT_PUBLIC_SUPABASE_URL"),
+    env("SUPABASE_SERVICE_ROLE_KEY"),
+    {
+      auth: { persistSession: false },
+    }
+  );
 }
 
 function stamp(): string {
@@ -54,14 +72,17 @@ export async function createTestCustomer(name?: string) {
 }
 
 /** Create a quotation through the API and return { document, customer }. */
-export async function createTestQuotation(opts: {
-  customerId?: string | null;
-  billToName?: string;
-  recordAmount?: number;
-} = {}) {
+export async function createTestQuotation(
+  opts: {
+    customerId?: string | null;
+    billToName?: string;
+    recordAmount?: number;
+  } = {}
+) {
   const ctx = await api();
   const customerId = opts.customerId ?? null;
-  const billToName = opts.billToName ?? `${TEST_PREFIX} Quote Customer ${stamp()}`;
+  const billToName =
+    opts.billToName ?? `${TEST_PREFIX} Quote Customer ${stamp()}`;
   const amount = opts.recordAmount ?? 1000;
 
   const res = await ctx.post("/api/documents", {
@@ -91,7 +112,10 @@ export async function createTestQuotation(opts: {
     },
   });
   const json = await res.json();
-  if (!res.ok()) throw new Error(`createTestQuotation failed (${res.status()}): ${JSON.stringify(json)}`);
+  if (!res.ok())
+    throw new Error(
+      `createTestQuotation failed (${res.status()}): ${JSON.stringify(json)}`
+    );
   return { document: json.document, billToName };
 }
 
@@ -134,7 +158,10 @@ export async function createTestDocWithGlass(customerId: string | null = null) {
     },
   });
   const json = await res.json();
-  if (!res.ok()) throw new Error(`createTestDocWithGlass failed (${res.status()}): ${JSON.stringify(json)}`);
+  if (!res.ok())
+    throw new Error(
+      `createTestDocWithGlass failed (${res.status()}): ${JSON.stringify(json)}`
+    );
   return { document: json.document, billToName };
 }
 
