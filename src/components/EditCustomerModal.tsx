@@ -79,7 +79,7 @@ export default function EditCustomerModal({
       closeOnBackdrop={false}
       busy={saving}
       footer={
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
           <button type="button" onClick={onClose} className="btn-secondary">
             Cancel
           </button>

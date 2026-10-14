@@ -221,7 +221,7 @@ export default function ExpenseManager() {
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="label">Date *</label>
+              <label className="label-lg">Date *</label>
               <input
                 type="date"
                 className="input"
@@ -232,7 +232,7 @@ export default function ExpenseManager() {
               />
             </div>
             <div>
-              <label className="label">Amount (₹) *</label>
+              <label className="label-lg">Amount (₹) *</label>
               <input
                 type="number"
                 min="0"
@@ -260,7 +260,7 @@ export default function ExpenseManager() {
               </select>
             </div>
             <div>
-              <label className="label">Paid via</label>
+              <label className="label-lg">Paid via</label>
               <select
                 className="input"
                 value={form.payment_mode}

@@ -30,7 +30,7 @@ export default function ConfirmModal({
       maxWidth="sm"
       busy={busy}
       footer={
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
           <button
             type="button"
             onClick={onCancel}

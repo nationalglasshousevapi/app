@@ -47,6 +47,11 @@ body {
   @apply block text-xs font-semibold uppercase tracking-[0.08em] text-slate-600 mb-1.5;
 }
 
+/* Senior-readable label for money/date flows (sentence case, larger). */
+.label-lg {
+  @apply block text-sm font-semibold text-slate-700 mb-1.5;
+}
+
 /* ── Typography helpers ── */
 .page-title {
   @apply font-display text-3xl font-bold tracking-tight text-ink;

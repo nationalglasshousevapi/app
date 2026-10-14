@@ -2,10 +2,11 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { PAYMENT_MODES } from "@/lib/paymentModes";
 import CalendarInput from "@/components/CalendarInput";
 import Modal from "@/components/Modal";
+import PaymentModeField from "@/components/accounts/PaymentModeField";
 import { inr } from "@/lib/format";
+import { amountInWords } from "@/lib/amountInWords";
 
 interface EditPaymentModalProps {
   payment: {
@@ -18,6 +19,23 @@ interface EditPaymentModalProps {
   };
   onClose: () => void;
 }
+
+function localToday() {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+function daysFromToday(ymd: string): number | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
+  const a = new Date(ymd + "T12:00:00");
+  const b = new Date(localToday() + "T12:00:00");
+  if (isNaN(a.getTime())) return null;
+  return Math.round((a.getTime() - b.getTime()) / 86400000);
+}
+
+const SENIOR_LABEL = "block text-sm font-semibold text-slate-700 mb-1.5";
 
 export default function EditPaymentModal({
   payment,
@@ -35,12 +53,19 @@ export default function EditPaymentModal({
   const [error, setError] = useState("");
 
   const busy = saving || deleting;
+  const parsed = parseFloat(amount);
+  const validAmount = Number.isFinite(parsed) && parsed > 0;
+  const dateDiff = daysFromToday(paymentDate);
+  const dateStale = dateDiff !== null && Math.abs(dateDiff) > 7;
+
+  function close() {
+    if (!busy) onClose();
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
 
-    const parsed = parseFloat(amount);
     if (!parsed || parsed <= 0) {
       setError("Enter a valid amount.");
       return;
@@ -95,16 +120,14 @@ export default function EditPaymentModal({
 
   return (
     <Modal
-      onClose={() => {
-        if (!busy) onClose();
-      }}
+      onClose={close}
       onSubmit={confirmDelete ? undefined : handleSubmit}
       title={confirmDelete ? "Delete Payment" : "Edit Payment"}
       closeOnBackdrop={false}
       busy={busy}
       footer={
         confirmDelete ? (
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
             <button
               type="button"
               onClick={() => setConfirmDelete(false)}
@@ -123,7 +146,7 @@ export default function EditPaymentModal({
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => setConfirmDelete(true)}
@@ -131,10 +154,10 @@ export default function EditPaymentModal({
             >
               Delete
             </button>
-            <div className="flex gap-3">
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:gap-3">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={close}
                 disabled={saving}
                 className="btn-secondary"
               >
@@ -143,9 +166,13 @@ export default function EditPaymentModal({
               <button
                 type="submit"
                 disabled={saving}
-                className="btn-primary disabled:opacity-50"
+                className="btn-primary disabled:opacity-50 sm:min-w-[200px]"
               >
-                {saving ? "Saving..." : "Save Changes"}
+                {saving
+                  ? "Saving…"
+                  : validAmount
+                    ? `Save ${inr(parsed)}`
+                    : "Save Changes"}
               </button>
             </div>
           </div>
@@ -160,63 +187,88 @@ export default function EditPaymentModal({
       ) : (
         <>
           <div>
-            <label className="label">Amount</label>
-            <input
-              type="number"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="input"
-              placeholder="0.00"
-              required
-              autoFocus
-            />
+            <label className={SENIOR_LABEL} htmlFor="edit-pay-amount">
+              Amount
+            </label>
+            <div className="relative">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-slate-500">
+                ₹
+              </span>
+              <input
+                id="edit-pay-amount"
+                type="number"
+                step="0.01"
+                inputMode="decimal"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="input pl-9 text-lg font-semibold"
+                placeholder="0.00"
+                required
+                autoFocus
+              />
+            </div>
+            {validAmount && (
+              <p className="mt-1.5 text-sm font-medium text-slate-600">
+                {amountInWords(parsed)}
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="label">Payment Date</label>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label className="block text-sm font-semibold text-slate-700">
+                Payment date
+              </label>
+              <button
+                type="button"
+                onClick={() => setPaymentDate(localToday())}
+                className="rounded-lg px-2 py-1 text-sm font-semibold text-brand-600 hover:bg-brand-50 focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+              >
+                Today
+              </button>
+            </div>
             <CalendarInput
               value={paymentDate}
               onChange={setPaymentDate}
               required
             />
+            {dateStale && dateDiff !== null && (
+              <p className="mt-1.5 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm font-medium text-amber-800">
+                {dateDiff > 0
+                  ? `Date is ${dateDiff} days in the future — double-check?`
+                  : `Date is ${Math.abs(dateDiff)} days ago — double-check?`}
+              </p>
+            )}
           </div>
 
           <div>
-            <label className="label">Payment Mode</label>
-            <select
-              value={mode}
-              onChange={(e) => setMode(e.target.value)}
-              className="input"
-            >
-              {PAYMENT_MODES.map((pm) => (
-                <option key={pm.value} value={pm.value}>
-                  {pm.label}
-                </option>
-              ))}
-            </select>
+            <span className={SENIOR_LABEL}>How was it paid?</span>
+            <PaymentModeField value={mode} onChange={setMode} />
           </div>
 
           <div>
-            <label className="label">
-              Reference Number{" "}
+            <label className={SENIOR_LABEL} htmlFor="edit-pay-ref">
+              Reference number{" "}
               <span className="text-slate-400 font-normal">(optional)</span>
             </label>
             <input
+              id="edit-pay-ref"
               type="text"
               value={reference}
               onChange={(e) => setReference(e.target.value)}
               className="input"
               placeholder="Cheque no, UTR, UPI ref..."
+              autoComplete="off"
             />
           </div>
 
           <div>
-            <label className="label">
+            <label className={SENIOR_LABEL} htmlFor="edit-pay-notes">
               Notes{" "}
               <span className="text-slate-400 font-normal">(optional)</span>
             </label>
             <textarea
+              id="edit-pay-notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}

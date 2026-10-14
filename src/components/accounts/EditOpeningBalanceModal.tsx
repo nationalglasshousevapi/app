@@ -66,7 +66,7 @@ export default function EditOpeningBalanceModal({
       closeOnBackdrop={false}
       busy={saving}
       footer={
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
           <button
             type="button"
             onClick={onClose}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PAYMENT_MODES } from "@/lib/paymentModes";
+import PaymentModeField from "@/components/accounts/PaymentModeField";
 import { inr } from "@/lib/format";
 import { computeTax, computeTotal } from "@/lib/documents";
 import { docTypeLabel } from "@/lib/docTypes";
@@ -140,7 +140,7 @@ export default function ConvertDialog({
       busy={converting}
       bodyClassName=""
       footer={
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end sm:gap-3">
           <button
             type="button"
             onClick={onCancel}
@@ -161,7 +161,7 @@ export default function ConvertDialog({
       }
     >
       <div className="mb-4">
-        <label className="label">Convert to</label>
+        <label className="label-lg">Convert to</label>
         <select
           className="input"
           value={targetType}
@@ -197,7 +197,7 @@ export default function ConvertDialog({
           </label>
           {withGst && (
             <div className="space-y-2 pl-7">
-              <label className="label">GST type</label>
+              <label className="label-lg">GST type</label>
               <select
                 className="input"
                 value={gstType}
@@ -296,18 +296,8 @@ export default function ConvertDialog({
 
       {isInvoiceTarget && recordPayment && (
         <div className="mb-4">
-          <label className="label">Payment mode</label>
-          <select
-            className="input"
-            value={paymentMode}
-            onChange={(e) => setPaymentMode(e.target.value)}
-          >
-            {PAYMENT_MODES.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
+          <span className="label-lg">How was it paid?</span>
+          <PaymentModeField value={paymentMode} onChange={setPaymentMode} />
         </div>
       )}
 

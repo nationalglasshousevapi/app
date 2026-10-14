@@ -62,7 +62,14 @@ export default function CashSaleForm() {
   const [orderNumber, setOrderNumber] = useState("");
   const [docDate, setDocDate] = useState(today());
   const [items, setItems] = useState<SaleItem[]>([
-    { description: "", size: "", hsn_code: DEFAULT_HSN_CODE, qty: 0, unit: "sq.ft", rate: 0 },
+    {
+      description: "",
+      size: "",
+      hsn_code: DEFAULT_HSN_CODE,
+      qty: 0,
+      unit: "sq.ft",
+      rate: 0,
+    },
   ]);
   const [taxType, setTaxType] = useState<"cgst_sgst" | "none">("none");
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -75,12 +82,22 @@ export default function CashSaleForm() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [bannerDismissed, setBannerDismissed] = useState(false);
-  const { existing: draft, save: saveDraft, clear: clearDraft } = useDraftPersistence<CashSaleDraft>(DRAFT_KEY);
+  const {
+    existing: draft,
+    save: saveDraft,
+    clear: clearDraft,
+  } = useDraftPersistence<CashSaleDraft>(DRAFT_KEY);
 
   useEffect(() => {
     fetch("/api/descriptions")
       .then((res) => res.json())
-      .then((json) => setSavedDescriptions((json.descriptions ?? []).map((d: { description: string }) => d.description)))
+      .then((json) =>
+        setSavedDescriptions(
+          (json.descriptions ?? []).map(
+            (d: { description: string }) => d.description
+          )
+        )
+      )
       .catch(() => {});
   }, []);
 
@@ -98,13 +115,38 @@ export default function CashSaleForm() {
       amountPaid,
     };
     if (!isBlankSale(snapshot)) saveDraft(snapshot);
-  }, [customer, walkInName, orderNumber, items, taxType, discountAmount, paymentMode, referenceNumber, remarks, amountPaid, saveDraft]);
+  }, [
+    customer,
+    walkInName,
+    orderNumber,
+    items,
+    taxType,
+    discountAmount,
+    paymentMode,
+    referenceNumber,
+    remarks,
+    amountPaid,
+    saveDraft,
+  ]);
 
   function restoreDraft(d: CashSaleDraft) {
     setCustomer(d.customer);
     setWalkInName(d.walkInName);
     setOrderNumber(d.orderNumber || "");
-    setItems(d.items?.length ? d.items : [{ description: "", size: "", hsn_code: DEFAULT_HSN_CODE, qty: 0, unit: "sq.ft", rate: 0 }]);
+    setItems(
+      d.items?.length
+        ? d.items
+        : [
+            {
+              description: "",
+              size: "",
+              hsn_code: DEFAULT_HSN_CODE,
+              qty: 0,
+              unit: "sq.ft",
+              rate: 0,
+            },
+          ]
+    );
     setTaxType(d.taxType ?? "none");
     setDiscountAmount(d.discountAmount || 0);
     setPaymentMode(d.paymentMode || "cash");
@@ -120,18 +162,21 @@ export default function CashSaleForm() {
 
   const subtotal = useMemo(
     () => items.reduce((s, it) => s + (it.qty || 0) * (it.rate || 0), 0),
-    [items],
+    [items]
   );
   const { cgst, sgst } = useMemo(
     () => computeTax(subtotal, taxType, 0.18, discountAmount),
-    [subtotal, taxType, discountAmount],
+    [subtotal, taxType, discountAmount]
   );
   const { totalAmount } = useMemo(
     () => computeTotal(subtotal, cgst, sgst, 0, discountAmount),
-    [subtotal, cgst, sgst, discountAmount],
+    [subtotal, cgst, sgst, discountAmount]
   );
 
-  const balanceDue = useMemo(() => Math.max(0, totalAmount - (amountPaid || 0)), [totalAmount, amountPaid]);
+  const balanceDue = useMemo(
+    () => Math.max(0, totalAmount - (amountPaid || 0)),
+    [totalAmount, amountPaid]
+  );
   const isOverPaid = (amountPaid || 0) > totalAmount;
 
   // Auto-default paid to total when total is first computed or when user hasn't manually edited.
@@ -148,13 +193,17 @@ export default function CashSaleForm() {
 
   async function save() {
     if (saving) return;
-    const validItems = items.filter((it) => it.description.trim() && (it.qty || 0) > 0);
+    const validItems = items.filter(
+      (it) => it.description.trim() && (it.qty || 0) > 0
+    );
     if (!validItems.length) {
       setError("Add at least one item with a description and quantity.");
       return;
     }
     if (!customer && !walkInName.trim()) {
-      setError("Customer name is required. Pick a customer or enter a name (e.g. Ramesh).");
+      setError(
+        "Customer name is required. Pick a customer or enter a name (e.g. Ramesh)."
+      );
       return;
     }
     const paid = amountPaid || 0;
@@ -163,7 +212,9 @@ export default function CashSaleForm() {
       return;
     }
     if (paid > totalAmount) {
-      setError(`Paid (${inr(paid, 2)}) cannot exceed total (${inr(totalAmount, 2)}).`);
+      setError(
+        `Paid (${inr(paid, 2)}) cannot exceed total (${inr(totalAmount, 2)}).`
+      );
       return;
     }
     setSaving(true);
@@ -202,7 +253,8 @@ export default function CashSaleForm() {
     }
   }
 
-  const paymentLabel = SALE_MODES.find((m) => m.value === paymentMode)?.label ?? paymentMode;
+  const paymentLabel =
+    SALE_MODES.find((m) => m.value === paymentMode)?.label ?? paymentMode;
   let ctaLabel: string;
   if (amountPaid === 0) {
     ctaLabel = `Create order • ${inr(totalAmount, 2)} due on collection`;
@@ -217,7 +269,8 @@ export default function CashSaleForm() {
       {resumableDraft && !bannerDismissed && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-sm">
           <span className="text-amber-900 font-medium">
-            Resume unsaved sale from {new Date(resumableDraft.savedAt).toLocaleString()}?
+            Resume unsaved sale from{" "}
+            {new Date(resumableDraft.savedAt).toLocaleString()}?
           </span>
           <span className="flex items-center gap-2">
             <button
@@ -242,14 +295,18 @@ export default function CashSaleForm() {
       <div className="card p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="label !mb-0">Customer *</h2>
-          <span className="text-xs text-slate-500">Required for advance/balance tracking</span>
+          <span className="text-xs text-slate-500">
+            Required for advance/balance tracking
+          </span>
         </div>
         {customer ? (
           <div className="flex items-center justify-between rounded-xl bg-brand-50 border border-brand-100 px-4 py-3">
             <div>
               <p className="font-semibold text-ink">{customer.name}</p>
               {customer.contact_number && (
-                <p className="text-xs text-slate-500 font-body">{customer.contact_number}</p>
+                <p className="text-xs text-slate-500 font-body">
+                  {customer.contact_number}
+                </p>
               )}
             </div>
             <button
@@ -272,7 +329,8 @@ export default function CashSaleForm() {
                 required
               />
               <p className="text-xs text-slate-500 mt-1">
-                No GST needed. A customer record will be created automatically so you can track balance later.
+                No GST needed. A customer record will be created automatically
+                so you can track balance later.
               </p>
             </div>
           </>
@@ -291,8 +349,13 @@ export default function CashSaleForm() {
             </p>
           </div>
           <div>
-            <label className="label">Date</label>
-            <input type="date" className="input" value={docDate} onChange={(e) => setDocDate(e.target.value)} />
+            <label className="label-lg">Date</label>
+            <input
+              type="date"
+              className="input"
+              value={docDate}
+              onChange={(e) => setDocDate(e.target.value)}
+            />
           </div>
         </div>
       </div>
@@ -307,7 +370,10 @@ export default function CashSaleForm() {
         </datalist>
         <div className="space-y-3">
           {items.map((it, i) => (
-            <div key={i} className="grid grid-cols-2 sm:grid-cols-12 gap-2 items-end">
+            <div
+              key={i}
+              className="grid grid-cols-2 sm:grid-cols-12 gap-2 items-end"
+            >
               <div className="col-span-2 sm:col-span-4">
                 {i === 0 && <label className="label">Description</label>}
                 <input
@@ -315,33 +381,70 @@ export default function CashSaleForm() {
                   className="input !min-h-[34px]"
                   placeholder="e.g. 5 mm Clear Glass"
                   value={it.description}
-                  onChange={(e) => patchItem(i, { description: e.target.value })}
+                  onChange={(e) =>
+                    patchItem(i, { description: e.target.value })
+                  }
                 />
               </div>
               <div className="sm:col-span-2">
                 {i === 0 && <label className="label">Size</label>}
-                <input className="input !min-h-[34px]" placeholder='6&apos; x 4&apos;' value={it.size} onChange={(e) => patchItem(i, { size: e.target.value })} />
+                <input
+                  className="input !min-h-[34px]"
+                  placeholder="6' x 4'"
+                  value={it.size}
+                  onChange={(e) => patchItem(i, { size: e.target.value })}
+                />
               </div>
               <div className="sm:col-span-1">
                 {i === 0 && <label className="label">Qty</label>}
-                <input type="number" min="0" step="any" className="input !min-h-[34px]" placeholder="0" value={it.qty || ""} onChange={(e) => patchItem(i, { qty: parseFloat(e.target.value) || 0 })} />
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  className="input !min-h-[34px]"
+                  placeholder="0"
+                  value={it.qty || ""}
+                  onChange={(e) =>
+                    patchItem(i, { qty: parseFloat(e.target.value) || 0 })
+                  }
+                />
               </div>
               <div className="sm:col-span-1">
                 {i === 0 && <label className="label">Unit</label>}
-                <select className="input !min-h-[34px]" value={it.unit} onChange={(e) => patchItem(i, { unit: e.target.value })}>
+                <select
+                  className="input !min-h-[34px]"
+                  value={it.unit}
+                  onChange={(e) => patchItem(i, { unit: e.target.value })}
+                >
                   {UNITS.map((u) => (
-                    <option key={u} value={u}>{u}</option>
+                    <option key={u} value={u}>
+                      {u}
+                    </option>
                   ))}
                 </select>
               </div>
               <div className="sm:col-span-1">
                 {i === 0 && <label className="label">Rate</label>}
-                <input type="number" min="0" step="any" className="input !min-h-[34px]" placeholder="0" value={it.rate || ""} onChange={(e) => patchItem(i, { rate: parseFloat(e.target.value) || 0 })} />
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  className="input !min-h-[34px]"
+                  placeholder="0"
+                  value={it.rate || ""}
+                  onChange={(e) =>
+                    patchItem(i, { rate: parseFloat(e.target.value) || 0 })
+                  }
+                />
               </div>
               <div className="sm:col-span-2 flex items-center justify-between sm:justify-end gap-2">
-                <span className="font-mono text-sm whitespace-nowrap">{inr((it.qty || 0) * (it.rate || 0), 2)}</span>
+                <span className="font-mono text-sm whitespace-nowrap">
+                  {inr((it.qty || 0) * (it.rate || 0), 2)}
+                </span>
                 <button
-                  onClick={() => setItems((prev) => prev.filter((_, j) => j !== i))}
+                  onClick={() =>
+                    setItems((prev) => prev.filter((_, j) => j !== i))
+                  }
                   disabled={items.length === 1}
                   className="text-red-500 hover:text-red-700 text-lg leading-none px-1 disabled:opacity-30"
                   aria-label="Remove item"
@@ -354,7 +457,17 @@ export default function CashSaleForm() {
         </div>
         <button
           onClick={() =>
-            setItems((prev) => [...prev, { description: "", size: "", hsn_code: DEFAULT_HSN_CODE, qty: 0, unit: "sq.ft", rate: 0 }])
+            setItems((prev) => [
+              ...prev,
+              {
+                description: "",
+                size: "",
+                hsn_code: DEFAULT_HSN_CODE,
+                qty: 0,
+                unit: "sq.ft",
+                rate: 0,
+              },
+            ])
           }
           className="mt-3 w-full border border-dashed border-slate-300 text-brand-600 font-mono text-xs py-2 rounded-lg hover:border-brand-500 transition"
         >
@@ -381,7 +494,9 @@ export default function CashSaleForm() {
               className="input !min-h-[30px] !py-1 w-28 text-right font-mono"
               value={discountAmount || ""}
               placeholder="0"
-              onChange={(e) => setDiscountAmount(parseFloat(e.target.value) || 0)}
+              onChange={(e) =>
+                setDiscountAmount(parseFloat(e.target.value) || 0)
+              }
             />
           </div>
           <div className="flex items-center justify-between text-sm">
@@ -390,18 +505,26 @@ export default function CashSaleForm() {
               <select
                 className="ml-1 text-xs font-semibold border border-slate-200 rounded-md px-1 py-0.5"
                 value={taxType}
-                onChange={(e) => setTaxType(e.target.value as "cgst_sgst" | "none")}
+                onChange={(e) =>
+                  setTaxType(e.target.value as "cgst_sgst" | "none")
+                }
               >
                 <option value="none">No GST</option>
                 <option value="cgst_sgst">18% CGST+SGST</option>
               </select>
             </span>
-            <span className="font-mono font-semibold">{inr(cgst + sgst, 2)}</span>
+            <span className="font-mono font-semibold">
+              {inr(cgst + sgst, 2)}
+            </span>
           </div>
-          <p className="text-xs text-slate-400">Orders start without GST. Add 18% when you convert to an invoice.</p>
+          <p className="text-xs text-slate-400">
+            Orders start without GST. Add 18% when you convert to an invoice.
+          </p>
           <div className="flex items-center justify-between border-t border-slate-100 pt-2">
             <span className="font-bold">Total</span>
-            <span className="text-xl font-bold font-mono text-brand-600">{inr(totalAmount, 2)}</span>
+            <span className="text-xl font-bold font-mono text-brand-600">
+              {inr(totalAmount, 2)}
+            </span>
           </div>
         </div>
 
@@ -409,7 +532,7 @@ export default function CashSaleForm() {
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="label">Paid now *</label>
+              <label className="label-lg">Paid now *</label>
               <input
                 type="number"
                 min="0"
@@ -462,27 +585,45 @@ export default function CashSaleForm() {
             </div>
             <div className="flex flex-col justify-between">
               <div>
-                <label className="label">Balance due</label>
-                <div className={`rounded-lg px-3 py-2.5 text-right font-mono font-bold text-lg border ${balanceDue === 0 ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-amber-50 border-amber-200 text-amber-800"} ${isOverPaid ? "!bg-red-50 !border-red-200 !text-red-700" : ""}`}>
+                <label className="label-lg">Balance due</label>
+                <div
+                  className={`rounded-lg px-3 py-2.5 text-right font-mono font-bold text-lg border ${balanceDue === 0 ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-amber-50 border-amber-200 text-amber-800"} ${isOverPaid ? "!bg-red-50 !border-red-200 !text-red-700" : ""}`}
+                >
                   {inr(balanceDue, 2)}
                 </div>
               </div>
-              {isOverPaid && <p className="text-xs text-red-600 mt-1">Paid exceeds total. Reduce paid amount.</p>}
-              {!isOverPaid && balanceDue === 0 && totalAmount > 0 && amountPaid > 0 && (
-                <p className="text-xs text-emerald-600 mt-1">Fully paid — no balance.</p>
+              {isOverPaid && (
+                <p className="text-xs text-red-600 mt-1">
+                  Paid exceeds total. Reduce paid amount.
+                </p>
               )}
+              {!isOverPaid &&
+                balanceDue === 0 &&
+                totalAmount > 0 &&
+                amountPaid > 0 && (
+                  <p className="text-xs text-emerald-600 mt-1">
+                    Fully paid — no balance.
+                  </p>
+                )}
               {!isOverPaid && balanceDue > 0 && balanceDue < totalAmount && (
-                <p className="text-xs text-amber-700 mt-1">Advance collected — {inr(balanceDue, 2)} to collect on delivery.</p>
+                <p className="text-xs text-amber-700 mt-1">
+                  Advance collected — {inr(balanceDue, 2)} to collect on
+                  delivery.
+                </p>
               )}
               {!isOverPaid && (amountPaid || 0) === 0 && totalAmount > 0 && (
-                <p className="text-xs text-slate-600 mt-1">No advance — full amount due on collection.</p>
+                <p className="text-xs text-slate-600 mt-1">
+                  No advance — full amount due on collection.
+                </p>
               )}
             </div>
           </div>
 
-          {((amountPaid || 0) > 0) && (
+          {(amountPaid || 0) > 0 && (
             <div className="pt-2 border-t border-slate-200 space-y-3">
-              <p className="text-xs font-semibold text-slate-600">How was advance paid? (only when Paid &gt; 0)</p>
+              <p className="text-xs font-semibold text-slate-600">
+                How was advance paid? (only when Paid &gt; 0)
+              </p>
               <div className="flex flex-wrap gap-2">
                 {SALE_MODES.map((m) => (
                   <button
@@ -498,13 +639,22 @@ export default function CashSaleForm() {
                   </button>
                 ))}
               </div>
-              {(paymentMode === "bank_transfer" || paymentMode === "cheque" || paymentMode === "upi") && (
+              {(paymentMode === "bank_transfer" ||
+                paymentMode === "cheque" ||
+                paymentMode === "upi") && (
                 <div>
-                  <label className="label">
+                  <label className="label-lg">
                     Reference number{" "}
-                    <span className="text-slate-400 font-normal">(optional)</span>
+                    <span className="text-slate-400 font-normal">
+                      (optional)
+                    </span>
                   </label>
-                  <input className="input" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)} placeholder="Cheque / transfer / UPI ref (optional)" />
+                  <input
+                    className="input"
+                    value={referenceNumber}
+                    onChange={(e) => setReferenceNumber(e.target.value)}
+                    placeholder="Cheque / transfer / UPI ref (optional)"
+                  />
                 </div>
               )}
             </div>
@@ -513,14 +663,27 @@ export default function CashSaleForm() {
 
         <div>
           <label className="label">Remarks</label>
-          <input className="input" value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="e.g. Advance for order, collect in 2 days" />
+          <input
+            className="input"
+            value={remarks}
+            onChange={(e) => setRemarks(e.target.value)}
+            placeholder="e.g. Advance for order, collect in 2 days"
+          />
         </div>
       </div>
 
-      {error && <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">{error}</p>}
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      )}
 
       <div className="sticky bottom-20 md:bottom-4 z-10">
-        <button onClick={save} disabled={saving || isOverPaid} className="btn-primary w-full text-base disabled:opacity-60">
+        <button
+          onClick={save}
+          disabled={saving || isOverPaid}
+          className="btn-primary w-full text-base disabled:opacity-60"
+        >
           {saving ? "Saving…" : ctaLabel}
         </button>
       </div>

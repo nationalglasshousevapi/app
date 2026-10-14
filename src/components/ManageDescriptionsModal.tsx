@@ -92,16 +92,6 @@ export default function ManageDescriptionsModal({
       title="Manage Descriptions"
       maxWidth="lg"
       bodyClassName="space-y-2"
-      headerAction={
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="-mr-1 -mt-1 rounded-lg p-1 text-xl leading-none text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-        >
-          &times;
-        </button>
-      }
       footer={
         <div className="space-y-2">
           {error && <p className="text-xs text-red-500">{error}</p>}
