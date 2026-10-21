@@ -4,6 +4,7 @@ import {
   createCustomerSchema,
   createCashSaleSchema,
   createExpenseSchema,
+  createLabourEntrySchema,
 } from "@/lib/schemas";
 
 describe("createPaymentSchema", () => {
@@ -22,7 +23,10 @@ describe("createPaymentSchema", () => {
   });
 
   it("rejects a negative amount", () => {
-    const parsed = createPaymentSchema.safeParse({ ...validPayment, amount: -100 });
+    const parsed = createPaymentSchema.safeParse({
+      ...validPayment,
+      amount: -100,
+    });
     expect(parsed.success).toBe(false);
   });
 
@@ -84,7 +88,9 @@ describe("createCustomerSchema", () => {
   });
 
   it("accepts a minimal payload with just a name", () => {
-    const parsed = createCustomerSchema.safeParse({ name: "Sharma Glass Traders" });
+    const parsed = createCustomerSchema.safeParse({
+      name: "Sharma Glass Traders",
+    });
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect(parsed.data.opening_balance).toBe(0);
@@ -107,7 +113,10 @@ describe("createCashSaleSchema — cash order without GST by default", () => {
   });
 
   it("accepts explicit cgst_sgst when GST is needed", () => {
-    const parsed = createCashSaleSchema.safeParse({ ...validCashSale, tax_type: "cgst_sgst" });
+    const parsed = createCashSaleSchema.safeParse({
+      ...validCashSale,
+      tax_type: "cgst_sgst",
+    });
     expect(parsed.success).toBe(true);
     if (parsed.success) expect(parsed.data.tax_type).toBe("cgst_sgst");
   });
@@ -122,23 +131,69 @@ describe("createCashSaleSchema — cash order without GST by default", () => {
   });
 
   it("accepts omitted reference_number", () => {
-    const parsed = createCashSaleSchema.safeParse({ ...validCashSale, payment_mode: "upi" });
+    const parsed = createCashSaleSchema.safeParse({
+      ...validCashSale,
+      payment_mode: "upi",
+    });
     expect(parsed.success).toBe(true);
   });
 
   it("accepts empty string reference_number", () => {
-    const parsed = createCashSaleSchema.safeParse({ ...validCashSale, reference_number: "" });
+    const parsed = createCashSaleSchema.safeParse({
+      ...validCashSale,
+      reference_number: "",
+    });
     expect(parsed.success).toBe(true);
   });
 });
 
 describe("createExpenseSchema — reference_number optional", () => {
   it("accepts null reference_number", () => {
-    const parsed = createExpenseSchema.safeParse({ amount: 100, reference_number: null });
+    const parsed = createExpenseSchema.safeParse({
+      amount: 100,
+      reference_number: null,
+    });
     expect(parsed.success).toBe(true);
   });
   it("accepts omitted reference_number", () => {
     const parsed = createExpenseSchema.safeParse({ amount: 100 });
     expect(parsed.success).toBe(true);
+  });
+});
+
+describe("createLabourEntrySchema", () => {
+  const validEntry = { worker_name: "Ramesh", amount_owed: 500 };
+
+  it("accepts a minimal payload and defaults paid to 0", () => {
+    const parsed = createLabourEntrySchema.safeParse(validEntry);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.amount_paid).toBe(0);
+      expect(parsed.data.payment_mode).toBe("cash");
+    }
+  });
+
+  it("rejects a missing worker name", () => {
+    const parsed = createLabourEntrySchema.safeParse({
+      ...validEntry,
+      worker_name: "",
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("rejects zero amount owed", () => {
+    const parsed = createLabourEntrySchema.safeParse({
+      ...validEntry,
+      amount_owed: 0,
+    });
+    expect(parsed.success).toBe(false);
+  });
+
+  it("rejects a negative paid amount", () => {
+    const parsed = createLabourEntrySchema.safeParse({
+      ...validEntry,
+      amount_paid: -1,
+    });
+    expect(parsed.success).toBe(false);
   });
 });

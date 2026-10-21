@@ -3,7 +3,15 @@ import { supabaseServer } from "@/lib/supabaseServer";
 
 export const dynamic = "force-dynamic";
 
-const TABLES = ["customers", "documents", "document_items", "payments", "expenses", "counters"] as const;
+const TABLES = [
+  "customers",
+  "documents",
+  "document_items",
+  "payments",
+  "expenses",
+  "labour_entries",
+  "counters",
+] as const;
 const PAGE_SIZE = 1000;
 const MAX_ROWS = 100000;
 
@@ -14,7 +22,10 @@ export async function GET() {
     async function fetchAll(table: string): Promise<unknown[]> {
       const rows: unknown[] = [];
       for (let from = 0; from < MAX_ROWS; from += PAGE_SIZE) {
-        const { data, error } = await supabase.from(table).select("*").range(from, from + PAGE_SIZE - 1);
+        const { data, error } = await supabase
+          .from(table)
+          .select("*")
+          .range(from, from + PAGE_SIZE - 1);
         if (error) throw new Error(`${table}: ${error.message}`);
         if (!data || data.length === 0) break;
         rows.push(...data);
@@ -24,7 +35,7 @@ export async function GET() {
     }
 
     const entries = await Promise.all(
-      TABLES.map(async (table) => [table, await fetchAll(table)] as const),
+      TABLES.map(async (table) => [table, await fetchAll(table)] as const)
     );
     const payload = {
       exported_at: new Date().toISOString(),

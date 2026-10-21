@@ -11,7 +11,13 @@ export const docTypeSchema = z.enum([
   "purchase",
 ]);
 
-export const documentStatusSchema = z.enum(["draft", "sent", "paid", "cancelled", "converted"]);
+export const documentStatusSchema = z.enum([
+  "draft",
+  "sent",
+  "paid",
+  "cancelled",
+  "converted",
+]);
 
 export const taxTypeSchema = z.enum(["cgst_sgst", "igst", "none"]);
 
@@ -77,9 +83,17 @@ export const createDocumentSchema = z.object({
   items: z.array(itemSchema).min(1, "Add at least one line item."),
 });
 
-export const updateDocumentSchema = createDocumentSchema.omit({ doc_type: true });
+export const updateDocumentSchema = createDocumentSchema.omit({
+  doc_type: true,
+});
 
-export const paymentModeSchema = z.enum(["cash", "bank_transfer", "upi", "cheque", "adjustment"]);
+export const paymentModeSchema = z.enum([
+  "cash",
+  "bank_transfer",
+  "upi",
+  "cheque",
+  "adjustment",
+]);
 
 // Quick cash sale: counter order with partial / advance payment support.
 // Creates an Order document WITHOUT GST by default (add GST at invoice conversion).
@@ -97,7 +111,11 @@ export const createCashSaleSchema = z.object({
   items: z.array(itemSchema).min(1, "Add at least one line item."),
   payment_mode: paymentModeSchema.optional().default("cash"),
   reference_number: z.string().nullable().optional().default(""),
-  amount_paid: z.number().min(0, "Paid amount cannot be negative.").optional().default(0),
+  amount_paid: z
+    .number()
+    .min(0, "Paid amount cannot be negative.")
+    .optional()
+    .default(0),
 });
 
 export const expenseCategorySchema = z.enum([
@@ -120,6 +138,23 @@ export const createExpenseSchema = z.object({
 
 export const updateExpenseSchema = createExpenseSchema.partial();
 
+export const createLabourEntrySchema = z.object({
+  entry_date: z.string().optional(),
+  worker_name: z.string().min(1, "Worker name is required."),
+  work_description: z.string().optional().default(""),
+  amount_owed: z.number().positive("Amount owed must be greater than 0."),
+  amount_paid: z
+    .number()
+    .min(0, "Paid amount cannot be negative.")
+    .optional()
+    .default(0),
+  payment_mode: paymentModeSchema.optional().default("cash"),
+  reference_number: z.string().nullable().optional().default(""),
+  notes: z.string().nullable().optional().default(""),
+});
+
+export const updateLabourEntrySchema = createLabourEntrySchema.partial();
+
 export const createPaymentSchema = z.object({
   customer_id: z.string().uuid().nullable().optional(),
   payment_date: z.string().optional(),
@@ -140,7 +175,11 @@ export const createCustomerSchema = z.object({
   contact_number: z.string().optional(),
   email: z.string().optional(),
   gst: z.string().optional(),
-  opening_balance: z.number().min(0, "Opening balance cannot be negative.").optional().default(0),
+  opening_balance: z
+    .number()
+    .min(0, "Opening balance cannot be negative.")
+    .optional()
+    .default(0),
 });
 
 export const updateCustomerSchema = createCustomerSchema.partial();

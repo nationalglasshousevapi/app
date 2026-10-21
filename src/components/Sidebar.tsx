@@ -4,7 +4,17 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { PersonIcon, DashboardIcon, DocumentIcon, AccountIcon, ToolIcon, CartIcon, GlobeIcon, CashIcon, BookIcon } from "./icons";
+import {
+  PersonIcon,
+  DashboardIcon,
+  DocumentIcon,
+  AccountIcon,
+  ToolIcon,
+  CartIcon,
+  GlobeIcon,
+  CashIcon,
+  BookIcon,
+} from "./icons";
 import { publicWebsiteUrl } from "@/lib/website";
 import Image from "next/image";
 
@@ -15,6 +25,7 @@ const NAV = [
   { href: "/purchases", label: "Purchases", icon: "cart" },
   { href: "/accounts", label: "Accounts", icon: "account" },
   { href: "/expenses", label: "Expenses", icon: "cash" },
+  { href: "/labour", label: "Labour", icon: "person" },
   { href: "/daybook", label: "Day book", icon: "book" },
   { href: "/customers", label: "Customers", icon: "person" },
   { href: "/tools/cutting-optimizer", label: "Cut Optimizer", icon: "tool" },
@@ -51,7 +62,9 @@ export default function Sidebar() {
       transition={{ type: "spring", damping: 28, stiffness: 250, mass: 0.8 }}
     >
       {/* Logo + toggle button row */}
-      <div className={`flex items-center p-4 md:py-5 ${collapsed ? "justify-center flex-col gap-3" : "justify-between gap-2"}`}>
+      <div
+        className={`flex items-center p-4 md:py-5 ${collapsed ? "justify-center flex-col gap-3" : "justify-between gap-2"}`}
+      >
         {!collapsed && (
           <Image
             src="/logo.png"
@@ -67,11 +80,27 @@ export default function Sidebar() {
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {collapsed ? (
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              className="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points="9 18 15 12 9 6" />
             </svg>
           ) : (
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              className="w-4 h-4"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <polyline points="15 18 9 12 15 6" />
             </svg>
           )}
@@ -83,7 +112,8 @@ export default function Sidebar() {
         {NAV.map((item) => {
           const active =
             pathname === item.href ||
-            (item.href === "/documents" && pathname.startsWith("/documents/")) ||
+            (item.href === "/documents" &&
+              pathname.startsWith("/documents/")) ||
             (item.href === "/purchases" && pathname.startsWith("/purchases/"));
           return (
             <Link
@@ -98,7 +128,10 @@ export default function Sidebar() {
               }`}
               title={collapsed ? item.label : undefined}
             >
-              <span className="w-4 h-4 flex items-center justify-center shrink-0" aria-hidden>
+              <span
+                className="w-4 h-4 flex items-center justify-center shrink-0"
+                aria-hidden
+              >
                 {item.icon === "person" ? (
                   <PersonIcon className="w-4 h-4" />
                 ) : item.icon === "dashboard" ? (
@@ -124,14 +157,24 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer actions */}
-      <div className={`p-3 border-t border-white/15 space-y-2 ${collapsed ? "flex flex-col items-center" : ""}`}>
+      <div
+        className={`p-3 border-t border-white/15 space-y-2 ${collapsed ? "flex flex-col items-center" : ""}`}
+      >
         <a
           href="/api/export"
           download
           className={`flex items-center justify-center gap-2 rounded-xl border border-white/25 text-white/75 px-3 py-3 text-sm font-semibold hover:bg-white/10 hover:text-white transition w-full`}
           title={collapsed ? "Export data" : undefined}
         >
-          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            className="w-4 h-4 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
             <polyline points="7 10 12 15 17 10" />
             <line x1="12" y1="15" x2="12" y2="3" />
@@ -165,7 +208,15 @@ export default function Sidebar() {
           }`}
           title={collapsed ? "Sign out" : undefined}
         >
-          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            className="w-4 h-4 shrink-0"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
