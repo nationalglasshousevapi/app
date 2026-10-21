@@ -138,6 +138,20 @@ export const createExpenseSchema = z.object({
 
 export const updateExpenseSchema = createExpenseSchema.partial();
 
+export const createWorkerSchema = z.object({
+  name: z.string().min(1, "Worker name is required."),
+  phone: z.string().optional().default(""),
+  email: z.string().optional().default(""),
+  opening_balance: z
+    .number()
+    .min(0, "Opening balance cannot be negative.")
+    .optional()
+    .default(0),
+  notes: z.string().nullable().optional().default(""),
+});
+
+export const updateWorkerSchema = createWorkerSchema.partial();
+
 export const createLabourEntrySchema = z.object({
   entry_date: z.string().optional(),
   worker_name: z.string().min(1, "Worker name is required."),

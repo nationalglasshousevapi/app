@@ -188,8 +188,8 @@ export default async function CustomerLedgerPage({
           <p className="text-sm text-slate-500 mt-1">Customer Ledger</p>
           <div className="mt-3">
             <LedgerShareActions
-              customerId={customerId}
-              customerName={customer.name}
+              ledgerId={customerId}
+              partyName={customer.name}
               contactNumber={customer.contact_number}
             />
           </div>

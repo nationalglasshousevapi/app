@@ -50,6 +50,7 @@ export default function LabourManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [workerNames, setWorkerNames] = useState<string[]>([]);
 
   async function load(targetMonth: string) {
     setLoading(true);
@@ -69,6 +70,17 @@ export default function LabourManager() {
   useEffect(() => {
     load(month);
   }, [month]);
+
+  useEffect(() => {
+    fetch("/api/workers")
+      .then((r) => r.json())
+      .then((json) =>
+        setWorkerNames(
+          (json.workers ?? []).map((w: { name: string }) => w.name)
+        )
+      )
+      .catch(() => {});
+  }, []);
 
   const monthEntries = useMemo(
     () => entries.filter((e) => e.entry_date.startsWith(month)),
@@ -245,11 +257,17 @@ export default function LabourManager() {
               <input
                 className="input"
                 placeholder="e.g. Ramesh"
+                list="worker-names"
                 value={form.worker_name}
                 onChange={(e) =>
                   setForm({ ...form, worker_name: e.target.value })
                 }
               />
+              <datalist id="worker-names">
+                {workerNames.map((n) => (
+                  <option key={n} value={n} />
+                ))}
+              </datalist>
             </div>
             <div>
               <label className="label-lg">Amount owed (₹) *</label>

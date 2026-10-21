@@ -366,10 +366,31 @@ end $$;
 -- Delete the moved charge items from document_items
 delete from document_items where item_type = 'charge';
 
+-- ========== Workers (people who do labour) ==========
+create table if not exists workers (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  phone text,
+  email text,
+  opening_balance numeric(12,2) not null default 0,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create index if not exists idx_workers_name on workers (name);
+
+alter table workers enable row level security;
+
+drop trigger if exists trg_workers_updated on workers;
+create trigger trg_workers_updated before update on workers
+  for each row execute function set_updated_at();
+
 -- ========== Labour (work performed, amount owed vs paid) ==========
 create table if not exists labour_entries (
   id uuid primary key default gen_random_uuid(),
   entry_date date not null default current_date,
+  worker_id uuid references workers(id) on delete set null,
   worker_name text not null,
   work_description text,
   amount_owed numeric(12,2) not null check (amount_owed > 0),
@@ -385,6 +406,7 @@ create table if not exists labour_entries (
 );
 
 create index if not exists idx_labour_entries_date on labour_entries (entry_date);
+create index if not exists idx_labour_entries_worker on labour_entries (worker_id);
 
 alter table labour_entries enable row level security;
 

@@ -131,3 +131,13 @@ export function buildPublicLedgerUrl(
   const base = getAppBaseUrl(req as any);
   return `${base}/api/public/customers/${customerId}/ledger/pdf?exp=${exp}&sig=${sig}`;
 }
+
+export function buildPublicWorkerLedgerUrl(
+  workerId: string,
+  exp: string,
+  sig: string,
+  req?: { headers: Headers; nextUrl?: URL }
+): string {
+  const base = getAppBaseUrl(req as any);
+  return `${base}/api/public/workers/${workerId}/ledger/pdf?exp=${exp}&sig=${sig}`;
+}

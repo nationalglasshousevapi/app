@@ -74,3 +74,36 @@ export function ledgerShareMessage({
     `Thank you!`
   );
 }
+
+export function labourLedgerShareMessage({
+  workerName,
+  openingBalance,
+  totalOwed,
+  totalPaid,
+  balanceOwed,
+  pdfUrl,
+  website,
+}: {
+  workerName: string;
+  openingBalance: number;
+  totalOwed: number;
+  totalPaid: number;
+  balanceOwed: number;
+  pdfUrl?: string;
+  website?: string;
+}) {
+  const fmt = (n: number) =>
+    n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  const balance = Math.abs(balanceOwed);
+  return (
+    `Dear ${workerName},\n\n` +
+    `Here is your labour statement from National Glass House.\n\n` +
+    `Opening balance: ₹ ${fmt(openingBalance)}\n` +
+    `Work done: ₹ ${fmt(totalOwed)}\n` +
+    `Paid: ₹ ${fmt(totalPaid)}\n` +
+    `Balance ${balanceOwed >= 0 ? "owed to you" : "advance paid"}: ₹ ${fmt(balance)}\n\n` +
+    (pdfUrl ? `View statement: ${pdfUrl}\n\n` : "") +
+    (website ? `${website}\n\n` : "") +
+    `Thank you!`
+  );
+}

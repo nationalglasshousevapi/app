@@ -8,7 +8,7 @@ import { companyDetails } from "@/lib/company";
 import LedgerPdf from "@/components/LedgerPdf";
 import { buildCustomerLedger } from "@/lib/ledger";
 
-async function companyLogo() {
+export async function companyLogo() {
   try {
     const logo = await readFile(path.join(process.cwd(), "public", "logo.png"));
     return `data:image/png;base64,${logo.toString("base64")}`;

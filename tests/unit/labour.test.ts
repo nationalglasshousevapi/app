@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { labourBalance, labourExpenseDescription } from "@/lib/labour";
+import {
+  labourBalance,
+  labourExpenseDescription,
+  workerLedgerRows,
+} from "@/lib/labour";
 
 describe("labourBalance", () => {
   it("subtracts paid from owed", () => {
@@ -32,5 +36,31 @@ describe("labourExpenseDescription", () => {
         work_description: null,
       })
     ).toBe("Ramesh");
+  });
+});
+
+describe("workerLedgerRows", () => {
+  const row = {
+    entry_date: "2026-01-05",
+    work_description: "Fitted 12 windows",
+    amount_owed: "1000.00",
+    amount_paid: "400.00",
+    payment_mode: "cash",
+    reference_number: null,
+  };
+
+  it("tracks a running balance from opening balance", () => {
+    const result = workerLedgerRows(500, [row]);
+    expect(result.entries).toHaveLength(2);
+    expect(result.entries[0].description).toBe("Opening Balance");
+    expect(result.totalOwed).toBe(1000);
+    expect(result.totalPaid).toBe(400);
+    expect(result.balanceOwed).toBe(1100);
+    expect(result.entries[1].balance).toBe(1100);
+  });
+
+  it("reports a negative balance as an advance", () => {
+    const result = workerLedgerRows(0, [{ ...row, amount_paid: "1500.00" }]);
+    expect(result.balanceOwed).toBe(-500);
   });
 });

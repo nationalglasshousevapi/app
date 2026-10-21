@@ -134,6 +134,7 @@ function fdate(v?: string) {
 }
 
 export type LedgerPdfProps = {
+  variant?: "customer" | "worker";
   company: CompanyDetails;
   logoSrc?: string;
   customerName: string;
@@ -146,6 +147,7 @@ export type LedgerPdfProps = {
 };
 
 export default function LedgerPdf({
+  variant = "customer",
   company,
   logoSrc,
   customerName,
@@ -156,6 +158,18 @@ export default function LedgerPdf({
   entries,
   generatedAt,
 }: LedgerPdfProps) {
+  const worker = variant === "worker";
+  const L = {
+    title: worker ? "LABOUR STATEMENT" : "ACCOUNT STATEMENT",
+    party: worker ? "Worker" : "Customer",
+    earned: worker ? "Work" : "Invoiced",
+    earnedCol: worker ? "WORK" : "DEBIT",
+    paidCol: worker ? "PAID" : "CREDIT",
+    balance: worker ? "Balance Owed" : "Balance Due",
+    footer: worker ? "Labour Statement" : "Account Statement",
+  };
+  const balanceSuffix = (v: number) => (worker ? "" : v > 0 ? " Dr" : " Cr");
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
@@ -178,7 +192,7 @@ export default function LedgerPdf({
             )}
           </View>
           <View style={styles.metaCol}>
-            <Text style={styles.docTitle}>ACCOUNT STATEMENT</Text>
+            <Text style={styles.docTitle}>{L.title}</Text>
             <View style={styles.metaBlock}>
               {generatedAt ? (
                 <Text style={styles.metaLine}>
@@ -205,7 +219,7 @@ export default function LedgerPdf({
         </View>
 
         <View style={styles.partyBox}>
-          <Text style={styles.partyLabel}>Customer</Text>
+          <Text style={styles.partyLabel}>{L.party}</Text>
           <Text style={styles.partyName}>{customerName || "—"}</Text>
         </View>
 
@@ -215,7 +229,7 @@ export default function LedgerPdf({
             <Text style={styles.summaryValue}>{money(openingBalance)}</Text>
           </View>
           <View style={styles.summaryBox}>
-            <Text style={styles.summaryLabel}>Invoiced</Text>
+            <Text style={styles.summaryLabel}>{L.earned}</Text>
             <Text style={styles.summaryValue}>{money(totalInvoiced)}</Text>
           </View>
           <View style={styles.summaryBox}>
@@ -223,14 +237,15 @@ export default function LedgerPdf({
             <Text style={styles.summaryValue}>{money(totalPaid)}</Text>
           </View>
           <View style={styles.summaryBox}>
-            <Text style={styles.summaryLabel}>Balance Due</Text>
+            <Text style={styles.summaryLabel}>{L.balance}</Text>
             <Text
               style={[
                 styles.summaryValue,
                 { color: balanceDue > 0 ? "#dc2626" : "#16a34a" },
               ]}
             >
-              {money(Math.abs(balanceDue))} {balanceDue > 0 ? "Dr" : "Cr"}
+              {money(Math.abs(balanceDue))}
+              {balanceSuffix(balanceDue)}
             </Text>
           </View>
         </View>
@@ -238,8 +253,8 @@ export default function LedgerPdf({
         <View style={styles.tableHead}>
           <Text style={[styles.headCell, styles.date]}>DATE</Text>
           <Text style={[styles.headCell, styles.desc]}>DESCRIPTION</Text>
-          <Text style={[styles.headCell, styles.debit]}>DEBIT</Text>
-          <Text style={[styles.headCell, styles.credit]}>CREDIT</Text>
+          <Text style={[styles.headCell, styles.debit]}>{L.earnedCol}</Text>
+          <Text style={[styles.headCell, styles.credit]}>{L.paidCol}</Text>
           <Text style={[styles.headCell, styles.balance]}>BALANCE</Text>
         </View>
 
@@ -254,14 +269,15 @@ export default function LedgerPdf({
               {entry.credit > 0 ? money(entry.credit) : "—"}
             </Text>
             <Text style={[styles.cell, styles.balance]}>
-              {money(Math.abs(entry.balance))} {entry.balance > 0 ? "Dr" : "Cr"}
+              {money(Math.abs(entry.balance))}
+              {balanceSuffix(entry.balance)}
             </Text>
           </View>
         ))}
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            National Glass House — Account Statement
+            {`National Glass House — ${L.footer}`}
           </Text>
           <Text style={styles.footerText}>{customerName}</Text>
         </View>

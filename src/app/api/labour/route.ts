@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { createLabourEntrySchema, parseError } from "@/lib/schemas";
-import { syncLabourExpense } from "@/lib/labour";
+import { findOrCreateWorker, syncLabourExpense } from "@/lib/labour";
 
 export async function GET(req: NextRequest) {
   const sb = supabaseServer();
@@ -48,11 +48,13 @@ export async function POST(req: NextRequest) {
   }
 
   const sb = supabaseServer();
+  const worker = await findOrCreateWorker(sb, input.worker_name);
   const { data, error } = await sb
     .from("labour_entries")
     .insert({
       entry_date: input.entry_date ?? new Date().toISOString().slice(0, 10),
-      worker_name: input.worker_name.trim(),
+      worker_id: worker?.id ?? null,
+      worker_name: worker?.name ?? input.worker_name.trim(),
       work_description: input.work_description || null,
       amount_owed: input.amount_owed,
       amount_paid: input.amount_paid,

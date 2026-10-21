@@ -26,6 +26,7 @@ const NAV = [
   { href: "/accounts", label: "Accounts", icon: "account" },
   { href: "/expenses", label: "Expenses", icon: "cash" },
   { href: "/labour", label: "Labour", icon: "person" },
+  { href: "/workers", label: "Workers", icon: "person" },
   { href: "/daybook", label: "Day book", icon: "book" },
   { href: "/customers", label: "Customers", icon: "person" },
   { href: "/tools/cutting-optimizer", label: "Cut Optimizer", icon: "tool" },

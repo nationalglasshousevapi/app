@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface LedgerEntry {
   date: string;
-  type: "opening" | "invoice" | "payment";
+  type: "opening" | "invoice" | "payment" | "work";
   description: string;
   debit: number;
   credit: number;

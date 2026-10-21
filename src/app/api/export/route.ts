@@ -9,6 +9,7 @@ const TABLES = [
   "document_items",
   "payments",
   "expenses",
+  "workers",
   "labour_entries",
   "counters",
 ] as const;

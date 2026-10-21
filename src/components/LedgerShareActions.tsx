@@ -2,26 +2,39 @@
 
 import { useState } from "react";
 import { toast } from "@/lib/toast";
-import { ledgerShareMessage, whatsAppShareUrl } from "@/lib/whatsapp";
+import {
+  labourLedgerShareMessage,
+  ledgerShareMessage,
+  whatsAppShareUrl,
+} from "@/lib/whatsapp";
 import { publicWebsiteUrl } from "@/lib/website";
 
 interface LedgerSummary {
-  customerName: string;
+  customerName?: string;
+  workerName?: string;
   openingBalance: number;
-  totalInvoiced: number;
+  totalInvoiced?: number;
+  totalOwed?: number;
   totalPaid: number;
-  balanceDue: number;
+  balanceDue?: number;
+  balanceOwed?: number;
 }
 
 export default function LedgerShareActions({
-  customerId,
-  customerName,
+  ledgerId,
+  partyName,
   contactNumber,
+  kind = "customer",
 }: {
-  customerId: string;
-  customerName: string;
+  ledgerId: string;
+  partyName: string;
   contactNumber?: string | null;
+  kind?: "customer" | "worker";
 }) {
+  const base =
+    kind === "worker"
+      ? `/api/workers/${ledgerId}/ledger`
+      : `/api/customers/${ledgerId}/ledger`;
   const [sharing, setSharing] = useState(false);
   const [emailing, setEmailing] = useState(false);
 
@@ -30,10 +43,7 @@ export default function LedgerShareActions({
     summary: LedgerSummary;
   } | null> {
     try {
-      const res = await fetch(
-        `/api/customers/${customerId}/ledger/share-link`,
-        { method: "POST" }
-      );
+      const res = await fetch(`${base}/share-link`, { method: "POST" });
       if (!res.ok) return null;
       return await res.json();
     } catch {
@@ -51,15 +61,28 @@ export default function LedgerShareActions({
         return;
       }
       const website = publicWebsiteUrl();
-      const text = ledgerShareMessage({
-        customerName: data.summary.customerName || customerName || "Customer",
-        openingBalance: data.summary.openingBalance,
-        totalInvoiced: data.summary.totalInvoiced,
-        totalPaid: data.summary.totalPaid,
-        balanceDue: data.summary.balanceDue,
-        pdfUrl: data.url,
-        website,
-      });
+      const name =
+        data.summary.customerName || data.summary.workerName || partyName;
+      const text =
+        kind === "worker"
+          ? labourLedgerShareMessage({
+              workerName: name,
+              openingBalance: data.summary.openingBalance,
+              totalOwed: data.summary.totalOwed ?? 0,
+              totalPaid: data.summary.totalPaid,
+              balanceOwed: data.summary.balanceOwed ?? 0,
+              pdfUrl: data.url,
+              website,
+            })
+          : ledgerShareMessage({
+              customerName: name,
+              openingBalance: data.summary.openingBalance,
+              totalInvoiced: data.summary.totalInvoiced ?? 0,
+              totalPaid: data.summary.totalPaid,
+              balanceDue: data.summary.balanceDue ?? 0,
+              pdfUrl: data.url,
+              website,
+            });
       window.open(whatsAppShareUrl({ phone: contactNumber, text }), "_blank");
     } finally {
       setSharing(false);
@@ -70,12 +93,14 @@ export default function LedgerShareActions({
     if (emailing) return;
     setEmailing(true);
     try {
-      const res = await fetch(`/api/customers/${customerId}/ledger/email`, {
-        method: "POST",
-      });
+      const res = await fetch(`${base}/email`, { method: "POST" });
       const json = await res.json().catch(() => ({}));
       if (res.ok) {
-        toast.success("Account statement sent to customer's email.");
+        toast.success(
+          kind === "worker"
+            ? "Labour statement sent to the worker's email."
+            : "Account statement sent to customer's email."
+        );
       } else {
         toast.error(json.error || "Could not send email.");
       }

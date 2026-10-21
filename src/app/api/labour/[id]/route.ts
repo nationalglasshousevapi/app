@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { updateLabourEntrySchema, parseError } from "@/lib/schemas";
-import { syncLabourExpense } from "@/lib/labour";
+import { findOrCreateWorker, syncLabourExpense } from "@/lib/labour";
 
 export async function PUT(
   req: NextRequest,
@@ -37,12 +37,15 @@ export async function PUT(
       { status: 404 }
     );
 
+  const worker =
+    input.worker_name !== undefined
+      ? await findOrCreateWorker(sb, input.worker_name)
+      : null;
+
   const updates = {
     entry_date: input.entry_date ?? existing.entry_date,
-    worker_name:
-      input.worker_name !== undefined
-        ? input.worker_name.trim()
-        : existing.worker_name,
+    worker_id: worker?.id ?? existing.worker_id,
+    worker_name: worker?.name ?? existing.worker_name,
     work_description:
       input.work_description !== undefined
         ? input.work_description || null
