@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
-import { DocumentServiceError, createDocumentRecord } from "@/lib/documentService";
+import {
+  DocumentServiceError,
+  createDocumentRecord,
+} from "@/lib/documentService";
 
 export async function POST(req: NextRequest) {
   let body: { id: string };
@@ -11,7 +14,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (!body.id) {
-    return NextResponse.json({ error: "Source document ID is required." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Source document ID is required." },
+      { status: 400 }
+    );
   }
 
   const sb = supabaseServer();
@@ -24,7 +30,10 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (sourceError || !source) {
-    return NextResponse.json({ error: sourceError?.message ?? "Source document not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: sourceError?.message ?? "Source document not found" },
+      { status: 404 }
+    );
   }
 
   // Fetch items
@@ -62,6 +71,9 @@ export async function POST(req: NextRequest) {
       additional_charges: source.additional_charges ?? [],
       taxable_charges: source.taxable_charges ?? [],
       remarks: source.remarks,
+      vehicle_number: source.vehicle_number,
+      driver_name: source.driver_name,
+      materials: source.materials,
       status: "draft",
       stored_totals: {
         subtotal: source.subtotal,
@@ -76,7 +88,10 @@ export async function POST(req: NextRequest) {
     });
     return NextResponse.json({ document });
   } catch (err) {
-    const message = err instanceof DocumentServiceError ? err.message : "Unexpected server error.";
+    const message =
+      err instanceof DocumentServiceError
+        ? err.message
+        : "Unexpected server error.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

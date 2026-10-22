@@ -3,6 +3,7 @@ import {
   createPaymentSchema,
   createCustomerSchema,
   createCashSaleSchema,
+  createDocumentSchema,
   createExpenseSchema,
   createLabourEntrySchema,
 } from "@/lib/schemas";
@@ -195,5 +196,32 @@ describe("createLabourEntrySchema", () => {
       amount_paid: -1,
     });
     expect(parsed.success).toBe(false);
+  });
+});
+
+describe("createDocumentSchema — delivery details optional", () => {
+  const base = {
+    doc_type: "invoice" as const,
+    bill_to_name: "Acme",
+    items: [{ description: "Glass", qty: 1, rate: 100 }],
+  };
+
+  it("defaults delivery fields to null when omitted", () => {
+    const parsed = createDocumentSchema.parse(base);
+    expect(parsed.vehicle_number).toBeNull();
+    expect(parsed.driver_name).toBeNull();
+    expect(parsed.materials).toBeNull();
+  });
+
+  it("accepts delivery details", () => {
+    const parsed = createDocumentSchema.parse({
+      ...base,
+      vehicle_number: "GJ-15-AB-1234",
+      driver_name: "Suresh",
+      materials: "12mm toughened glass",
+    });
+    expect(parsed.vehicle_number).toBe("GJ-15-AB-1234");
+    expect(parsed.driver_name).toBe("Suresh");
+    expect(parsed.materials).toBe("12mm toughened glass");
   });
 });

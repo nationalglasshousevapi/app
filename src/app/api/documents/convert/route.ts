@@ -240,6 +240,9 @@ export async function POST(req: NextRequest) {
       taxable_charges: docTaxable ?? [],
       total_amount: docTotal,
       remarks: source.remarks,
+      vehicle_number: source.vehicle_number,
+      driver_name: source.driver_name,
+      materials: source.materials,
       status: isInvoiceTarget && record_payment ? "paid" : "draft",
     })
     .select()

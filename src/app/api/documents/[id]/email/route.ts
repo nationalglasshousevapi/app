@@ -90,6 +90,9 @@ export async function POST(
       roundOff: Number(doc.round_off),
       totalAmount: Number(doc.total_amount),
       remarks: doc.remarks,
+      vehicleNumber: doc.vehicle_number,
+      driverName: doc.driver_name,
+      materials: doc.materials,
     }) as any
   );
 

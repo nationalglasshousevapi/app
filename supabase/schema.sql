@@ -69,13 +69,15 @@ create table if not exists documents (
   remarks text,
   status text not null default 'draft' check (status in ('draft', 'sent', 'paid', 'cancelled', 'converted')),
 
-  -- Purchase invoice metadata (null for sales docs)
+  -- Purchase and delivery metadata (all optional)
   irn text,
   ack_number text,
   ack_date date,
   place_of_supply text,
   bilty_number text,
   vehicle_number text,
+  driver_name text,
+  materials text,
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

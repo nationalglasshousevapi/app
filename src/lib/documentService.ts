@@ -16,7 +16,11 @@ export class DocumentServiceError extends Error {
   }
 }
 
-export function formatDocNumber(docType: string, fy: string, seq: number | string): string {
+export function formatDocNumber(
+  docType: string,
+  fy: string,
+  seq: number | string
+): string {
   return `${docTypeShort(docType)}-${fy}-${String(seq).padStart(4, "0")}`;
 }
 
@@ -43,7 +47,7 @@ export function computeSubtotal(items: ParsedItem[]): number {
 
 export function computeDocumentMoney(
   items: ParsedItem[],
-  input: DocumentTotalsInput = {},
+  input: DocumentTotalsInput = {}
 ): DocumentTotals {
   const subtotal = computeSubtotal(items);
   const discountAmount = input.discount_amount || 0;
@@ -54,7 +58,7 @@ export function computeDocumentMoney(
     input.tax_type ?? "none",
     input.tax_rate ?? 0,
     discountAmount,
-    taxableCharges,
+    taxableCharges
   );
   const { totalAmount, roundOff } = computeTotal(
     subtotal,
@@ -63,9 +67,16 @@ export function computeDocumentMoney(
     igst,
     discountAmount,
     additionalCharges,
-    taxableCharges,
+    taxableCharges
   );
-  return { subtotal, cgst, sgst, igst, round_off: roundOff, total_amount: totalAmount };
+  return {
+    subtotal,
+    cgst,
+    sgst,
+    igst,
+    round_off: roundOff,
+    total_amount: totalAmount,
+  };
 }
 
 export interface DocumentSnapshotFields {
@@ -107,7 +118,7 @@ export type CopyableItemRow = {
 
 export function buildCopiedItemRows(
   sourceItems: CopyableItemRow[],
-  documentId: string,
+  documentId: string
 ) {
   return sourceItems.map((it, idx) => ({
     document_id: documentId,
@@ -153,6 +164,8 @@ export interface CreateDocumentRecordInput {
   place_of_supply?: string | null;
   bilty_number?: string | null;
   vehicle_number?: string | null;
+  driver_name?: string | null;
+  materials?: string | null;
   items?: ParsedItem[];
   stored_totals?: StoredTotals;
   copied_items?: CopyableItemRow[];
@@ -165,7 +178,7 @@ function orNull(value: string | null | undefined): string | null {
 
 export async function createDocumentRecord(
   sb: SupabaseClient,
-  input: CreateDocumentRecordInput,
+  input: CreateDocumentRecordInput
 ): Promise<{ document: Record<string, unknown> }> {
   const docDate = input.doc_date ?? new Date();
   const fy = financialYearFor(docDate);
@@ -174,10 +187,13 @@ export async function createDocumentRecord(
   if (input.doc_number) {
     docNumber = input.doc_number;
   } else {
-    const { data: seqData, error: seqError } = await sb.rpc("next_document_number", {
-      p_doc_type: input.doc_type,
-      p_financial_year: fy,
-    });
+    const { data: seqData, error: seqError } = await sb.rpc(
+      "next_document_number",
+      {
+        p_doc_type: input.doc_type,
+        p_financial_year: fy,
+      }
+    );
     if (seqError) throw new DocumentServiceError(seqError.message);
     docNumber = formatDocNumber(input.doc_type, fy, String(seqData));
   }
@@ -241,6 +257,8 @@ export async function createDocumentRecord(
       place_of_supply: orNull(input.place_of_supply ?? undefined),
       bilty_number: orNull(input.bilty_number ?? undefined),
       vehicle_number: orNull(input.vehicle_number ?? undefined),
+      driver_name: orNull(input.driver_name ?? undefined),
+      materials: orNull(input.materials ?? undefined),
     })
     .select()
     .single();
@@ -256,7 +274,9 @@ export async function createDocumentRecord(
 
   if (itemRows) {
     const prefix = input.items_error_prefix ?? "Could not save line items";
-    const { error: itemsError } = await sb.from("document_items").insert(itemRows);
+    const { error: itemsError } = await sb
+      .from("document_items")
+      .insert(itemRows);
     if (itemsError) {
       await sb.from("documents").delete().eq("id", doc.id);
       throw new DocumentServiceError(`${prefix}: ${itemsError.message}`);

@@ -12,13 +12,42 @@ const MUTED = "#64748b";
 const styles = StyleSheet.create({
   page: { padding: 24, fontSize: 9, fontFamily: "Helvetica", color: BODY },
   content: { flex: 1, flexDirection: "column" },
-  title: { fontSize: 18, fontFamily: "Helvetica-Bold", color: ACCENT, textAlign: "center", marginBottom: 4 },
-  subtitle: { fontSize: 10, color: MUTED, textAlign: "center", marginBottom: 16 },
-  summaryLabel: { fontSize: 10, fontFamily: "Helvetica-Bold", color: ACCENT, marginBottom: 8, textTransform: "uppercase" },
+  title: {
+    fontSize: 18,
+    fontFamily: "Helvetica-Bold",
+    color: ACCENT,
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 10,
+    color: MUTED,
+    textAlign: "center",
+    marginBottom: 16,
+  },
+  summaryLabel: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    color: ACCENT,
+    marginBottom: 8,
+    textTransform: "uppercase",
+  },
   // Summary table
-  tableHead: { flexDirection: "row", backgroundColor: ACCENT, borderRadius: 4, paddingVertical: 6, paddingHorizontal: 8 },
+  tableHead: {
+    flexDirection: "row",
+    backgroundColor: ACCENT,
+    borderRadius: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
   headCell: { fontSize: 7.5, fontFamily: "Helvetica-Bold", color: "#fff" },
-  row: { flexDirection: "row", paddingVertical: 5, paddingHorizontal: 8, borderBottomWidth: 1, borderBottomColor: "#eef2f4" },
+  row: {
+    flexDirection: "row",
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eef2f4",
+  },
   rowAlt: { backgroundColor: "#f8fafb" },
   cell: { fontSize: 8.5 },
   colDate: { width: "15%" },
@@ -27,14 +56,45 @@ const styles = StyleSheet.create({
   colType: { width: "15%" },
   colAmount: { width: "15%", textAlign: "right" },
   // Grand total
-  grandRow: { flexDirection: "row", paddingVertical: 6, paddingHorizontal: 8, backgroundColor: LIGHT_BG, borderRadius: 4, marginTop: 4 },
-  grandLabel: { fontSize: 10, fontFamily: "Helvetica-Bold", color: ACCENT, textAlign: "right", width: "85%" },
-  grandValue: { fontSize: 10, fontFamily: "Helvetica-Bold", color: ACCENT, width: "15%", textAlign: "right" },
+  grandRow: {
+    flexDirection: "row",
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    backgroundColor: LIGHT_BG,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  grandLabel: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    color: ACCENT,
+    textAlign: "right",
+    width: "85%",
+  },
+  grandValue: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    color: ACCENT,
+    width: "15%",
+    textAlign: "right",
+  },
   // Footer on summary page
-  summaryFooter: { marginTop: "auto", paddingTop: 5, borderTopWidth: 2, borderTopColor: ACCENT, flexDirection: "row", justifyContent: "center" },
+  summaryFooter: {
+    marginTop: "auto",
+    paddingTop: 5,
+    borderTopWidth: 2,
+    borderTopColor: ACCENT,
+    flexDirection: "row",
+    justifyContent: "center",
+  },
   summaryFooterText: { fontSize: 7.5, color: MUTED },
   // Invoice page style
-  invoicePage: { padding: 24, fontSize: 9, fontFamily: "Helvetica", color: BODY },
+  invoicePage: {
+    padding: 24,
+    fontSize: 9,
+    fontFamily: "Helvetica",
+    color: BODY,
+  },
 });
 
 export type BatchDocument = {
@@ -64,6 +124,9 @@ export type BatchDocument = {
     round_off: number;
     total_amount: number;
     remarks?: string | null;
+    vehicle_number?: string | null;
+    driver_name?: string | null;
+    materials?: string | null;
   };
   items: Array<{
     description: string;
@@ -86,18 +149,43 @@ export type BatchPdfDocumentProps = {
   summaryLabel?: string;
 };
 
-function money(v: number) { return `₹ ${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`; }
+function money(v: number) {
+  return `₹ ${v.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export default function BatchPdfDocument(props: BatchPdfDocumentProps) {
-  const { documents, company, logoSrc, title, totalAmount, docType, summaryLabel } = props;
-  const shortMonths = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const {
+    documents,
+    company,
+    logoSrc,
+    title,
+    totalAmount,
+    docType,
+    summaryLabel,
+  } = props;
+  const shortMonths = [
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+  ];
 
   return (
     <Document>
       {/* Summary page */}
       <Page size="A4" style={styles.page}>
         <View style={styles.content}>
-          <Text style={styles.title}>{docTypeLabel(summaryLabel || docType).toUpperCase()} — {title}</Text>
+          <Text style={styles.title}>
+            {docTypeLabel(summaryLabel || docType).toUpperCase()} — {title}
+          </Text>
           <Text style={styles.subtitle}>National Glass House</Text>
 
           <Text style={styles.summaryLabel}>Summary</Text>
@@ -112,15 +200,30 @@ export default function BatchPdfDocument(props: BatchPdfDocumentProps) {
 
           {documents.map((d, i) => {
             const docDate = d.doc.doc_date
-              ? new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${d.doc.doc_date}T00:00:00`))
+              ? new Intl.DateTimeFormat("en-IN", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                }).format(new Date(`${d.doc.doc_date}T00:00:00`))
               : "—";
             return (
-              <View key={d.doc.id} style={[styles.row, i % 2 ? styles.rowAlt : {}]}>
+              <View
+                key={d.doc.id}
+                style={[styles.row, i % 2 ? styles.rowAlt : {}]}
+              >
                 <Text style={[styles.cell, styles.colDate]}>{docDate}</Text>
-                <Text style={[styles.cell, styles.colNumber]}>{d.doc.doc_number}</Text>
-                <Text style={[styles.cell, styles.colCustomer]}>{d.doc.bill_to_name || "—"}</Text>
-                <Text style={[styles.cell, styles.colType]}>{docTypeLabel(d.doc.doc_type)}</Text>
-                <Text style={[styles.cell, styles.colAmount]}>{money(Number(d.doc.total_amount))}</Text>
+                <Text style={[styles.cell, styles.colNumber]}>
+                  {d.doc.doc_number}
+                </Text>
+                <Text style={[styles.cell, styles.colCustomer]}>
+                  {d.doc.bill_to_name || "—"}
+                </Text>
+                <Text style={[styles.cell, styles.colType]}>
+                  {docTypeLabel(d.doc.doc_type)}
+                </Text>
+                <Text style={[styles.cell, styles.colAmount]}>
+                  {money(Number(d.doc.total_amount))}
+                </Text>
               </View>
             );
           })}
@@ -131,7 +234,11 @@ export default function BatchPdfDocument(props: BatchPdfDocumentProps) {
           </View>
 
           <View style={styles.summaryFooter}>
-            <Text style={styles.summaryFooterText}>Generated by National Glass House — {documents.length} {summaryLabel || docTypeLabel(docType).toLowerCase()}{documents.length !== 1 ? "s" : ""}</Text>
+            <Text style={styles.summaryFooterText}>
+              Generated by National Glass House — {documents.length}{" "}
+              {summaryLabel || docTypeLabel(docType).toLowerCase()}
+              {documents.length !== 1 ? "s" : ""}
+            </Text>
           </View>
         </View>
       </Page>
@@ -171,6 +278,9 @@ export default function BatchPdfDocument(props: BatchPdfDocumentProps) {
             roundOff={Number(d.doc.round_off)}
             totalAmount={Number(d.doc.total_amount)}
             remarks={d.doc.remarks}
+            vehicleNumber={d.doc.vehicle_number}
+            driverName={d.doc.driver_name}
+            materials={d.doc.materials}
           />
         </Page>
       ))}

@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
-import { parseItems, computeTax, computeTotal, formatItemRows } from "@/lib/documents";
+import {
+  parseItems,
+  computeTax,
+  computeTotal,
+  formatItemRows,
+} from "@/lib/documents";
 import { updateDocumentSchema, parseError } from "@/lib/schemas";
 
 export async function GET(
@@ -14,7 +19,8 @@ export async function GET(
     .select("*")
     .eq("id", params.id)
     .single();
-  if (error) return NextResponse.json({ error: error.message }, { status: 404 });
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 404 });
 
   const { data: items, error: itemsError } = await sb
     .from("document_items")
@@ -35,22 +41,45 @@ export async function PUT(
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid save request." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid save request." },
+      { status: 400 }
+    );
   }
 
   const parsed = updateDocumentSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parseError(parsed.error) }, { status: 400 });
+    return NextResponse.json(
+      { error: parseError(parsed.error) },
+      { status: 400 }
+    );
   }
 
   const { items: rawItems, ...rest } = parsed.data;
   const sb = supabaseServer();
   const items = parseItems(rawItems);
 
-  const subtotal = items.reduce((sum, it) => sum + (it.qty || 0) * (it.rate || 0), 0);
+  const subtotal = items.reduce(
+    (sum, it) => sum + (it.qty || 0) * (it.rate || 0),
+    0
+  );
 
-  const { cgst, sgst, igst } = computeTax(subtotal, rest.tax_type, rest.tax_rate, rest.discount_amount, rest.taxable_charges);
-  const { totalAmount: total, roundOff } = computeTotal(subtotal, cgst, sgst, igst, rest.discount_amount, rest.additional_charges, rest.taxable_charges);
+  const { cgst, sgst, igst } = computeTax(
+    subtotal,
+    rest.tax_type,
+    rest.tax_rate,
+    rest.discount_amount,
+    rest.taxable_charges
+  );
+  const { totalAmount: total, roundOff } = computeTotal(
+    subtotal,
+    cgst,
+    sgst,
+    igst,
+    rest.discount_amount,
+    rest.additional_charges,
+    rest.taxable_charges
+  );
 
   const { data: doc, error: docError } = await sb
     .from("documents")
@@ -81,21 +110,33 @@ export async function PUT(
       taxable_charges: rest.taxable_charges ?? [],
       total_amount: total,
       remarks: rest.remarks ?? null,
+      vehicle_number: rest.vehicle_number ?? null,
+      driver_name: rest.driver_name ?? null,
+      materials: rest.materials ?? null,
       status: rest.status || "draft",
     })
     .eq("id", params.id)
     .select()
     .single();
 
-  if (docError) return NextResponse.json({ error: docError.message }, { status: 500 });
+  if (docError)
+    return NextResponse.json({ error: docError.message }, { status: 500 });
 
   // Simplest safe strategy: replace all line items on every save.
-  const { error: deleteItemsError } = await sb.from("document_items").delete().eq("document_id", params.id);
+  const { error: deleteItemsError } = await sb
+    .from("document_items")
+    .delete()
+    .eq("document_id", params.id);
   if (deleteItemsError) {
-    return NextResponse.json({ error: `Could not update line items: ${deleteItemsError.message}` }, { status: 500 });
+    return NextResponse.json(
+      { error: `Could not update line items: ${deleteItemsError.message}` },
+      { status: 500 }
+    );
   }
   if (items.length) {
-    const { error: itemsError } = await sb.from("document_items").insert(formatItemRows(items, params.id));
+    const { error: itemsError } = await sb
+      .from("document_items")
+      .insert(formatItemRows(items, params.id));
     if (itemsError)
       return NextResponse.json({ error: itemsError.message }, { status: 500 });
   }
@@ -109,6 +150,7 @@ export async function DELETE(
 ) {
   const sb = supabaseServer();
   const { error } = await sb.from("documents").delete().eq("id", params.id);
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error)
+    return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

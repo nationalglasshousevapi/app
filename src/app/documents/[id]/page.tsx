@@ -15,7 +15,11 @@ export default async function DocumentDetailPage({
 }) {
   const sb = supabaseServer();
 
-  const { data: doc } = await sb.from("documents").select("*").eq("id", params.id).single();
+  const { data: doc } = await sb
+    .from("documents")
+    .select("*")
+    .eq("id", params.id)
+    .single();
   if (!doc) notFound();
 
   const { data: items } = await sb
@@ -42,6 +46,9 @@ export default async function DocumentDetailPage({
     ship_to_address: doc.ship_to_address ?? "",
     ship_to_contact_person: doc.ship_to_contact_person ?? "",
     ship_to_contact_number: doc.ship_to_contact_number ?? "",
+    vehicle_number: doc.vehicle_number ?? "",
+    driver_name: doc.driver_name ?? "",
+    materials: doc.materials ?? "",
     tax_type: doc.tax_type,
     tax_rate: Number(doc.tax_rate),
     discount_amount: Number(doc.discount_amount ?? 0),
@@ -67,7 +74,10 @@ export default async function DocumentDetailPage({
 
   return (
     <div className="space-y-7">
-      <a href="/documents" className="text-sm text-brand-600 hover:underline inline-flex items-center gap-1">
+      <a
+        href="/documents"
+        className="text-sm text-brand-600 hover:underline inline-flex items-center gap-1"
+      >
         <span>&larr;</span> Back to Documents
       </a>
       <div className="flex items-start justify-between gap-4">
@@ -76,16 +86,25 @@ export default async function DocumentDetailPage({
           <h1 className="page-title">
             {docTypeLabel(doc.doc_type)} — {doc.doc_number}
           </h1>
-          <p className="page-subtitle">Created {formatDateReadable(doc.created_at)}</p>
+          <p className="page-subtitle">
+            Created {formatDateReadable(doc.created_at)}
+          </p>
         </div>
         <div className="shrink-0 pt-1">
-          <StatusBadge documentId={doc.id} currentStatus={doc.status} docType={doc.doc_type} />
+          <StatusBadge
+            documentId={doc.id}
+            currentStatus={doc.status}
+            docType={doc.doc_type}
+          />
         </div>
       </div>
       {doc.status === "converted" && doc.order_number ? (
         <div className="bg-indigo-50 border border-indigo-200 text-indigo-700 text-sm rounded-xl px-4 py-3">
           This {docTypeLabel(doc.doc_type).toLowerCase()} was converted to{" "}
-          <a href={`/documents?q=${encodeURIComponent(doc.order_number)}`} className="font-semibold hover:underline">
+          <a
+            href={`/documents?q=${encodeURIComponent(doc.order_number)}`}
+            className="font-semibold hover:underline"
+          >
             {doc.order_number}
           </a>
           . The invoice will not reflect further changes made here.

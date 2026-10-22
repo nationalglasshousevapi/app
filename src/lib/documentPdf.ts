@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { Document, Page, renderToBuffer, StyleSheet } from "@react-pdf/renderer";
+import {
+  Document,
+  Page,
+  renderToBuffer,
+  StyleSheet,
+} from "@react-pdf/renderer";
 import React from "react";
 import { readFile } from "fs/promises";
 import path from "path";
@@ -21,7 +26,9 @@ async function companyLogo() {
   }
 }
 
-export async function renderDocumentPdfResponse(documentId: string): Promise<NextResponse> {
+export async function renderDocumentPdfResponse(
+  documentId: string
+): Promise<NextResponse> {
   const sb = supabaseServer();
 
   const { data: doc, error } = await sb
@@ -64,18 +71,19 @@ export async function renderDocumentPdfResponse(documentId: string): Promise<Nex
             paymentMode: payment?.payment_mode ?? "Payment",
             referenceNumber: payment?.reference_number ?? null,
             remarks: doc.remarks,
-          }),
-        ),
-      ),
+          })
+        )
+      )
     );
 
     return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${doc.doc_number}.pdf"`,
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-        "Pragma": "no-cache",
-        "Expires": "0",
+        "Cache-Control":
+          "no-store, no-cache, must-revalidate, proxy-revalidate",
+        Pragma: "no-cache",
+        Expires: "0",
       },
     });
   }
@@ -137,6 +145,9 @@ export async function renderDocumentPdfResponse(documentId: string): Promise<Nex
       taxableCharges: doc.taxable_charges ?? [],
       totalAmount: Number(doc.total_amount),
       remarks: doc.remarks,
+      vehicleNumber: doc.vehicle_number,
+      driverName: doc.driver_name,
+      materials: doc.materials,
     }) as any
   );
 
@@ -145,8 +156,8 @@ export async function renderDocumentPdfResponse(documentId: string): Promise<Nex
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="${doc.doc_number}.pdf"`,
       "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-      "Pragma": "no-cache",
-      "Expires": "0",
+      Pragma: "no-cache",
+      Expires: "0",
     },
   });
 }

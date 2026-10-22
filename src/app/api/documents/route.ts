@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { parseItems } from "@/lib/documents";
-import { DocumentServiceError, createDocumentRecord } from "@/lib/documentService";
+import {
+  DocumentServiceError,
+  createDocumentRecord,
+} from "@/lib/documentService";
 import { createDocumentSchema, parseError } from "@/lib/schemas";
 
 export async function POST(req: NextRequest) {
@@ -9,15 +12,27 @@ export async function POST(req: NextRequest) {
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "Invalid save request." }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid save request." },
+      { status: 400 }
+    );
   }
 
   const parsed = createDocumentSchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: parseError(parsed.error) }, { status: 400 });
+    return NextResponse.json(
+      { error: parseError(parsed.error) },
+      { status: 400 }
+    );
   }
 
-  const { doc_type, doc_number: userDocNumber, doc_date, items: rawItems, ...rest } = parsed.data;
+  const {
+    doc_type,
+    doc_number: userDocNumber,
+    doc_date,
+    items: rawItems,
+    ...rest
+  } = parsed.data;
   const sb = supabaseServer();
 
   try {
@@ -48,12 +63,18 @@ export async function POST(req: NextRequest) {
       additional_charges: rest.additional_charges,
       taxable_charges: rest.taxable_charges,
       remarks: rest.remarks,
+      vehicle_number: rest.vehicle_number,
+      driver_name: rest.driver_name,
+      materials: rest.materials,
       status: rest.status,
       items: parseItems(rawItems),
     });
     return NextResponse.json({ document });
   } catch (err) {
-    const message = err instanceof DocumentServiceError ? err.message : "Unexpected server error.";
+    const message =
+      err instanceof DocumentServiceError
+        ? err.message
+        : "Unexpected server error.";
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

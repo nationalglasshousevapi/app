@@ -80,6 +80,8 @@ export const createDocumentSchema = z.object({
   place_of_supply: z.string().nullable().optional().default(null),
   bilty_number: z.string().nullable().optional().default(null),
   vehicle_number: z.string().nullable().optional().default(null),
+  driver_name: z.string().nullable().optional().default(null),
+  materials: z.string().nullable().optional().default(null),
   items: z.array(itemSchema).min(1, "Add at least one line item."),
 });
 

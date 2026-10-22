@@ -47,6 +47,9 @@ export type DocumentFormValue = {
   ship_to_address: string;
   ship_to_contact_person: string;
   ship_to_contact_number: string;
+  vehicle_number: string;
+  driver_name: string;
+  materials: string;
   tax_type: "cgst_sgst" | "igst" | "none";
   tax_rate: number;
   discount_amount: number;
@@ -81,6 +84,9 @@ export function blankDocument(
     ship_to_address: "",
     ship_to_contact_person: "",
     ship_to_contact_number: "",
+    vehicle_number: "",
+    driver_name: "",
+    materials: "",
     tax_type: isOrder ? "none" : "cgst_sgst",
     tax_rate: isOrder ? 0 : 0.18,
     discount_amount: 0,
@@ -168,6 +174,9 @@ export default function DocumentForm({
       "ship_to_address",
       "ship_to_contact_person",
       "ship_to_contact_number",
+      "vehicle_number",
+      "driver_name",
+      "materials",
       "tax_type",
       "tax_rate",
       "discount_amount",
@@ -1053,6 +1062,50 @@ export default function DocumentForm({
                       onChange={(e) =>
                         patch({ discount_amount: Number(e.target.value) })
                       }
+                    />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 space-y-3">
+                  <div>
+                    <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">
+                      Delivery details (optional)
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Fill these in only if the goods are being delivered and
+                      you want them printed on the document.
+                    </p>
+                  </div>
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="label">Vehicle number</label>
+                      <input
+                        className="input"
+                        placeholder="e.g. GJ-15-AB-1234"
+                        value={value.vehicle_number}
+                        onChange={(e) =>
+                          patch({ vehicle_number: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <label className="label">Driver&apos;s name</label>
+                      <input
+                        className="input"
+                        placeholder="e.g. Suresh"
+                        value={value.driver_name}
+                        onChange={(e) => patch({ driver_name: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="label">Materials</label>
+                    <textarea
+                      className="input"
+                      rows={2}
+                      placeholder="e.g. 5mm plain glass, 12mm toughened glass, aluminium sections"
+                      value={value.materials}
+                      onChange={(e) => patch({ materials: e.target.value })}
                     />
                   </div>
                 </div>
