@@ -92,7 +92,6 @@ export async function POST(
       remarks: doc.remarks,
       vehicleNumber: doc.vehicle_number,
       driverName: doc.driver_name,
-      materials: doc.materials,
     }) as any
   );
 

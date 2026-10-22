@@ -126,7 +126,6 @@ export type BatchDocument = {
     remarks?: string | null;
     vehicle_number?: string | null;
     driver_name?: string | null;
-    materials?: string | null;
   };
   items: Array<{
     description: string;
@@ -280,7 +279,6 @@ export default function BatchPdfDocument(props: BatchPdfDocumentProps) {
             remarks={d.doc.remarks}
             vehicleNumber={d.doc.vehicle_number}
             driverName={d.doc.driver_name}
-            materials={d.doc.materials}
           />
         </Page>
       ))}

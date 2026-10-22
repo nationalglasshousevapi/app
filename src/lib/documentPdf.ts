@@ -147,7 +147,6 @@ export async function renderDocumentPdfResponse(
       remarks: doc.remarks,
       vehicleNumber: doc.vehicle_number,
       driverName: doc.driver_name,
-      materials: doc.materials,
     }) as any
   );
 

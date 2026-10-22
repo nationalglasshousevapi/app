@@ -49,7 +49,6 @@ export type DocumentFormValue = {
   ship_to_contact_number: string;
   vehicle_number: string;
   driver_name: string;
-  materials: string;
   tax_type: "cgst_sgst" | "igst" | "none";
   tax_rate: number;
   discount_amount: number;
@@ -86,7 +85,6 @@ export function blankDocument(
     ship_to_contact_number: "",
     vehicle_number: "",
     driver_name: "",
-    materials: "",
     tax_type: isOrder ? "none" : "cgst_sgst",
     tax_rate: isOrder ? 0 : 0.18,
     discount_amount: 0,
@@ -176,7 +174,6 @@ export default function DocumentForm({
       "ship_to_contact_number",
       "vehicle_number",
       "driver_name",
-      "materials",
       "tax_type",
       "tax_rate",
       "discount_amount",
@@ -1097,16 +1094,6 @@ export default function DocumentForm({
                         onChange={(e) => patch({ driver_name: e.target.value })}
                       />
                     </div>
-                  </div>
-                  <div>
-                    <label className="label">Materials</label>
-                    <textarea
-                      className="input"
-                      rows={2}
-                      placeholder="e.g. 5mm plain glass, 12mm toughened glass, aluminium sections"
-                      value={value.materials}
-                      onChange={(e) => patch({ materials: e.target.value })}
-                    />
                   </div>
                 </div>
 

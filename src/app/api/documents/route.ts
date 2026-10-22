@@ -65,7 +65,6 @@ export async function POST(req: NextRequest) {
       remarks: rest.remarks,
       vehicle_number: rest.vehicle_number,
       driver_name: rest.driver_name,
-      materials: rest.materials,
       status: rest.status,
       items: parseItems(rawItems),
     });

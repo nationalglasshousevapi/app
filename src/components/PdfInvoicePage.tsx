@@ -229,7 +229,6 @@ export type PdfInvoicePageProps = {
   remarks?: string | null;
   vehicleNumber?: string | null;
   driverName?: string | null;
-  materials?: string | null;
   logoSrc?: string;
 };
 
@@ -378,7 +377,7 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
         </View>
       </View>
 
-      {props.vehicleNumber || props.driverName || props.materials ? (
+      {props.vehicleNumber || props.driverName ? (
         <View style={styles.deliveryStrip}>
           {props.vehicleNumber ? (
             <Text style={styles.deliveryText}>
@@ -390,12 +389,6 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
             <Text style={styles.deliveryText}>
               <Text style={styles.deliveryStrong}>Driver: </Text>
               {props.driverName}
-            </Text>
-          ) : null}
-          {props.materials ? (
-            <Text style={styles.deliveryText}>
-              <Text style={styles.deliveryStrong}>Materials: </Text>
-              {props.materials}
             </Text>
           ) : null}
         </View>

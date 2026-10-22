@@ -210,7 +210,6 @@ describe("createDocumentSchema — delivery details optional", () => {
     const parsed = createDocumentSchema.parse(base);
     expect(parsed.vehicle_number).toBeNull();
     expect(parsed.driver_name).toBeNull();
-    expect(parsed.materials).toBeNull();
   });
 
   it("accepts delivery details", () => {
@@ -218,10 +217,8 @@ describe("createDocumentSchema — delivery details optional", () => {
       ...base,
       vehicle_number: "GJ-15-AB-1234",
       driver_name: "Suresh",
-      materials: "12mm toughened glass",
     });
     expect(parsed.vehicle_number).toBe("GJ-15-AB-1234");
     expect(parsed.driver_name).toBe("Suresh");
-    expect(parsed.materials).toBe("12mm toughened glass");
   });
 });

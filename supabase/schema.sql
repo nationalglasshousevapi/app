@@ -77,7 +77,6 @@ create table if not exists documents (
   bilty_number text,
   vehicle_number text,
   driver_name text,
-  materials text,
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

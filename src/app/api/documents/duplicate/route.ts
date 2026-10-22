@@ -73,7 +73,6 @@ export async function POST(req: NextRequest) {
       remarks: source.remarks,
       vehicle_number: source.vehicle_number,
       driver_name: source.driver_name,
-      materials: source.materials,
       status: "draft",
       stored_totals: {
         subtotal: source.subtotal,

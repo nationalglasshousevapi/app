@@ -112,7 +112,6 @@ export async function PUT(
       remarks: rest.remarks ?? null,
       vehicle_number: rest.vehicle_number ?? null,
       driver_name: rest.driver_name ?? null,
-      materials: rest.materials ?? null,
       status: rest.status || "draft",
     })
     .eq("id", params.id)

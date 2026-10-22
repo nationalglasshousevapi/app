@@ -165,7 +165,6 @@ export interface CreateDocumentRecordInput {
   bilty_number?: string | null;
   vehicle_number?: string | null;
   driver_name?: string | null;
-  materials?: string | null;
   items?: ParsedItem[];
   stored_totals?: StoredTotals;
   copied_items?: CopyableItemRow[];
@@ -258,7 +257,6 @@ export async function createDocumentRecord(
       bilty_number: orNull(input.bilty_number ?? undefined),
       vehicle_number: orNull(input.vehicle_number ?? undefined),
       driver_name: orNull(input.driver_name ?? undefined),
-      materials: orNull(input.materials ?? undefined),
     })
     .select()
     .single();

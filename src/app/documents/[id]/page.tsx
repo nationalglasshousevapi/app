@@ -48,7 +48,6 @@ export default async function DocumentDetailPage({
     ship_to_contact_number: doc.ship_to_contact_number ?? "",
     vehicle_number: doc.vehicle_number ?? "",
     driver_name: doc.driver_name ?? "",
-    materials: doc.materials ?? "",
     tax_type: doc.tax_type,
     tax_rate: Number(doc.tax_rate),
     discount_amount: Number(doc.discount_amount ?? 0),
