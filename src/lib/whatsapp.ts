@@ -75,6 +75,36 @@ export function ledgerShareMessage({
   );
 }
 
+export function supplierLedgerShareMessage({
+  supplierName,
+  totalPurchased,
+  totalPaid,
+  balancePayable,
+  pdfUrl,
+  website,
+}: {
+  supplierName: string;
+  totalPurchased: number;
+  totalPaid: number;
+  balancePayable: number;
+  pdfUrl?: string;
+  website?: string;
+}) {
+  const fmt = (n: number) =>
+    n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
+  const balance = Math.abs(balancePayable);
+  return (
+    `Dear ${supplierName},\n\n` +
+    `Here is your purchase ledger from National Glass House.\n\n` +
+    `Purchases: ₹ ${fmt(totalPurchased)}\n` +
+    `Paid: ₹ ${fmt(totalPaid)}\n` +
+    `Balance ${balancePayable >= 0 ? "payable" : "advance"}: ₹ ${fmt(balance)}\n\n` +
+    (pdfUrl ? `View ledger: ${pdfUrl}\n\n` : "") +
+    (website ? `${website}\n\n` : "") +
+    `Thank you!`
+  );
+}
+
 export function labourLedgerShareMessage({
   workerName,
   openingBalance,

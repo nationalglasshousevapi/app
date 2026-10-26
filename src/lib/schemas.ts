@@ -183,6 +183,15 @@ export const createPaymentSchema = z.object({
 
 export const updatePaymentSchema = createPaymentSchema.partial();
 
+export const createPurchasePaymentSchema = z.object({
+  document_id: z.string().uuid(),
+  payment_date: z.string().optional(),
+  amount: z.number().positive("Amount must be greater than 0."),
+  payment_mode: paymentModeSchema.optional().default("cash"),
+  reference_number: z.string().nullable().optional().default(""),
+  notes: z.string().nullable().optional(),
+});
+
 export const createCustomerSchema = z.object({
   name: z.string().min(1, "Customer name is required."),
   address: z.string().optional(),

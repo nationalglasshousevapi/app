@@ -28,37 +28,49 @@ export default async function DayBookPage({
     : today;
   const sb = supabaseServer();
 
-  const [invoicesRes, paymentsRes, purchasesRes, expensesRes] =
-    await Promise.all([
-      sb
-        .from("documents")
-        .select(
-          "id, doc_number, doc_date, bill_to_name, total_amount, status, doc_type"
-        )
-        .in("doc_type", ["invoice", "order", "receipt"])
-        .neq("status", "cancelled")
-        .neq("status", "converted")
-        .eq("doc_date", date)
-        .order("created_at"),
-      sb
-        .from("payments")
-        .select(
-          "id, amount, payment_mode, reference_number, customers(name), document_id"
-        )
-        .eq("payment_date", date)
-        .order("created_at"),
-      sb
-        .from("documents")
-        .select("id, doc_number, bill_to_name, total_amount")
-        .eq("doc_type", "purchase")
-        .neq("status", "cancelled")
-        .eq("doc_date", date),
-      sb
-        .from("expenses")
-        .select("*")
-        .eq("expense_date", date)
-        .order("created_at"),
-    ]);
+  const [
+    invoicesRes,
+    paymentsRes,
+    purchasesRes,
+    expensesRes,
+    purchasePaymentsRes,
+  ] = await Promise.all([
+    sb
+      .from("documents")
+      .select(
+        "id, doc_number, doc_date, bill_to_name, total_amount, status, doc_type"
+      )
+      .in("doc_type", ["invoice", "order", "receipt"])
+      .neq("status", "cancelled")
+      .neq("status", "converted")
+      .eq("doc_date", date)
+      .order("created_at"),
+    sb
+      .from("payments")
+      .select(
+        "id, amount, payment_mode, reference_number, customers(name), document_id"
+      )
+      .eq("payment_date", date)
+      .order("created_at"),
+    sb
+      .from("documents")
+      .select("id, doc_number, bill_to_name, total_amount")
+      .eq("doc_type", "purchase")
+      .neq("status", "cancelled")
+      .eq("doc_date", date),
+    sb
+      .from("expenses")
+      .select("*")
+      .eq("expense_date", date)
+      .order("created_at"),
+    sb
+      .from("purchase_payments")
+      .select(
+        "id, amount, payment_mode, reference_number, document_id, documents(doc_number, bill_to_name)"
+      )
+      .eq("payment_date", date)
+      .order("created_at"),
+  ]);
 
   const sales =
     invoicesRes.data?.filter(
@@ -69,15 +81,22 @@ export default async function DayBookPage({
   const payments = paymentsRes.data ?? [];
   const purchases = purchasesRes.data ?? [];
   const expenses = expensesRes.data ?? [];
+  const purchasePayments = purchasePaymentsRes.data ?? [];
 
   const collectedTotal = payments.reduce((s, p) => s + Number(p.amount), 0);
-  const spentTotal = expenses.reduce((s, e) => s + Number(e.amount), 0);
+  const spentTotal =
+    expenses.reduce((s, e) => s + Number(e.amount), 0) +
+    purchasePayments.reduce((s, p) => s + Number(p.amount), 0);
   const cashIn = payments
     .filter((p) => p.payment_mode === "cash")
     .reduce((s, p) => s + Number(p.amount), 0);
-  const cashOut = expenses
-    .filter((e) => e.payment_mode === "cash")
-    .reduce((s, e) => s + Number(e.amount), 0);
+  const cashOut =
+    expenses
+      .filter((e) => e.payment_mode === "cash")
+      .reduce((s, e) => s + Number(e.amount), 0) +
+    purchasePayments
+      .filter((p) => p.payment_mode === "cash")
+      .reduce((s, p) => s + Number(p.amount), 0);
   const salesTotal = sales.reduce((s, d) => s + Number(d.total_amount), 0);
 
   const collectionModes = PAYMENT_MODES.map((m) => ({
@@ -259,6 +278,49 @@ export default async function DayBookPage({
           )}
         </section>
 
+        {/* Supplier payments */}
+        <section className="card p-5">
+          <h2 className="font-display font-bold text-ink mb-3">
+            Supplier payments
+          </h2>
+          {purchasePayments.length === 0 ? (
+            <p className="text-sm text-slate-400 py-4 text-center font-body">
+              No supplier payments this day.
+            </p>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {purchasePayments.map((p) => {
+                const doc = (p as any).documents as {
+                  doc_number?: string;
+                  bill_to_name?: string;
+                } | null;
+                return (
+                  <li
+                    key={p.id}
+                    className="flex items-center justify-between py-2.5 gap-3"
+                  >
+                    <div className="min-w-0">
+                      <Link
+                        href={`/purchases/${p.document_id}`}
+                        className="text-sm font-semibold font-mono text-brand-600 hover:underline"
+                      >
+                        {doc?.doc_number || "Purchase"}
+                      </Link>
+                      <p className="text-xs text-slate-400 truncate">
+                        {doc?.bill_to_name || "Supplier"} ·{" "}
+                        {modeLabel(p.payment_mode)}
+                      </p>
+                    </div>
+                    <p className="font-mono font-semibold text-sm text-red-500 shrink-0">
+                      -{inr(Number(p.amount))}
+                    </p>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </section>
+
         {/* Invoices + orders */}
         <section className="card p-5">
           <h2 className="font-display font-bold text-ink mb-3">
@@ -343,8 +405,8 @@ export default async function DayBookPage({
                       Purchase · {d.bill_to_name || "—"}
                     </p>
                   </div>
-                  <p className="font-mono font-semibold text-sm text-red-500 shrink-0">
-                    -{inr(Number(d.total_amount))}
+                  <p className="font-mono font-semibold text-sm text-slate-600 shrink-0">
+                    {inr(Number(d.total_amount))}
                   </p>
                 </li>
               ))}

@@ -5,6 +5,7 @@ import { toast } from "@/lib/toast";
 import {
   labourLedgerShareMessage,
   ledgerShareMessage,
+  supplierLedgerShareMessage,
   whatsAppShareUrl,
 } from "@/lib/whatsapp";
 import { publicWebsiteUrl } from "@/lib/website";
@@ -12,12 +13,15 @@ import { publicWebsiteUrl } from "@/lib/website";
 interface LedgerSummary {
   customerName?: string;
   workerName?: string;
-  openingBalance: number;
+  supplierName?: string;
+  openingBalance?: number;
   totalInvoiced?: number;
   totalOwed?: number;
+  totalPurchased?: number;
   totalPaid: number;
   balanceDue?: number;
   balanceOwed?: number;
+  balancePayable?: number;
 }
 
 export default function LedgerShareActions({
@@ -29,12 +33,15 @@ export default function LedgerShareActions({
   ledgerId: string;
   partyName: string;
   contactNumber?: string | null;
-  kind?: "customer" | "worker";
+  kind?: "customer" | "worker" | "supplier";
 }) {
   const base =
     kind === "worker"
       ? `/api/workers/${ledgerId}/ledger`
-      : `/api/customers/${ledgerId}/ledger`;
+      : kind === "customer"
+        ? `/api/customers/${ledgerId}/ledger`
+        : "";
+  const supplierQuery = `name=${encodeURIComponent(ledgerId)}`;
   const [sharing, setSharing] = useState(false);
   const [emailing, setEmailing] = useState(false);
 
@@ -43,7 +50,12 @@ export default function LedgerShareActions({
     summary: LedgerSummary;
   } | null> {
     try {
-      const res = await fetch(`${base}/share-link`, { method: "POST" });
+      const res = await fetch(
+        kind === "supplier"
+          ? `/api/suppliers/ledger/share-link?${supplierQuery}`
+          : `${base}/share-link`,
+        { method: "POST" }
+      );
       if (!res.ok) return null;
       return await res.json();
     } catch {
@@ -62,27 +74,39 @@ export default function LedgerShareActions({
       }
       const website = publicWebsiteUrl();
       const name =
-        data.summary.customerName || data.summary.workerName || partyName;
+        data.summary.customerName ||
+        data.summary.workerName ||
+        data.summary.supplierName ||
+        partyName;
       const text =
-        kind === "worker"
-          ? labourLedgerShareMessage({
-              workerName: name,
-              openingBalance: data.summary.openingBalance,
-              totalOwed: data.summary.totalOwed ?? 0,
+        kind === "supplier"
+          ? supplierLedgerShareMessage({
+              supplierName: name,
+              totalPurchased: data.summary.totalPurchased ?? 0,
               totalPaid: data.summary.totalPaid,
-              balanceOwed: data.summary.balanceOwed ?? 0,
+              balancePayable: data.summary.balancePayable ?? 0,
               pdfUrl: data.url,
               website,
             })
-          : ledgerShareMessage({
-              customerName: name,
-              openingBalance: data.summary.openingBalance,
-              totalInvoiced: data.summary.totalInvoiced ?? 0,
-              totalPaid: data.summary.totalPaid,
-              balanceDue: data.summary.balanceDue ?? 0,
-              pdfUrl: data.url,
-              website,
-            });
+          : kind === "worker"
+            ? labourLedgerShareMessage({
+                workerName: name,
+                openingBalance: data.summary.openingBalance ?? 0,
+                totalOwed: data.summary.totalOwed ?? 0,
+                totalPaid: data.summary.totalPaid,
+                balanceOwed: data.summary.balanceOwed ?? 0,
+                pdfUrl: data.url,
+                website,
+              })
+            : ledgerShareMessage({
+                customerName: name,
+                openingBalance: data.summary.openingBalance ?? 0,
+                totalInvoiced: data.summary.totalInvoiced ?? 0,
+                totalPaid: data.summary.totalPaid,
+                balanceDue: data.summary.balanceDue ?? 0,
+                pdfUrl: data.url,
+                website,
+              });
       window.open(whatsAppShareUrl({ phone: contactNumber, text }), "_blank");
     } finally {
       setSharing(false);
@@ -93,13 +117,20 @@ export default function LedgerShareActions({
     if (emailing) return;
     setEmailing(true);
     try {
-      const res = await fetch(`${base}/email`, { method: "POST" });
+      const res = await fetch(
+        kind === "supplier"
+          ? `/api/suppliers/ledger/email?${supplierQuery}`
+          : `${base}/email`,
+        { method: "POST" }
+      );
       const json = await res.json().catch(() => ({}));
       if (res.ok) {
         toast.success(
           kind === "worker"
             ? "Labour statement sent to the worker's email."
-            : "Account statement sent to customer's email."
+            : kind === "supplier"
+              ? "Purchase ledger sent to the supplier's email."
+              : "Account statement sent to customer's email."
         );
       } else {
         toast.error(json.error || "Could not send email.");

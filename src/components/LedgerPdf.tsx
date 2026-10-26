@@ -134,7 +134,7 @@ function fdate(v?: string) {
 }
 
 export type LedgerPdfProps = {
-  variant?: "customer" | "worker";
+  variant?: "customer" | "worker" | "supplier";
   company: CompanyDetails;
   logoSrc?: string;
   customerName: string;
@@ -159,16 +159,30 @@ export default function LedgerPdf({
   generatedAt,
 }: LedgerPdfProps) {
   const worker = variant === "worker";
+  const supplier = variant === "supplier";
   const L = {
-    title: worker ? "LABOUR STATEMENT" : "ACCOUNT STATEMENT",
-    party: worker ? "Worker" : "Customer",
-    earned: worker ? "Work" : "Invoiced",
-    earnedCol: worker ? "WORK" : "DEBIT",
-    paidCol: worker ? "PAID" : "CREDIT",
-    balance: worker ? "Balance Owed" : "Balance Due",
-    footer: worker ? "Labour Statement" : "Account Statement",
+    title: supplier
+      ? "PURCHASE LEDGER"
+      : worker
+        ? "LABOUR STATEMENT"
+        : "ACCOUNT STATEMENT",
+    party: supplier ? "Supplier" : worker ? "Worker" : "Customer",
+    earned: supplier ? "Purchases" : worker ? "Work" : "Invoiced",
+    earnedCol: supplier ? "PURCHASES" : worker ? "WORK" : "DEBIT",
+    paidCol: supplier ? "PAID" : worker ? "PAID" : "CREDIT",
+    balance: supplier
+      ? "Balance Payable"
+      : worker
+        ? "Balance Owed"
+        : "Balance Due",
+    footer: supplier
+      ? "Purchase Ledger"
+      : worker
+        ? "Labour Statement"
+        : "Account Statement",
   };
-  const balanceSuffix = (v: number) => (worker ? "" : v > 0 ? " Dr" : " Cr");
+  const balanceSuffix = (v: number) =>
+    worker || supplier ? "" : v > 0 ? " Dr" : " Cr";
 
   return (
     <Document>

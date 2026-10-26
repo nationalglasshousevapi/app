@@ -4,6 +4,7 @@ import { inr, formatDateReadable } from "@/lib/format";
 import StatusBadge from "@/components/StatusBadge";
 import PurchaseSearch from "@/components/PurchaseSearch";
 import BackButton from "@/components/BackButton";
+import { purchasePaymentSummary } from "@/lib/purchasePayments";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -45,6 +46,21 @@ export default async function PurchasesPage({
     query = query.or(`doc_number.ilike.${term},bill_to_name.ilike.${term}`);
   }
   const { data: purchases } = await query;
+
+  const purchaseIds = (purchases ?? []).map((purchase) => purchase.id);
+  const { data: paymentRows } = purchaseIds.length
+    ? await sb
+        .from("purchase_payments")
+        .select("document_id, amount")
+        .in("document_id", purchaseIds)
+    : { data: [] };
+  const paidByDocument = new Map<string, number>();
+  for (const payment of paymentRows ?? []) {
+    paidByDocument.set(
+      payment.document_id,
+      (paidByDocument.get(payment.document_id) ?? 0) + Number(payment.amount)
+    );
+  }
 
   return (
     <div className="space-y-7">
@@ -94,6 +110,17 @@ export default async function PurchasesPage({
               </div>
               <div className="text-right shrink-0 space-y-2">
                 <p className="font-semibold">{inr(Number(p.total_amount))}</p>
+                <p className="text-xs text-slate-500">
+                  Paid {inr(paidByDocument.get(p.id) ?? 0)}
+                </p>
+                <p className="text-xs font-medium text-amber-700">
+                  Balance{" "}
+                  {inr(
+                    purchasePaymentSummary(p.total_amount, [
+                      { amount: paidByDocument.get(p.id) ?? 0 },
+                    ]).balance
+                  )}
+                </p>
                 <StatusBadge
                   documentId={p.id}
                   currentStatus={p.status}
@@ -160,6 +187,12 @@ export default async function PurchasesPage({
               <th scope="col" className="p-4 text-right">
                 Amount
               </th>
+              <th scope="col" className="p-4 text-right">
+                Paid
+              </th>
+              <th scope="col" className="p-4 text-right">
+                Balance
+              </th>
               <th scope="col" className="p-3">
                 <span className="sr-only">Actions</span>
               </th>
@@ -191,6 +224,16 @@ export default async function PurchasesPage({
                 <td className="p-4 text-right font-semibold">
                   {inr(Number(p.total_amount))}
                 </td>
+                <td className="p-4 text-right text-emerald-700">
+                  {inr(paidByDocument.get(p.id) ?? 0)}
+                </td>
+                <td className="p-4 text-right font-semibold text-amber-700">
+                  {inr(
+                    purchasePaymentSummary(p.total_amount, [
+                      { amount: paidByDocument.get(p.id) ?? 0 },
+                    ]).balance
+                  )}
+                </td>
                 <td className="p-4 text-right">
                   <Link
                     href={`/purchases/${p.id}`}
@@ -203,7 +246,7 @@ export default async function PurchasesPage({
             ))}
             {!purchases?.length && (
               <tr>
-                <td colSpan={6} className="p-8 text-center">
+                <td colSpan={8} className="p-8 text-center">
                   <p className="text-slate-500 font-medium">No purchases yet</p>
                   <p className="text-slate-400 text-sm mt-1">
                     Record your first purchase entry to get started.

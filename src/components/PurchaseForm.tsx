@@ -35,6 +35,7 @@ export type PurchaseFormValue = {
   supplier_address: string;
   supplier_contact_person: string;
   supplier_contact_number: string;
+  supplier_email: string;
   supplier_gst: string;
   irn: string;
   ack_number: string;
@@ -62,6 +63,7 @@ export function blankPurchase(): PurchaseFormValue {
     supplier_address: "",
     supplier_contact_person: "",
     supplier_contact_number: "",
+    supplier_email: "",
     supplier_gst: "",
     irn: "",
     ack_number: "",
@@ -99,6 +101,7 @@ function isBlankPurchase(v: PurchaseFormValue): boolean {
     !v.supplier_address &&
     !v.supplier_contact_person &&
     !v.supplier_contact_number &&
+    !v.supplier_email &&
     !v.supplier_gst &&
     !v.irn &&
     !v.ack_number &&
@@ -219,6 +222,7 @@ export default function PurchaseForm({
         bill_to_address: value.supplier_address,
         bill_to_contact_person: value.supplier_contact_person,
         bill_to_contact_number: value.supplier_contact_number,
+        bill_to_email: value.supplier_email || null,
         bill_to_gst: value.supplier_gst,
         tax_type: value.tax_type,
         tax_rate: value.tax_rate,
@@ -317,6 +321,7 @@ export default function PurchaseForm({
                 supplier_address: s.address ?? "",
                 supplier_contact_person: s.contact_person ?? "",
                 supplier_contact_number: s.contact_number ?? "",
+                supplier_email: s.email ?? "",
                 supplier_gst: s.gst ?? "",
               })
             }
@@ -357,6 +362,16 @@ export default function PurchaseForm({
               onChange={(e) =>
                 patch({ supplier_contact_person: e.target.value })
               }
+            />
+          </div>
+          <div>
+            <label className="label">Supplier email</label>
+            <input
+              className="input"
+              type="email"
+              value={value.supplier_email}
+              onChange={(e) => patch({ supplier_email: e.target.value })}
+              placeholder="For sending purchase statements"
             />
           </div>
           <div>

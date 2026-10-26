@@ -2,6 +2,9 @@ import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabaseServer";
 import PurchaseForm, { PurchaseFormValue } from "@/components/PurchaseForm";
 import PurchaseScanManager from "@/components/PurchaseScanManager";
+import PurchasePayments from "@/components/PurchasePayments";
+import LedgerShareActions from "@/components/LedgerShareActions";
+import type { PurchasePayment } from "@/lib/purchasePayments";
 import StatusBadge from "@/components/StatusBadge";
 import { formatDateReadable } from "@/lib/format";
 import Link from "next/link";
@@ -27,6 +30,13 @@ export default async function PurchaseDetailPage({
     .eq("document_id", params.id)
     .order("position", { ascending: true });
 
+  const { data: payments } = await sb
+    .from("purchase_payments")
+    .select("*")
+    .eq("document_id", params.id)
+    .order("payment_date", { ascending: false })
+    .order("created_at", { ascending: false });
+
   const { data: scanFiles } = await sb.storage
     .from("purchase-scans")
     .list(params.id, { limit: 1, search: "original" });
@@ -42,6 +52,7 @@ export default async function PurchaseDetailPage({
     supplier_address: doc.bill_to_address ?? "",
     supplier_contact_person: doc.bill_to_contact_person ?? "",
     supplier_contact_number: doc.bill_to_contact_number ?? "",
+    supplier_email: doc.bill_to_email ?? "",
     supplier_gst: doc.bill_to_gst ?? "",
     irn: doc.irn ?? "",
     ack_number: doc.ack_number ?? "",
@@ -110,6 +121,30 @@ export default async function PurchaseDetailPage({
         </a>
         <PurchaseScanManager purchaseId={doc.id} hasScan={hasScan} />
       </div>
+      <PurchasePayments
+        documentId={doc.id}
+        totalAmount={doc.total_amount}
+        payments={(payments ?? []) as PurchasePayment[]}
+      />
+
+      {doc.bill_to_name && (
+        <section className="card p-4 sm:p-6 space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold">Supplier purchase ledger</h2>
+            <p className="text-sm text-slate-500 mt-0.5">
+              Share all purchases and payments with {doc.bill_to_name} as a
+              single statement.
+            </p>
+          </div>
+          <LedgerShareActions
+            kind="supplier"
+            ledgerId={doc.bill_to_name}
+            partyName={doc.bill_to_name}
+            contactNumber={doc.bill_to_contact_number}
+          />
+        </section>
+      )}
+
       <PurchaseForm initial={initial} />
     </div>
   );
