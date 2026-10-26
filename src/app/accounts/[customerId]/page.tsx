@@ -44,6 +44,7 @@ export default async function CustomerLedgerPage({
       .eq("customer_id", customerId)
       .in("doc_type", ["invoice", "order"])
       .neq("status", "cancelled")
+      .neq("status", "converted")
       .lt("doc_date", fromDate);
 
     const { data: prePays } = await sb
@@ -69,7 +70,8 @@ export default async function CustomerLedgerPage({
     .select("id, doc_date, doc_number, total_amount, doc_type")
     .eq("customer_id", customerId)
     .in("doc_type", ["invoice", "order"])
-    .neq("status", "cancelled");
+    .neq("status", "cancelled")
+    .neq("status", "converted");
 
   if (fromDate) invoiceQuery = invoiceQuery.gte("doc_date", fromDate);
   if (toDate) invoiceQuery = invoiceQuery.lte("doc_date", toDate);

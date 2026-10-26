@@ -24,12 +24,14 @@ export async function GET(req: NextRequest) {
   const toParam = req.nextUrl.searchParams.get("to") ?? "";
 
   const side: "sales" | "purchase" =
-    reportType === "purchase" || reportType === "purchase_hsn" || reportType === "summary"
+    reportType === "purchase" ||
+    reportType === "purchase_hsn" ||
+    reportType === "summary"
       ? "purchase"
       : "sales";
-  // Sales reports cover invoices + orders (cash sales start as orders and only
-  // become invoices when converted). GST-registered customers still need an
-  // invoice, so this simply includes the paperwork trail.
+  // Sales reports cover invoices + orders. Unconverted orders are cash sales;
+  // a converted order is represented by the invoice it became, so it is
+  // excluded below to avoid reporting the same sale twice.
   const docTypeFilter = side === "sales" ? ["invoice", "order"] : ["purchase"];
 
   // Build date range: prefer explicit from/to, then month
@@ -51,7 +53,9 @@ export async function GET(req: NextRequest) {
   // Fetch all invoices/purchases in range
   let docQuery = sb
     .from("documents")
-    .select("id, doc_number, doc_date, bill_to_name, bill_to_gst, bill_to_address, subtotal, tax_type, tax_rate, cgst_amount, sgst_amount, igst_amount, total_amount")
+    .select(
+      "id, doc_number, doc_date, bill_to_name, bill_to_gst, bill_to_address, subtotal, tax_type, tax_rate, cgst_amount, sgst_amount, igst_amount, total_amount"
+    )
     .in("doc_type", docTypeFilter)
     .gte("doc_date", fromDate)
     .lte("doc_date", toDate)
@@ -59,18 +63,28 @@ export async function GET(req: NextRequest) {
   if (side === "purchase") {
     // Only confirmed entries feed input tax credit claims.
     docQuery = docQuery.neq("status", "draft").neq("status", "cancelled");
+  } else {
+    // A converted order already appears as its invoice; counting both doubles GST.
+    docQuery = docQuery.neq("status", "converted");
   }
   const { data: invoices } = await docQuery;
-  // Sales reports: invoices + orders (orders are the pre-invoice cash sale paperwork)
 
-  const reportLabel = fromParam && toParam ? `${fromParam}_${toParam}` : month || "all";
+  const reportLabel =
+    fromParam && toParam ? `${fromParam}_${toParam}` : month || "all";
 
   if (reportType === "summary") {
     const outputTax = (invoices ?? []).reduce(
-      (s, d) => s + Number(d.cgst_amount) + Number(d.sgst_amount) + Number(d.igst_amount),
-      0,
+      (s, d) =>
+        s +
+        Number(d.cgst_amount) +
+        Number(d.sgst_amount) +
+        Number(d.igst_amount),
+      0
     );
-    const taxableSales = (invoices ?? []).reduce((s, d) => s + Number(d.subtotal), 0);
+    const taxableSales = (invoices ?? []).reduce(
+      (s, d) => s + Number(d.subtotal),
+      0
+    );
 
     let purchaseQuery = sb
       .from("documents")
@@ -82,12 +96,21 @@ export async function GET(req: NextRequest) {
       .neq("status", "cancelled");
     const { data: purchases } = await purchaseQuery;
     const inputCredit = (purchases ?? []).reduce(
-      (s, d) => s + Number(d.cgst_amount) + Number(d.sgst_amount) + Number(d.igst_amount),
-      0,
+      (s, d) =>
+        s +
+        Number(d.cgst_amount) +
+        Number(d.sgst_amount) +
+        Number(d.igst_amount),
+      0
     );
-    const taxablePurchases = (purchases ?? []).reduce((s, d) => s + Number(d.subtotal), 0);
+    const taxablePurchases = (purchases ?? []).reduce(
+      (s, d) => s + Number(d.subtotal),
+      0
+    );
 
-    const label = fromParam && toParam ? `${fromParam} to ${toParam}` : month || "all";    const lines = [
+    const label =
+      fromParam && toParam ? `${fromParam} to ${toParam}` : month || "all";
+    const lines = [
       `GST Summary,${escapeCsv(label)}`,
       "",
       "Metric,Amount (INR)",
@@ -117,7 +140,9 @@ export async function GET(req: NextRequest) {
     const ids = invoices.map((inv) => inv.id);
     const { data: items } = await sb
       .from("document_items")
-      .select("document_id, description, size, hsn_code, qty, unit, rate, total")
+      .select(
+        "document_id, description, size, hsn_code, qty, unit, rate, total"
+      )
       .in("document_id", ids)
       .order("position", { ascending: true });
 
@@ -172,7 +197,8 @@ export async function GET(req: NextRequest) {
     }
 
     // Generate HSN-wise CSV
-    const header = "HSN,UQC,Total Quantity,Taxable Value,Tax Rate (%),CGST Amount,SGST Amount,IGST Amount";
+    const header =
+      "HSN,UQC,Total Quantity,Taxable Value,Tax Rate (%),CGST Amount,SGST Amount,IGST Amount";
     const rows = Array.from(hsnMap.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([hsn, data]) =>
@@ -199,9 +225,10 @@ export async function GET(req: NextRequest) {
   }
 
   // Document-level GST CSV (GSTR-1 for sales / ITC register for purchases)
-  const header = side === "sales"
-    ? "GSTIN of Recipient,Bill To Name,Invoice Number,Invoice Date,Invoice Value,Taxable Value,CGST Amount,SGST Amount,IGST Amount,Tax Type"
-    : "GSTIN of Supplier,Supplier Name,Supplier Invoice Number,Invoice Date,Invoice Value,Taxable Value,CGST Amount,SGST Amount,IGST Amount,Tax Type";
+  const header =
+    side === "sales"
+      ? "GSTIN of Recipient,Bill To Name,Invoice Number,Invoice Date,Invoice Value,Taxable Value,CGST Amount,SGST Amount,IGST Amount,Tax Type"
+      : "GSTIN of Supplier,Supplier Name,Supplier Invoice Number,Invoice Date,Invoice Value,Taxable Value,CGST Amount,SGST Amount,IGST Amount,Tax Type";
   const rows = (invoices ?? []).map((inv) =>
     [
       escapeCsv(inv.bill_to_gst),

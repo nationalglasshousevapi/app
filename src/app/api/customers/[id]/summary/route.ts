@@ -14,14 +14,16 @@ export async function GET(
     .eq("id", id)
     .single();
 
-  if (custError) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+  if (custError)
+    return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
   const { data: invoices } = await sb
     .from("documents")
     .select("total_amount")
     .eq("customer_id", id)
     .in("doc_type", ["invoice", "order"])
-    .neq("status", "cancelled");
+    .neq("status", "cancelled")
+    .neq("status", "converted");
 
   const { data: payments } = await sb
     .from("payments")
@@ -29,7 +31,10 @@ export async function GET(
     .eq("customer_id", id)
     .order("payment_date", { ascending: false });
 
-  const totalInvoiced = (invoices ?? []).reduce((s, inv) => s + Number(inv.total_amount), 0);
+  const totalInvoiced = (invoices ?? []).reduce(
+    (s, inv) => s + Number(inv.total_amount),
+    0
+  );
   const totalPaid = (payments ?? []).reduce((s, p) => s + Number(p.amount), 0);
   const lastPayment = payments?.[0];
 

@@ -8,10 +8,16 @@ export async function GET() {
 
   const { data, error } = await sb
     .from("documents")
-    .select("customer_id");
+    .select("customer_id")
+    .in("doc_type", ["invoice", "order"])
+    .neq("status", "cancelled")
+    .neq("status", "converted");
 
   if (error) {
-    return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Something went wrong." },
+      { status: 500 }
+    );
   }
 
   // Count invoices per customer

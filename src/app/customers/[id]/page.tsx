@@ -98,25 +98,31 @@ export default async function CustomerDetailPage({
 
   const { data: documents } = await docQuery;
 
+  // Money totals mirror the ledger: invoice/order only, and a converted
+  // source is superseded by its target. Quotations/estimates are not receivables.
+  const billable = (documents ?? []).filter(
+    (d) =>
+      (d.doc_type === "invoice" || d.doc_type === "order") &&
+      d.status !== "converted" &&
+      d.status !== "cancelled"
+  );
+
   // Calculate totals for filtered documents
-  const filteredTotal = (documents ?? []).reduce(
+  const filteredTotal = billable.reduce(
     (s, d) => s + Number(d.total_amount),
     0
   );
-  const filteredSubtotal = (documents ?? []).reduce(
-    (s, d) => s + Number(d.subtotal),
-    0
-  );
-  const filteredDiscount = (documents ?? []).reduce(
+  const filteredSubtotal = billable.reduce((s, d) => s + Number(d.subtotal), 0);
+  const filteredDiscount = billable.reduce(
     (s, d) => s + Number(d.discount_amount),
     0
   );
-  const filteredTax = (documents ?? []).reduce(
+  const filteredTax = billable.reduce(
     (s, d) =>
       s + Number(d.cgst_amount) + Number(d.sgst_amount) + Number(d.igst_amount),
     0
   );
-  const filteredDocCount = (documents ?? []).length;
+  const filteredDocCount = billable.length;
 
   const STATUS_STYLES: Record<string, string> = {
     draft: "bg-slate-100 text-slate-600",

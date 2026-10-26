@@ -220,7 +220,7 @@ from customers c
 left join (
   select customer_id, sum(total_amount) as total_invoiced
   from documents
-  where doc_type in ('invoice', 'order') and status != 'cancelled'
+  where doc_type in ('invoice', 'order') and status not in ('cancelled', 'converted')
   group by customer_id
 ) inv on inv.customer_id = c.id
 left join (
@@ -231,7 +231,7 @@ left join (
 left join (
   select customer_id, count(*) as invoice_count
   from documents
-  where doc_type in ('invoice', 'order') and status != 'cancelled'
+  where doc_type in ('invoice', 'order') and status not in ('cancelled', 'converted')
   group by customer_id
 ) cnt on cnt.customer_id = c.id;
 
@@ -243,16 +243,16 @@ declare
   this_month text := to_char(now(), 'YYYY-MM');
 begin
   return jsonb_build_object(
-    'totalRevenue', (select coalesce(sum(total_amount), 0) from documents where doc_type in ('invoice', 'order')),
-    'thisMonthRevenue', (select coalesce(sum(total_amount), 0) from documents where doc_type in ('invoice', 'order') and to_char(doc_date, 'YYYY-MM') = this_month),
-    'invoiceCount', (select count(*) from documents where doc_type in ('invoice', 'order')),
+    'totalRevenue', (select coalesce(sum(total_amount), 0) from documents where doc_type in ('invoice', 'order') and status not in ('cancelled', 'converted')),
+    'thisMonthRevenue', (select coalesce(sum(total_amount), 0) from documents where doc_type in ('invoice', 'order') and status not in ('cancelled', 'converted') and to_char(doc_date, 'YYYY-MM') = this_month),
+    'invoiceCount', (select count(*) from documents where doc_type in ('invoice', 'order') and status not in ('cancelled', 'converted')),
     'customerCount', (select count(*) from customers),
     'monthlySeries', COALESCE((
       select jsonb_agg(jsonb_build_object('month', month, 'total', total) order by month)
       from (
         select to_char(date_trunc('month', doc_date)::date, 'YYYY-MM') as month, sum(total_amount) as total
         from documents
-        where doc_type in ('invoice', 'order')
+        where doc_type in ('invoice', 'order') and status not in ('cancelled', 'converted')
         group by date_trunc('month', doc_date)
         order by date_trunc('month', doc_date) desc
         limit 12
@@ -268,7 +268,7 @@ begin
       from (
         select customer_id, bill_to_name, sum(total_amount) as total, count(*) as count
         from documents
-        where doc_type in ('invoice', 'order')
+        where doc_type in ('invoice', 'order') and status not in ('cancelled', 'converted')
         group by customer_id, bill_to_name
         order by total desc
         limit 8

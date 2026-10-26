@@ -15,7 +15,8 @@ export async function GET(
     .eq("id", id)
     .single();
 
-  if (custError) return NextResponse.json({ error: "Customer not found" }, { status: 404 });
+  if (custError)
+    return NextResponse.json({ error: "Customer not found" }, { status: 404 });
 
   // Fetch invoices + orders for this customer
   const { data: invoices } = await sb
@@ -24,6 +25,7 @@ export async function GET(
     .eq("customer_id", id)
     .in("doc_type", ["invoice", "order"])
     .neq("status", "cancelled")
+    .neq("status", "converted")
     .order("doc_date", { ascending: true });
 
   // Fetch payments for this customer
@@ -99,7 +101,10 @@ export async function GET(
   return NextResponse.json({
     customerName: customer.name,
     openingBalance: Number(customer.opening_balance),
-    totalInvoiced: (invoices ?? []).reduce((s, inv) => s + Number(inv.total_amount), 0),
+    totalInvoiced: (invoices ?? []).reduce(
+      (s, inv) => s + Number(inv.total_amount),
+      0
+    ),
     totalPaid: (payments ?? []).reduce((s, pay) => s + Number(pay.amount), 0),
     balanceDue: runningBalance,
     entries,

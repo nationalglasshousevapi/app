@@ -37,6 +37,7 @@ export default async function DayBookPage({
         )
         .in("doc_type", ["invoice", "order", "receipt"])
         .neq("status", "cancelled")
+        .neq("status", "converted")
         .eq("doc_date", date)
         .order("created_at"),
       sb

@@ -67,6 +67,7 @@ async function getDashboardData() {
         "id, doc_type, doc_number, doc_date, bill_to_name, total_amount, bill_to_contact_number"
       )
       .in("doc_type", ["invoice", "order"])
+      .neq("status", "converted")
       .order("doc_date", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(5),
