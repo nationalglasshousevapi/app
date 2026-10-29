@@ -204,7 +204,7 @@ describe("extractSalesDocument", () => {
     expect(result.reason).toContain("No line items");
   });
 
-  it("rejects a document with neither customer nor number", async () => {
+  it("accepts a document with items when both customer and number are missing", async () => {
     process.env.OCR_API_KEY = "test-key";
     mockExtraction(
       JSON.stringify({
@@ -227,8 +227,10 @@ describe("extractSalesDocument", () => {
 
     const result = await extractSalesDocument("aGVsbG8=", "application/pdf");
 
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.reason).toContain("does not look like a sales document");
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.customer_name).toBe("");
+    expect(result.data.doc_number).toBe("");
+    expect(result.data.items).toHaveLength(1);
   });
 });

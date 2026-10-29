@@ -179,12 +179,6 @@ export async function extractSalesDocument(
           "No line items were found in the document. Try a clearer scan or photo.",
       };
     }
-    if (!data.customer_name && !data.doc_number) {
-      return {
-        ok: false,
-        reason: "This does not look like a sales document.",
-      };
-    }
     return { ok: true, data };
   } catch {
     return {
