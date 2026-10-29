@@ -42,6 +42,60 @@ export function parseItems(rawItems: unknown[]): ParsedItem[] {
   });
 }
 
+export function totalGlassPieces(
+  items: Array<{ item_type?: "glass" | "charge"; nos?: number | null }>
+): number {
+  return items.reduce(
+    (sum, it) =>
+      it.item_type !== "charge" ? sum + (Number(it.nos) || 0) : sum,
+    0
+  );
+}
+
+export function roundUpInches(inches: number): number {
+  if (inches <= 0) return 0;
+  if (inches < 24) return Math.ceil(inches / 3) * 3;
+  return Math.ceil(inches / 6) * 6;
+}
+
+export interface GlassItemDimensions {
+  actual_length: number;
+  actual_width: number;
+  nos: number;
+  unit: string;
+}
+
+export function deriveGlassItemFields(input: GlassItemDimensions): {
+  calculated_length: number;
+  calculated_width: number;
+  size: string;
+  qty: number;
+} {
+  const nos = input.nos || 1;
+  const calculated_length = roundUpInches(input.actual_length || 0);
+  const calculated_width = roundUpInches(input.actual_width || 0);
+  const size =
+    calculated_length > 0 && calculated_width > 0
+      ? `${calculated_length}x${calculated_width}`
+      : "";
+
+  let qty: number;
+  if (input.unit === "sq.ft") {
+    qty =
+      Math.round(((calculated_length * calculated_width * nos) / 144) * 100) /
+      100;
+  } else if (input.unit === "rn ft") {
+    qty =
+      Math.round(
+        ((calculated_length * 2 + calculated_width * 2) / 12) * nos * 100
+      ) / 100;
+  } else {
+    qty = nos;
+  }
+
+  return { calculated_length, calculated_width, size, qty };
+}
+
 export interface TaxBreakdown {
   cgst: number;
   sgst: number;
@@ -62,9 +116,10 @@ export function computeTax(
   taxType: string,
   taxRate: number,
   discountAmount: number = 0,
-  taxableCharges: TaxableCharge[] = [],
+  taxableCharges: TaxableCharge[] = []
 ): TaxBreakdown {
-  const taxableAmount = subtotal + computeTaxableChargesTotal(taxableCharges) - discountAmount;
+  const taxableAmount =
+    subtotal + computeTaxableChargesTotal(taxableCharges) - discountAmount;
   let cgst = 0,
     sgst = 0,
     igst = 0;
@@ -82,7 +137,9 @@ export type AdditionalCharge = {
   amount: number;
 };
 
-export function computeAdditionalChargesTotal(charges: AdditionalCharge[]): number {
+export function computeAdditionalChargesTotal(
+  charges: AdditionalCharge[]
+): number {
   return charges.reduce((sum, c) => sum + (c.amount || 0), 0);
 }
 
@@ -103,9 +160,10 @@ export function computeTotal(
   igst: number,
   discountAmount: number = 0,
   additionalCharges: AdditionalCharge[] = [],
-  taxableCharges: TaxableCharge[] = [],
+  taxableCharges: TaxableCharge[] = []
 ): { totalAmount: number; roundOff: number } {
-  const taxableAmount = subtotal + computeTaxableChargesTotal(taxableCharges) - discountAmount;
+  const taxableAmount =
+    subtotal + computeTaxableChargesTotal(taxableCharges) - discountAmount;
   const extraCharges = computeAdditionalChargesTotal(additionalCharges);
   const raw = taxableAmount + cgst + sgst + igst + extraCharges;
   const totalAmount = Math.round(raw);
@@ -113,10 +171,7 @@ export function computeTotal(
   return { totalAmount, roundOff };
 }
 
-export function formatItemRows(
-  items: ParsedItem[],
-  documentId: string,
-) {
+export function formatItemRows(items: ParsedItem[], documentId: string) {
   return items.map((it, idx) => ({
     document_id: documentId,
     position: idx,

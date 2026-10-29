@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { DEFAULT_HSN_CODE } from "@/lib/company";
 import { inr } from "@/lib/format";
+import { deriveGlassItemFields } from "@/lib/documents";
 import SearchCombobox from "@/components/SearchCombobox";
 
 export type LineItem = {
@@ -36,12 +37,6 @@ export const EMPTY_ITEM: LineItem = {
 };
 
 const UNITS = ["sq.ft", "rn ft", "nos"];
-
-function roundUpInches(inches: number): number {
-  if (inches <= 0) return 0;
-  if (inches < 24) return Math.ceil(inches / 3) * 3;
-  return Math.ceil(inches / 6) * 6;
-}
 
 function TrashIcon({ className }: { className?: string }) {
   return (
@@ -189,36 +184,17 @@ export default function LineItemsEditor({
     const updated = { ...prev, ...patch };
 
     // Recalculate derived fields from actual dimensions
-    const actualLength = updated.actual_length || 0;
-    const actualWidth = updated.actual_width || 0;
-    const nos = updated.nos || 1;
+    const derived = deriveGlassItemFields({
+      actual_length: updated.actual_length || 0,
+      actual_width: updated.actual_width || 0,
+      nos: updated.nos || 1,
+      unit: updated.unit || "sq.ft",
+    });
 
-    updated.calculated_length = roundUpInches(actualLength);
-    updated.calculated_width = roundUpInches(actualWidth);
-
-    if (updated.calculated_length > 0 && updated.calculated_width > 0) {
-      updated.size = `${updated.calculated_length}x${updated.calculated_width}`;
-    } else {
-      updated.size = "";
-    }
-
-    if (updated.unit === "sq.ft") {
-      updated.qty =
-        Math.round(
-          ((updated.calculated_length * updated.calculated_width * nos) / 144) *
-            100
-        ) / 100;
-    } else if (updated.unit === "rn ft") {
-      updated.qty =
-        Math.round(
-          ((updated.calculated_length * 2 + updated.calculated_width * 2) /
-            12) *
-            nos *
-            100
-        ) / 100;
-    } else {
-      updated.qty = nos;
-    }
+    updated.calculated_length = derived.calculated_length;
+    updated.calculated_width = derived.calculated_width;
+    updated.size = derived.size;
+    updated.qty = derived.qty;
 
     next[idx] = updated;
     onChange(next);

@@ -1,5 +1,6 @@
 import { Image, StyleSheet, Text, View } from "@react-pdf/renderer";
 import { docTypeLabel } from "@/lib/docTypes";
+import { totalGlassPieces } from "@/lib/documents";
 import type { CompanyDetails } from "@/lib/company";
 
 const ACCENT = "#046380";
@@ -110,6 +111,28 @@ const styles = StyleSheet.create({
   invUnit: { width: "8%", textAlign: "center" },
   invAmount: { width: "20%", textAlign: "right" },
   spacer: { flexGrow: 1 },
+  pieceSummary: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginTop: 2,
+    backgroundColor: LIGHT_BG,
+    borderRadius: 4,
+  },
+  pieceSummaryLabel: {
+    fontSize: 8,
+    fontFamily: "Helvetica-Bold",
+    color: ACCENT,
+    textTransform: "uppercase",
+    marginRight: 8,
+  },
+  pieceSummaryValue: {
+    fontSize: 10,
+    fontFamily: "Helvetica-Bold",
+    color: ACCENT,
+  },
   summaryRow: { flexDirection: "row" },
   notes: { width: "55%", paddingRight: 12 },
   notesTitle: {
@@ -247,6 +270,7 @@ function fdate(v?: string | null) {
 
 export default function PdfInvoicePage(props: PdfInvoicePageProps) {
   const { company, billTo, shipTo, items } = props;
+  const totalPieces = totalGlassPieces(items);
   const taxRows: [string, number][] =
     props.taxType === "cgst_sgst"
       ? [
@@ -448,6 +472,12 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
             );
           })}
         </>
+        {totalPieces > 0 && (
+          <View style={styles.pieceSummary}>
+            <Text style={styles.pieceSummaryLabel}>Total Glass Pieces</Text>
+            <Text style={styles.pieceSummaryValue}>{totalPieces}</Text>
+          </View>
+        )}
         <View style={styles.spacer} />
       </View>
 

@@ -90,7 +90,7 @@ function str(v: unknown): string {
   return typeof v === "string" ? v.trim() : v == null ? "" : String(v).trim();
 }
 
-function parseJsonLoose(text: string): unknown {
+export function parseJsonLoose(text: string): unknown {
   const cleaned = text
     .replace(/^```(?:json)?\s*/i, "")
     .replace(/\s*```\s*$/, "")
@@ -192,12 +192,14 @@ export function isOcrConfigured(): boolean {
 const BUSY_REASON =
   "The extraction model is busy right now (high demand). Please wait a minute and tap Extract again.";
 
-async function callModel(
+export async function callModel(
   baseUrl: string,
   apiKey: string,
   model: string,
   mimeType: string,
-  base64File: string
+  base64File: string,
+  systemPrompt: string,
+  userText: string
 ): Promise<
   | { ok: true; content: string }
   | { ok: false; status: number; retryable: boolean; reason: string }
@@ -214,7 +216,7 @@ async function callModel(
         model,
         temperature: 0,
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
+          { role: "system", content: systemPrompt },
           {
             role: "user",
             content: [
@@ -224,7 +226,7 @@ async function callModel(
               },
               {
                 type: "text",
-                text: "Extract this purchase invoice into the JSON schema.",
+                text: userText,
               },
             ],
           },
@@ -292,7 +294,15 @@ export async function extractPurchaseInvoice(
 
   let content = "";
   for (const m of models) {
-    const attempt = await callModel(baseUrl, apiKey, m, mimeType, base64File);
+    const attempt = await callModel(
+      baseUrl,
+      apiKey,
+      m,
+      mimeType,
+      base64File,
+      SYSTEM_PROMPT,
+      "Extract this purchase invoice into the JSON schema."
+    );
     if (attempt.ok) {
       content = attempt.content;
       break;

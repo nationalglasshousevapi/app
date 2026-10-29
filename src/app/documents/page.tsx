@@ -152,9 +152,17 @@ export default async function DocumentsPage({
               `${(documents ?? []).length} of ${totalCount ?? 0} documents`}
           </p>
         </div>
-        <Link href="/documents/new" className="btn-primary w-full sm:w-auto">
-          + New document
-        </Link>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Link
+            href="/documents/scan"
+            className="btn-secondary w-full sm:w-auto"
+          >
+            📷 Scan document
+          </Link>
+          <Link href="/documents/new" className="btn-primary w-full sm:w-auto">
+            + New document
+          </Link>
+        </div>
       </div>
 
       <BatchDownloadPanel />
