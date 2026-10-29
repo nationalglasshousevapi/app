@@ -40,13 +40,6 @@ export async function POST(req: NextRequest) {
   }
   const input = parsed.data;
 
-  if (input.amount_paid > input.amount_owed) {
-    return NextResponse.json(
-      { error: "Paid amount cannot exceed the amount owed." },
-      { status: 400 }
-    );
-  }
-
   const sb = supabaseServer();
   const worker = await findOrCreateWorker(sb, input.worker_name);
   const { data, error } = await sb

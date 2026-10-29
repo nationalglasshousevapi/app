@@ -182,12 +182,21 @@ describe("createLabourEntrySchema", () => {
     expect(parsed.success).toBe(false);
   });
 
-  it("rejects zero amount owed", () => {
+  it("rejects an entry with no work and no payment", () => {
     const parsed = createLabourEntrySchema.safeParse({
       ...validEntry,
       amount_owed: 0,
     });
     expect(parsed.success).toBe(false);
+  });
+
+  it("accepts a standalone advance payment with zero work", () => {
+    const parsed = createLabourEntrySchema.safeParse({
+      worker_name: "Ramesh",
+      amount_owed: 0,
+      amount_paid: 500,
+    });
+    expect(parsed.success).toBe(true);
   });
 
   it("rejects a negative paid amount", () => {

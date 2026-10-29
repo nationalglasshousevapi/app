@@ -119,11 +119,13 @@ export default function WorkerEditButton({ worker }: { worker: Worker }) {
               <input
                 className="input"
                 type="number"
-                min="0"
                 step="0.01"
                 value={opening}
                 onChange={(e) => setOpening(e.target.value)}
               />
+              <p className="text-xs text-slate-400 mt-1">
+                Use a negative amount for an advance.
+              </p>
             </div>
           </div>
         </Modal>

@@ -4,7 +4,7 @@ import { toast } from "@/lib/toast";
 import { useEffect, useMemo, useState } from "react";
 import { PAYMENT_MODES } from "@/lib/paymentModes";
 import { inr, formatDateShort } from "@/lib/format";
-import { labourBalance } from "@/lib/labour";
+import { labourNet } from "@/lib/labour";
 
 type LabourEntry = {
   id: string;
@@ -19,6 +19,12 @@ type LabourEntry = {
 };
 
 type Form = Omit<LabourEntry, "id">;
+
+type WorkerSummary = {
+  id: string;
+  name: string;
+  balance_owed: number;
+};
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -50,7 +56,7 @@ export default function LabourManager() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [workerNames, setWorkerNames] = useState<string[]>([]);
+  const [workers, setWorkers] = useState<WorkerSummary[]>([]);
 
   async function load(targetMonth: string) {
     setLoading(true);
@@ -75,8 +81,12 @@ export default function LabourManager() {
     fetch("/api/workers")
       .then((r) => r.json())
       .then((json) =>
-        setWorkerNames(
-          (json.workers ?? []).map((w: { name: string }) => w.name)
+        setWorkers(
+          (json.workers ?? []).map((w: any) => ({
+            id: w.id,
+            name: w.name,
+            balance_owed: Number(w.balance_owed),
+          }))
         )
       )
       .catch(() => {});
@@ -87,6 +97,10 @@ export default function LabourManager() {
     [entries, month]
   );
 
+  const workerNames = workers.map((w) => w.name);
+  const selectedWorker = workers.find((w) => w.name === form.worker_name);
+  const formNet = labourNet(form.amount_owed, form.amount_paid);
+
   const totals = useMemo(() => {
     let owed = 0;
     let paid = 0;
@@ -94,7 +108,7 @@ export default function LabourManager() {
       owed += Number(e.amount_owed);
       paid += Number(e.amount_paid);
     }
-    return { owed, paid, due: labourBalance(owed, paid) };
+    return { owed, paid, net: labourNet(owed, paid) };
   }, [monthEntries]);
 
   function startEdit(e: LabourEntry) {
@@ -119,12 +133,8 @@ export default function LabourManager() {
       setError("Enter the worker's name.");
       return;
     }
-    if (!(Number(form.amount_owed) > 0)) {
-      setError("Enter an amount owed greater than 0.");
-      return;
-    }
-    if (Number(form.amount_paid) > Number(form.amount_owed)) {
-      setError("Paid amount cannot exceed the amount owed.");
+    if (Number(form.amount_owed) <= 0 && Number(form.amount_paid) <= 0) {
+      setError("Enter work done or a payment amount.");
       return;
     }
     setSaving(true);
@@ -215,14 +225,17 @@ export default function LabourManager() {
         </div>
         <div className="card p-4">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-            Balance due
+            Balance
           </p>
           <p
             className={`text-xl font-bold font-mono mt-1 ${
-              totals.due > 0 ? "text-red-600" : ""
+              totals.net > 0 ? "text-red-600" : "text-green-600"
             }`}
           >
-            {inr(totals.due)}
+            {inr(Math.abs(totals.net))}
+            <span className="ml-1 text-xs font-semibold">
+              {totals.net > 0 ? "due" : totals.net < 0 ? "advance" : "settled"}
+            </span>
           </p>
         </div>
         <div className="card p-4">
@@ -268,9 +281,25 @@ export default function LabourManager() {
                   <option key={n} value={n} />
                 ))}
               </datalist>
+              {selectedWorker && (
+                <p className="text-xs text-slate-500 mt-1">
+                  Running balance:{" "}
+                  <span
+                    className={
+                      selectedWorker.balance_owed > 0
+                        ? "text-red-600 font-semibold"
+                        : "text-green-600 font-semibold"
+                    }
+                  >
+                    {selectedWorker.balance_owed >= 0
+                      ? `${inr(selectedWorker.balance_owed)} owed`
+                      : `${inr(Math.abs(selectedWorker.balance_owed))} advance`}
+                  </span>
+                </p>
+              )}
             </div>
             <div>
-              <label className="label-lg">Amount owed (₹) *</label>
+              <label className="label-lg">Work amount (₹)</label>
               <input
                 type="number"
                 min="0"
@@ -285,6 +314,9 @@ export default function LabourManager() {
                   })
                 }
               />
+              <p className="text-xs text-slate-400 mt-1">
+                Leave 0 to record an advance payment.
+              </p>
             </div>
             <div>
               <label className="label-lg">Amount paid (₹)</label>
@@ -302,6 +334,9 @@ export default function LabourManager() {
                   })
                 }
               />
+              <p className="text-xs text-slate-400 mt-1">
+                Can be more than the work amount for an advance.
+              </p>
             </div>
             <div>
               <label className="label-lg">Paid via</label>
@@ -321,8 +356,20 @@ export default function LabourManager() {
             </div>
             <div>
               <label className="label">Balance after this payment</label>
-              <p className="input bg-slate-50 font-mono flex items-center">
-                {inr(labourBalance(form.amount_owed, form.amount_paid), 2)}
+              <p
+                className={`input bg-slate-50 font-mono flex items-center ${
+                  formNet > 0
+                    ? "text-red-600"
+                    : formNet < 0
+                      ? "text-green-600"
+                      : ""
+                }`}
+              >
+                {formNet > 0
+                  ? `${inr(formNet, 2)} due`
+                  : formNet < 0
+                    ? `${inr(Math.abs(formNet), 2)} advance`
+                    : "Settled"}
               </p>
             </div>
             <div className="sm:col-span-2">
@@ -403,7 +450,7 @@ export default function LabourManager() {
           <>
             <div className="xl:hidden divide-y divide-slate-100">
               {monthEntries.map((e) => {
-                const due = labourBalance(e.amount_owed, e.amount_paid);
+                const net = labourNet(e.amount_owed, e.amount_paid);
                 return (
                   <div key={e.id} className="p-4 space-y-2">
                     <div className="flex items-start justify-between gap-3">
@@ -432,10 +479,14 @@ export default function LabourManager() {
                         </p>
                         <p
                           className={`text-xs font-semibold ${
-                            due > 0 ? "text-red-600" : "text-green-600"
+                            net > 0 ? "text-red-600" : "text-green-600"
                           }`}
                         >
-                          {due > 0 ? `${inr(due, 2)} due` : "Paid"}
+                          {net > 0
+                            ? `${inr(net, 2)} due`
+                            : net < 0
+                              ? `${inr(Math.abs(net), 2)} advance`
+                              : "Settled"}
                         </p>
                       </div>
                     </div>
@@ -475,7 +526,7 @@ export default function LabourManager() {
                 </thead>
                 <tbody>
                   {monthEntries.map((e) => {
-                    const due = labourBalance(e.amount_owed, e.amount_paid);
+                    const net = labourNet(e.amount_owed, e.amount_paid);
                     return (
                       <tr
                         key={e.id}
@@ -505,10 +556,14 @@ export default function LabourManager() {
                         </td>
                         <td
                           className={`p-4 text-right font-mono font-semibold ${
-                            due > 0 ? "text-red-600" : "text-green-600"
+                            net > 0 ? "text-red-600" : "text-green-600"
                           }`}
                         >
-                          {due > 0 ? inr(due, 2) : "Paid"}
+                          {net > 0
+                            ? inr(net, 2)
+                            : net < 0
+                              ? `${inr(Math.abs(net), 2)} adv`
+                              : "Settled"}
                         </td>
                         <td className="p-4 text-right whitespace-nowrap">
                           <button

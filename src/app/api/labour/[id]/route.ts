@@ -66,9 +66,9 @@ export async function PUT(
     notes: input.notes !== undefined ? input.notes || null : existing.notes,
   };
 
-  if (updates.amount_paid > updates.amount_owed) {
+  if (Number(updates.amount_owed) <= 0 && Number(updates.amount_paid) <= 0) {
     return NextResponse.json(
-      { error: "Paid amount cannot exceed the amount owed." },
+      { error: "Enter work done or a payment amount." },
       { status: 400 }
     );
   }

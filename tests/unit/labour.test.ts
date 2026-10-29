@@ -1,21 +1,21 @@
 import { describe, it, expect } from "vitest";
 import {
-  labourBalance,
+  labourNet,
   labourExpenseDescription,
   workerLedgerRows,
 } from "@/lib/labour";
 
-describe("labourBalance", () => {
+describe("labourNet", () => {
   it("subtracts paid from owed", () => {
-    expect(labourBalance(1000, 400)).toBe(600);
+    expect(labourNet(1000, 400)).toBe(600);
   });
 
-  it("never goes negative", () => {
-    expect(labourBalance(1000, 1200)).toBe(0);
+  it("returns a negative balance for an overpayment", () => {
+    expect(labourNet(1000, 1200)).toBe(-200);
   });
 
   it("handles Postgres numeric strings", () => {
-    expect(labourBalance("1500.50", "500.25")).toBe(1000.25);
+    expect(labourNet("1500.50", "500.25")).toBe(1000.25);
   });
 });
 

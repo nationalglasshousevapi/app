@@ -13,8 +13,8 @@ export type LabourEntry = {
   reference_number: string | null;
 };
 
-export function labourBalance(owed: number | string, paid: number | string) {
-  return Math.max(0, Number(owed) - Number(paid));
+export function labourNet(owed: number | string, paid: number | string) {
+  return Number(owed) - Number(paid);
 }
 
 export function labourExpenseDescription(

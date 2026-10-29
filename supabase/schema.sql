@@ -418,7 +418,7 @@ create table if not exists labour_entries (
   worker_id uuid references workers(id) on delete set null,
   worker_name text not null,
   work_description text,
-  amount_owed numeric(12,2) not null check (amount_owed > 0),
+  amount_owed numeric(12,2) not null check (amount_owed >= 0),
   amount_paid numeric(12,2) not null default 0 check (amount_paid >= 0),
   payment_mode text not null default 'cash' check (payment_mode in (
     'cash', 'bank_transfer', 'upi', 'cheque', 'adjustment'
@@ -427,7 +427,7 @@ create table if not exists labour_entries (
   notes text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  check (amount_paid <= amount_owed)
+  check (amount_owed > 0 or amount_paid > 0)
 );
 
 create index if not exists idx_labour_entries_date on labour_entries (entry_date);

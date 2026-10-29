@@ -143,21 +143,17 @@ export const createWorkerSchema = z.object({
   name: z.string().min(1, "Worker name is required."),
   phone: z.string().optional().default(""),
   email: z.string().optional().default(""),
-  opening_balance: z
-    .number()
-    .min(0, "Opening balance cannot be negative.")
-    .optional()
-    .default(0),
+  opening_balance: z.number().optional().default(0),
   notes: z.string().nullable().optional().default(""),
 });
 
 export const updateWorkerSchema = createWorkerSchema.partial();
 
-export const createLabourEntrySchema = z.object({
+const labourEntryFields = z.object({
   entry_date: z.string().optional(),
   worker_name: z.string().min(1, "Worker name is required."),
   work_description: z.string().optional().default(""),
-  amount_owed: z.number().positive("Amount owed must be greater than 0."),
+  amount_owed: z.number().min(0, "Work amount cannot be negative."),
   amount_paid: z
     .number()
     .min(0, "Paid amount cannot be negative.")
@@ -168,7 +164,12 @@ export const createLabourEntrySchema = z.object({
   notes: z.string().nullable().optional().default(""),
 });
 
-export const updateLabourEntrySchema = createLabourEntrySchema.partial();
+export const createLabourEntrySchema = labourEntryFields.refine(
+  (v) => v.amount_owed > 0 || v.amount_paid > 0,
+  { message: "Enter work done or a payment amount." }
+);
+
+export const updateLabourEntrySchema = labourEntryFields.partial();
 
 export const createPaymentSchema = z.object({
   customer_id: z.string().uuid().nullable().optional(),

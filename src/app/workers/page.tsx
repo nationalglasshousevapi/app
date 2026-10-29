@@ -145,7 +145,6 @@ export default function WorkersPage() {
               <label className="label-lg">Opening balance (₹)</label>
               <input
                 type="number"
-                min="0"
                 step="any"
                 className="input font-mono"
                 placeholder="0"
@@ -154,6 +153,9 @@ export default function WorkersPage() {
                   setForm({ ...form, opening_balance: e.target.value })
                 }
               />
+              <p className="text-xs text-slate-400 mt-1">
+                Use a negative amount for an advance.
+              </p>
             </div>
           </div>
           <button
