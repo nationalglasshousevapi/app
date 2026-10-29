@@ -25,9 +25,14 @@ const SALES_TYPES: { value: DocType; label: string }[] = [
   { value: "estimate", label: "Estimate" },
 ];
 
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 function toLineItem(it: ExtractedSalesItem): LineItem {
-  const actual_length = it.actual_length_in || 0;
-  const actual_width = it.actual_width_in || 0;
+  const actual_length = round2(it.actual_length_in || 0);
+  const actual_width = round2(it.actual_width_in || 0);
+  const rate = round2(it.rate);
   const nos = Math.max(1, Math.round(it.nos) || 1);
   const unit = ["sq.ft", "rn ft", "nos"].includes(it.unit) ? it.unit : "sq.ft";
   const derived = deriveGlassItemFields({
@@ -38,8 +43,8 @@ function toLineItem(it: ExtractedSalesItem): LineItem {
   });
 
   let qty = derived.qty;
-  if (qty <= 0 && it.rate > 0 && it.amount > 0) {
-    qty = Math.round((it.amount / it.rate) * 100) / 100;
+  if (qty <= 0 && rate > 0 && it.amount > 0) {
+    qty = round2(it.amount / rate);
   }
   if (qty <= 0) qty = nos;
 
@@ -49,7 +54,7 @@ function toLineItem(it: ExtractedSalesItem): LineItem {
     hsn_code: it.hsn_code || DEFAULT_HSN_CODE,
     qty,
     unit,
-    rate: it.rate,
+    rate,
     actual_length,
     actual_width,
     nos,
