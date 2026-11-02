@@ -17,6 +17,47 @@ export function labourNet(owed: number | string, paid: number | string) {
   return Number(owed) - Number(paid);
 }
 
+export type LabourLedgerEntry = {
+  id: string;
+  worker_id?: string | null;
+  worker_name: string;
+  entry_date: string;
+  created_at?: string | null;
+  amount_owed: number | string;
+  amount_paid: number | string;
+};
+
+export function labourWorkerKey(
+  entry: Pick<LabourLedgerEntry, "worker_id" | "worker_name">
+) {
+  return entry.worker_id ?? `name:${entry.worker_name.trim().toLowerCase()}`;
+}
+
+export function labourRunningBalances(
+  entries: LabourLedgerEntry[],
+  openingByWorker: Map<string, number> = new Map()
+): Map<string, number> {
+  const balances = new Map(openingByWorker);
+  const result = new Map<string, number>();
+  const sorted = [...entries].sort(
+    (a, b) =>
+      a.entry_date.localeCompare(b.entry_date) ||
+      (a.created_at ?? "").localeCompare(b.created_at ?? "")
+  );
+
+  for (const entry of sorted) {
+    const key = labourWorkerKey(entry);
+    const balance =
+      (balances.get(key) ?? 0) +
+      Number(entry.amount_owed) -
+      Number(entry.amount_paid);
+    balances.set(key, balance);
+    result.set(entry.id, balance);
+  }
+
+  return result;
+}
+
 export function labourExpenseDescription(
   entry: Pick<LabourEntry, "worker_name" | "work_description">
 ) {
@@ -142,7 +183,11 @@ export function workerLedgerRows(
       type: "work",
       description:
         row.work_description ||
-        (paid > 0 ? `Paid via ${row.payment_mode}` : "Work"),
+        (owed <= 0 && paid > 0
+          ? `Advance via ${row.payment_mode}`
+          : paid > 0
+            ? `Paid via ${row.payment_mode}`
+            : "Work"),
       debit: owed,
       credit: paid,
       balance,

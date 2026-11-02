@@ -1,13 +1,15 @@
 "use client";
 
-import { toast } from "@/lib/toast";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "@/lib/toast";
 import { PAYMENT_MODES } from "@/lib/paymentModes";
 import { inr, formatDateShort } from "@/lib/format";
-import { labourNet } from "@/lib/labour";
+import { labourNet, labourRunningBalances } from "@/lib/labour";
 
 type LabourEntry = {
   id: string;
+  worker_id?: string | null;
   entry_date: string;
   worker_name: string;
   work_description: string | null;
@@ -16,15 +18,28 @@ type LabourEntry = {
   payment_mode: string;
   reference_number: string | null;
   notes: string | null;
+  created_at?: string | null;
 };
 
-type Form = Omit<LabourEntry, "id">;
+type Form = {
+  entry_date: string;
+  worker_name: string;
+  work_description: string;
+  amount_owed: number;
+  amount_paid: number;
+  payment_mode: string;
+  reference_number: string;
+  notes: string;
+};
 
 type WorkerSummary = {
   id: string;
   name: string;
+  opening_balance: number;
   balance_owed: number;
 };
+
+type FormMode = "work" | "advance";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -47,25 +62,48 @@ function emptyForm(): Form {
   };
 }
 
+function balanceText(value: number) {
+  if (value > 0) return `${inr(value, 2)} due`;
+  if (value < 0) return `${inr(Math.abs(value), 2)} advance`;
+  return "Settled";
+}
+
+function balanceClass(value: number) {
+  if (value > 0) return "text-red-600";
+  if (value < 0) return "text-green-600";
+  return "text-slate-500";
+}
+
 export default function LabourManager() {
   const [entries, setEntries] = useState<LabourEntry[]>([]);
+  const [workers, setWorkers] = useState<WorkerSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [month, setMonth] = useState(today().slice(0, 7));
+  const [workerFilter, setWorkerFilter] = useState("all");
   const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState<FormMode>("work");
   const [form, setForm] = useState<Form>(emptyForm());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [workers, setWorkers] = useState<WorkerSummary[]>([]);
 
-  async function load(targetMonth: string) {
+  async function load() {
     setLoading(true);
     try {
-      const res = await fetch(
-        `/api/labour?from_date=${targetMonth}-01&to_date=${targetMonth}-31`
+      const [labourRes, workersRes] = await Promise.all([
+        fetch("/api/labour"),
+        fetch("/api/workers"),
+      ]);
+      const labourJson = await labourRes.json();
+      const workersJson = await workersRes.json();
+      setEntries(labourJson.labour ?? []);
+      setWorkers(
+        (workersJson.workers ?? []).map((w: any) => ({
+          id: w.id,
+          name: w.name,
+          opening_balance: Number(w.opening_balance),
+          balance_owed: Number(w.balance_owed),
+        }))
       );
-      const json = await res.json();
-      setEntries(json.labour ?? []);
     } catch {
       setError("Could not load labour entries.");
     } finally {
@@ -74,56 +112,109 @@ export default function LabourManager() {
   }
 
   useEffect(() => {
-    load(month);
-  }, [month]);
-
-  useEffect(() => {
-    fetch("/api/workers")
-      .then((r) => r.json())
-      .then((json) =>
-        setWorkers(
-          (json.workers ?? []).map((w: any) => ({
-            id: w.id,
-            name: w.name,
-            balance_owed: Number(w.balance_owed),
-          }))
-        )
-      )
-      .catch(() => {});
+    load();
   }, []);
 
-  const monthEntries = useMemo(
-    () => entries.filter((e) => e.entry_date.startsWith(month)),
-    [entries, month]
+  const openingByWorker = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const worker of workers) {
+      map.set(worker.id, worker.opening_balance);
+    }
+    return map;
+  }, [workers]);
+
+  const runningBalances = useMemo(
+    () => labourRunningBalances(entries, openingByWorker),
+    [entries, openingByWorker]
   );
 
-  const workerNames = workers.map((w) => w.name);
-  const selectedWorker = workers.find((w) => w.name === form.worker_name);
+  const visibleEntries = useMemo(() => {
+    const filtered =
+      workerFilter === "all"
+        ? entries
+        : entries.filter((entry) => entry.worker_id === workerFilter);
+    return [...filtered].sort(
+      (a, b) =>
+        b.entry_date.localeCompare(a.entry_date) ||
+        (b.created_at ?? "").localeCompare(a.created_at ?? "")
+    );
+  }, [entries, workerFilter]);
+
+  const filteredWorker = workers.find((worker) => worker.id === workerFilter);
+  const selectedWorker = workers.find(
+    (worker) =>
+      worker.name.trim().toLowerCase() === form.worker_name.trim().toLowerCase()
+  );
+  const editingEntry = editingId
+    ? entries.find((entry) => entry.id === editingId)
+    : null;
   const formNet = labourNet(form.amount_owed, form.amount_paid);
+  const sameWorkerAsEditing =
+    !editingEntry ||
+    editingEntry.worker_name.trim().toLowerCase() ===
+      form.worker_name.trim().toLowerCase();
+  const baseBalance =
+    (selectedWorker?.balance_owed ?? 0) -
+    (editingEntry && sameWorkerAsEditing
+      ? labourNet(editingEntry.amount_owed, editingEntry.amount_paid)
+      : 0);
+  const balanceAfter = baseBalance + formNet;
+  const hasOpening =
+    workerFilter === "all"
+      ? workers.some((worker) => worker.opening_balance !== 0)
+      : (filteredWorker?.opening_balance ?? 0) !== 0;
 
   const totals = useMemo(() => {
     let owed = 0;
     let paid = 0;
-    for (const e of monthEntries) {
-      owed += Number(e.amount_owed);
-      paid += Number(e.amount_paid);
+    for (const entry of visibleEntries) {
+      owed += Number(entry.amount_owed);
+      paid += Number(entry.amount_paid);
     }
-    return { owed, paid, net: labourNet(owed, paid) };
-  }, [monthEntries]);
 
-  function startEdit(e: LabourEntry) {
-    setEditingId(e.id);
+    const unlinkedNet = entries
+      .filter((entry) => !entry.worker_id)
+      .reduce(
+        (sum, entry) => sum + labourNet(entry.amount_owed, entry.amount_paid),
+        0
+      );
+    const linkedNet = workers.reduce(
+      (sum, worker) => sum + worker.balance_owed,
+      0
+    );
+    const net =
+      workerFilter === "all"
+        ? linkedNet + unlinkedNet
+        : (filteredWorker?.balance_owed ?? 0);
+
+    return { owed, paid, net };
+  }, [visibleEntries, entries, workers, workerFilter, filteredWorker]);
+
+  function openForm(mode: FormMode) {
     setShowForm(true);
+    setEditingId(null);
+    setFormMode(mode);
+    const next = emptyForm();
+    if (filteredWorker) next.worker_name = filteredWorker.name;
+    setForm(next);
+    setError("");
+  }
+
+  function startEdit(entry: LabourEntry) {
+    setEditingId(entry.id);
+    setShowForm(true);
+    setFormMode(Number(entry.amount_owed) > 0 ? "work" : "advance");
     setForm({
-      entry_date: e.entry_date,
-      worker_name: e.worker_name,
-      work_description: e.work_description ?? "",
-      amount_owed: Number(e.amount_owed),
-      amount_paid: Number(e.amount_paid),
-      payment_mode: e.payment_mode,
-      reference_number: e.reference_number ?? "",
-      notes: e.notes ?? "",
+      entry_date: entry.entry_date,
+      worker_name: entry.worker_name,
+      work_description: entry.work_description ?? "",
+      amount_owed: Number(entry.amount_owed),
+      amount_paid: Number(entry.amount_paid),
+      payment_mode: entry.payment_mode,
+      reference_number: entry.reference_number ?? "",
+      notes: entry.notes ?? "",
     });
+    setError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -133,8 +224,14 @@ export default function LabourManager() {
       setError("Enter the worker's name.");
       return;
     }
-    if (Number(form.amount_owed) <= 0 && Number(form.amount_paid) <= 0) {
-      setError("Enter work done or a payment amount.");
+    const owed = formMode === "advance" ? 0 : Number(form.amount_owed);
+    const paid = Number(form.amount_paid);
+    if (owed <= 0 && paid <= 0) {
+      setError(
+        formMode === "advance"
+          ? "Enter the advance amount."
+          : "Enter work done or a payment amount."
+      );
       return;
     }
     setSaving(true);
@@ -146,20 +243,24 @@ export default function LabourManager() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
-          amount_owed: Number(form.amount_owed),
-          amount_paid: Number(form.amount_paid),
+          amount_owed: owed,
+          amount_paid: paid,
         }),
       });
       const json = await res.json();
       if (!res.ok)
         throw new Error(json.error || "Failed to save labour entry.");
       toast.success(
-        editingId ? "Labour entry updated." : "Labour entry added."
+        editingId
+          ? "Labour entry updated."
+          : owed <= 0
+            ? "Advance recorded."
+            : "Work recorded."
       );
       setShowForm(false);
       setEditingId(null);
       setForm(emptyForm());
-      await load(month);
+      await load();
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Could not save labour entry."
@@ -179,8 +280,8 @@ export default function LabourManager() {
     try {
       const res = await fetch(`/api/labour/${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error("Failed to delete.");
-      setEntries((prev) => prev.filter((e) => e.id !== id));
       toast.success("Labour entry deleted.");
+      await load();
     } catch {
       toast.error("Could not delete the labour entry.");
     }
@@ -188,32 +289,52 @@ export default function LabourManager() {
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-        <label className="flex items-center gap-2 text-sm font-semibold text-slate-600">
-          Month
-          <input
-            type="month"
-            className="input !w-auto"
-            value={month}
-            onChange={(e) => setMonth(e.target.value)}
-          />
-        </label>
-        <button
-          onClick={() => {
-            setShowForm(true);
-            setEditingId(null);
-            setForm(emptyForm());
-          }}
-          className="btn-primary"
-        >
-          <span className="text-lg leading-none">+</span> Add labour entry
-        </button>
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+          <label className="flex flex-col gap-1 text-sm font-semibold text-slate-600">
+            Worker
+            <select
+              className="input !w-auto min-w-[12rem]"
+              value={workerFilter}
+              onChange={(e) => setWorkerFilter(e.target.value)}
+            >
+              <option value="all">All workers</option>
+              {workers.map((worker) => (
+                <option key={worker.id} value={worker.id}>
+                  {worker.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {filteredWorker && (
+            <Link
+              href={`/workers/${filteredWorker.id}`}
+              className="btn-secondary text-sm"
+            >
+              Statement
+            </Link>
+          )}
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            onClick={() => openForm("advance")}
+            className="btn-secondary w-full sm:w-auto"
+          >
+            Give advance
+          </button>
+          <button
+            onClick={() => openForm("work")}
+            className="btn-primary w-full sm:w-auto"
+          >
+            <span className="text-lg leading-none">+</span> Add work
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="card p-4">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-            Amount owed
+            Work recorded
           </p>
           <p className="text-xl font-bold font-mono mt-1">{inr(totals.owed)}</p>
         </div>
@@ -225,34 +346,50 @@ export default function LabourManager() {
         </div>
         <div className="card p-4">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-            Balance
+            Net balance
           </p>
           <p
-            className={`text-xl font-bold font-mono mt-1 ${
-              totals.net > 0 ? "text-red-600" : "text-green-600"
-            }`}
+            className={`text-xl font-bold font-mono mt-1 ${balanceClass(
+              totals.net
+            )}`}
           >
             {inr(Math.abs(totals.net))}
             <span className="ml-1 text-xs font-semibold">
               {totals.net > 0 ? "due" : totals.net < 0 ? "advance" : "settled"}
             </span>
           </p>
+          {hasOpening && (
+            <p className="text-[11px] text-slate-400 mt-1">
+              Includes opening balance
+            </p>
+          )}
         </div>
         <div className="card p-4">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
             Entries
           </p>
           <p className="text-xl font-bold font-mono mt-1">
-            {monthEntries.length}
+            {visibleEntries.length}
           </p>
         </div>
       </div>
 
       {showForm && (
         <div className="card p-5 space-y-4 border-brand-200">
-          <h2 className="font-display font-bold text-ink">
-            {editingId ? "Edit labour entry" : "New labour entry"}
-          </h2>
+          <div>
+            <h2 className="font-display font-bold text-ink">
+              {editingId
+                ? "Edit labour entry"
+                : formMode === "advance"
+                  ? "Give advance"
+                  : "Add work"}
+            </h2>
+            <p className="text-xs text-slate-500 mt-1">
+              {formMode === "advance"
+                ? "Record money paid ahead of work. It stays on the worker's running account."
+                : "Record work as it happens. You can pay now or later."}
+            </p>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="label-lg">Date *</label>
@@ -277,49 +414,44 @@ export default function LabourManager() {
                 }
               />
               <datalist id="worker-names">
-                {workerNames.map((n) => (
-                  <option key={n} value={n} />
+                {workers.map((worker) => (
+                  <option key={worker.id} value={worker.name} />
                 ))}
               </datalist>
               {selectedWorker && (
                 <p className="text-xs text-slate-500 mt-1">
-                  Running balance:{" "}
-                  <span
-                    className={
-                      selectedWorker.balance_owed > 0
-                        ? "text-red-600 font-semibold"
-                        : "text-green-600 font-semibold"
-                    }
-                  >
-                    {selectedWorker.balance_owed >= 0
-                      ? `${inr(selectedWorker.balance_owed)} owed`
-                      : `${inr(Math.abs(selectedWorker.balance_owed))} advance`}
+                  Account now:{" "}
+                  <span className={balanceClass(selectedWorker.balance_owed)}>
+                    {balanceText(selectedWorker.balance_owed)}
                   </span>
                 </p>
               )}
             </div>
+            {formMode === "work" && (
+              <div>
+                <label className="label-lg">Work amount (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="any"
+                  className="input font-mono"
+                  value={form.amount_owed || ""}
+                  placeholder="0"
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      amount_owed: parseFloat(e.target.value) || 0,
+                    })
+                  }
+                />
+              </div>
+            )}
             <div>
-              <label className="label-lg">Work amount (₹)</label>
-              <input
-                type="number"
-                min="0"
-                step="any"
-                className="input font-mono"
-                value={form.amount_owed || ""}
-                placeholder="0"
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    amount_owed: parseFloat(e.target.value) || 0,
-                  })
-                }
-              />
-              <p className="text-xs text-slate-400 mt-1">
-                Leave 0 to record an advance payment.
-              </p>
-            </div>
-            <div>
-              <label className="label-lg">Amount paid (₹)</label>
+              <label className="label-lg">
+                {formMode === "advance"
+                  ? "Advance amount (₹) *"
+                  : "Paid now (₹)"}
+              </label>
               <input
                 type="number"
                 min="0"
@@ -335,7 +467,9 @@ export default function LabourManager() {
                 }
               />
               <p className="text-xs text-slate-400 mt-1">
-                Can be more than the work amount for an advance.
+                {formMode === "advance"
+                  ? "This is an advance against future work."
+                  : "Leave 0 to pay later. Paying more than the work amount becomes an advance."}
               </p>
             </div>
             <div>
@@ -355,28 +489,27 @@ export default function LabourManager() {
               </select>
             </div>
             <div>
-              <label className="label">Balance after this payment</label>
+              <label className="label">Balance after saving</label>
               <p
-                className={`input bg-slate-50 font-mono flex items-center ${
-                  formNet > 0
-                    ? "text-red-600"
-                    : formNet < 0
-                      ? "text-green-600"
-                      : ""
-                }`}
+                className={`input bg-slate-50 font-mono flex items-center ${balanceClass(
+                  balanceAfter
+                )}`}
               >
-                {formNet > 0
-                  ? `${inr(formNet, 2)} due`
-                  : formNet < 0
-                    ? `${inr(Math.abs(formNet), 2)} advance`
-                    : "Settled"}
+                {balanceText(balanceAfter)}
               </p>
             </div>
             <div className="sm:col-span-2">
-              <label className="label">Work performed</label>
+              <label className="label">
+                Project / work{" "}
+                <span className="text-slate-400 font-normal">(optional)</span>
+              </label>
               <input
                 className="input"
-                placeholder="e.g. Fitted 12 windows at Sharma Villa"
+                placeholder={
+                  formMode === "advance"
+                    ? "e.g. Sharma Villa — advance for window work"
+                    : "e.g. Sharma Villa — fitted 12 windows"
+                }
                 value={form.work_description ?? ""}
                 onChange={(e) =>
                   setForm({ ...form, work_description: e.target.value })
@@ -390,7 +523,7 @@ export default function LabourManager() {
               </label>
               <input
                 className="input"
-                placeholder="Notes, site, advance, deductions…"
+                placeholder="Notes, site, deductions…"
                 value={form.notes ?? ""}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
               />
@@ -420,7 +553,7 @@ export default function LabourManager() {
           )}
           <div className="flex gap-3">
             <button onClick={save} disabled={saving} className="btn-primary">
-              {saving ? "Saving…" : editingId ? "Save changes" : "Add entry"}
+              {saving ? "Saving…" : editingId ? "Save changes" : "Save"}
             </button>
             <button
               onClick={() => {
@@ -436,76 +569,90 @@ export default function LabourManager() {
         </div>
       )}
 
+      {error && !showForm && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      )}
+
       <div className="card overflow-hidden">
         {loading ? (
           <p className="text-sm text-slate-400 p-6 text-center font-body">
             Loading…
           </p>
-        ) : monthEntries.length === 0 ? (
+        ) : visibleEntries.length === 0 ? (
           <p className="text-sm text-slate-400 p-10 text-center font-body">
-            No labour entries for {month}. Record the work done, what you owe
-            and what you paid.
+            No labour entries yet. Add work or give an advance to start the
+            running account.
           </p>
         ) : (
           <>
             <div className="xl:hidden divide-y divide-slate-100">
-              {monthEntries.map((e) => {
-                const net = labourNet(e.amount_owed, e.amount_paid);
+              {visibleEntries.map((entry) => {
+                const running = runningBalances.get(entry.id) ?? 0;
+                const isAdvance = Number(entry.amount_owed) <= 0;
                 return (
-                  <div key={e.id} className="p-4 space-y-2">
+                  <div key={entry.id} className="p-4 space-y-2">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-sm text-ink">
-                          {e.worker_name}
+                          {entry.worker_name}
                         </p>
                         <p className="text-xs text-slate-400">
-                          {formatDateShort(e.entry_date)} ·{" "}
-                          {modeLabel(e.payment_mode)}
+                          {formatDateShort(entry.entry_date)} ·{" "}
+                          {modeLabel(entry.payment_mode)}
+                          {isAdvance && (
+                            <span className="ml-2 font-semibold text-green-700">
+                              Advance
+                            </span>
+                          )}
                         </p>
-                        {e.work_description && (
-                          <p className="text-sm text-slate-500 font-body mt-1">
-                            {e.work_description}
-                          </p>
-                        )}
-                        {e.notes && (
+                        <p className="text-sm text-slate-500 font-body mt-1">
+                          {entry.work_description ||
+                            (isAdvance ? "Advance payment" : "Work")}
+                        </p>
+                        {entry.notes && (
                           <p className="text-xs text-slate-400 font-body mt-1">
-                            {e.notes}
+                            {entry.notes}
                           </p>
                         )}
                       </div>
                       <div className="text-right whitespace-nowrap">
                         <p className="font-mono font-bold">
-                          {inr(Number(e.amount_owed), 2)}
+                          {Number(entry.amount_owed) > 0
+                            ? inr(Number(entry.amount_owed), 2)
+                            : "—"}
                         </p>
-                        <p
-                          className={`text-xs font-semibold ${
-                            net > 0 ? "text-red-600" : "text-green-600"
-                          }`}
-                        >
-                          {net > 0
-                            ? `${inr(net, 2)} due`
-                            : net < 0
-                              ? `${inr(Math.abs(net), 2)} advance`
-                              : "Settled"}
+                        <p className="text-xs text-slate-500 font-mono">
+                          Paid{" "}
+                          {Number(entry.amount_paid) > 0
+                            ? inr(Number(entry.amount_paid), 2)
+                            : "—"}
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500 font-mono">
-                      Paid {inr(Number(e.amount_paid), 2)}
-                    </p>
-                    <div className="flex gap-3 text-xs">
-                      <button
-                        onClick={() => startEdit(e)}
-                        className="text-brand-600 hover:underline font-semibold"
+                    <div className="flex items-center justify-between gap-3">
+                      <p
+                        className={`text-xs font-semibold ${balanceClass(
+                          running
+                        )}`}
                       >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => remove(e.id)}
-                        className="text-red-500 hover:underline font-semibold"
-                      >
-                        Delete
-                      </button>
+                        Balance: {balanceText(running)}
+                      </p>
+                      <div className="flex gap-3 text-xs">
+                        <button
+                          onClick={() => startEdit(entry)}
+                          className="text-brand-600 hover:underline font-semibold"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => remove(entry.id)}
+                          className="text-red-500 hover:underline font-semibold"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -517,63 +664,76 @@ export default function LabourManager() {
                   <tr className="text-left text-xs font-semibold text-slate-500 border-b border-slate-100">
                     <th className="p-4">Date</th>
                     <th className="p-4">Worker</th>
-                    <th className="p-4">Work</th>
-                    <th className="p-4 text-right">Owed</th>
+                    <th className="p-4">Project / work</th>
+                    <th className="p-4 text-right">Work</th>
                     <th className="p-4 text-right">Paid</th>
-                    <th className="p-4 text-right">Balance</th>
+                    <th className="p-4 text-right">
+                      {workerFilter === "all"
+                        ? "Worker balance"
+                        : "Running balance"}
+                    </th>
                     <th className="p-4"></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {monthEntries.map((e) => {
-                    const net = labourNet(e.amount_owed, e.amount_paid);
+                  {visibleEntries.map((entry) => {
+                    const running = runningBalances.get(entry.id) ?? 0;
+                    const isAdvance = Number(entry.amount_owed) <= 0;
                     return (
                       <tr
-                        key={e.id}
+                        key={entry.id}
                         className="border-b border-slate-50 last:border-0"
                       >
                         <td className="p-4 whitespace-nowrap text-slate-500">
-                          {formatDateShort(e.entry_date)}
+                          {formatDateShort(entry.entry_date)}
                         </td>
                         <td className="p-4 font-medium text-ink">
-                          {e.worker_name}
+                          {entry.worker_name}
                         </td>
                         <td className="p-4 text-slate-500 max-w-xs">
                           <p className="truncate">
-                            {e.work_description || "—"}
+                            {entry.work_description ||
+                              (isAdvance ? "Advance payment" : "Work")}
                           </p>
-                          {e.notes && (
-                            <p className="text-xs text-slate-400 truncate">
-                              {e.notes}
-                            </p>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {isAdvance && (
+                              <span className="text-[11px] font-semibold uppercase tracking-wide text-green-700">
+                                Advance
+                              </span>
+                            )}
+                            {entry.notes && (
+                              <p className="text-xs text-slate-400 truncate">
+                                {entry.notes}
+                              </p>
+                            )}
+                          </div>
                         </td>
                         <td className="p-4 text-right font-mono">
-                          {inr(Number(e.amount_owed), 2)}
+                          {Number(entry.amount_owed) > 0
+                            ? inr(Number(entry.amount_owed), 2)
+                            : "—"}
                         </td>
                         <td className="p-4 text-right font-mono text-slate-600">
-                          {inr(Number(e.amount_paid), 2)}
+                          {Number(entry.amount_paid) > 0
+                            ? inr(Number(entry.amount_paid), 2)
+                            : "—"}
                         </td>
                         <td
-                          className={`p-4 text-right font-mono font-semibold ${
-                            net > 0 ? "text-red-600" : "text-green-600"
-                          }`}
+                          className={`p-4 text-right font-mono font-semibold ${balanceClass(
+                            running
+                          )}`}
                         >
-                          {net > 0
-                            ? inr(net, 2)
-                            : net < 0
-                              ? `${inr(Math.abs(net), 2)} adv`
-                              : "Settled"}
+                          {balanceText(running)}
                         </td>
                         <td className="p-4 text-right whitespace-nowrap">
                           <button
-                            onClick={() => startEdit(e)}
+                            onClick={() => startEdit(entry)}
                             className="text-brand-600 hover:underline text-xs font-semibold mr-3"
                           >
                             Edit
                           </button>
                           <button
-                            onClick={() => remove(e.id)}
+                            onClick={() => remove(entry.id)}
                             className="text-red-500 hover:underline text-xs font-semibold"
                           >
                             Delete
@@ -588,6 +748,11 @@ export default function LabourManager() {
           </>
         )}
       </div>
+
+      <p className="text-xs text-slate-400 font-body">
+        Balance carries forward across months for each worker. Paid amounts also
+        count under Expenses.
+      </p>
     </div>
   );
 }

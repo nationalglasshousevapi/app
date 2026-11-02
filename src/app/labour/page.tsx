@@ -15,8 +15,9 @@ export default function LabourPage() {
         </Link>
       </div>
       <p className="text-sm text-slate-500 font-body -mt-2 mb-6">
-        Work done by workers, what you owe them and what you have paid. Paid
-        amounts also count under Expenses.
+        A running account for every worker. Add work as it happens, give
+        advances any time, and the balance carries forward. Paid amounts also
+        count under Expenses.
       </p>
       <LabourManager />
     </div>
