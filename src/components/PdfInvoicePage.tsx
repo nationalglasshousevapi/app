@@ -111,28 +111,6 @@ const styles = StyleSheet.create({
   invUnit: { width: "8%", textAlign: "center" },
   invAmount: { width: "20%", textAlign: "right" },
   spacer: { flexGrow: 1 },
-  pieceSummary: {
-    flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    marginTop: 2,
-    backgroundColor: LIGHT_BG,
-    borderRadius: 4,
-  },
-  pieceSummaryLabel: {
-    fontSize: 8,
-    fontFamily: "Helvetica-Bold",
-    color: ACCENT,
-    textTransform: "uppercase",
-    marginRight: 8,
-  },
-  pieceSummaryValue: {
-    fontSize: 10,
-    fontFamily: "Helvetica-Bold",
-    color: ACCENT,
-  },
   summaryRow: { flexDirection: "row" },
   notes: { width: "55%", paddingRight: 12 },
   notesTitle: {
@@ -472,12 +450,6 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
             );
           })}
         </>
-        {totalPieces > 0 && (
-          <View style={styles.pieceSummary}>
-            <Text style={styles.pieceSummaryLabel}>Total Glass Pieces</Text>
-            <Text style={styles.pieceSummaryValue}>{totalPieces}</Text>
-          </View>
-        )}
         <View style={styles.spacer} />
       </View>
 
@@ -536,6 +508,14 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
                 <Text style={styles.totValue}>{money(charge.amount)}</Text>
               </View>
             ))}
+          {totalPieces > 0 && (
+            <View style={styles.totLine}>
+              <Text style={styles.totLabel}>Total glass pieces</Text>
+              <Text style={[styles.totValue, { fontFamily: "Helvetica-Bold" }]}>
+                {totalPieces}
+              </Text>
+            </View>
+          )}
           {props.roundOff !== 0 ? (
             <View style={styles.totLine}>
               <Text style={styles.totLabel}>Round Off</Text>
