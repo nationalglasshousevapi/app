@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "@/lib/toast";
 
 const STATUS_STYLES: Record<string, string> = {
   draft: "bg-slate-100 text-slate-600",
@@ -57,7 +58,12 @@ export default function StatusBadge({
       if (res.ok) {
         setStatus(newStatus);
         router.refresh();
+      } else {
+        const json = await res.json().catch(() => ({}));
+        toast.error(json.error || `Could not mark as ${newStatus}.`);
       }
+    } catch {
+      toast.error("Could not update status. Check your connection.");
     } finally {
       setUpdating(false);
       setOpen(false);
@@ -72,6 +78,8 @@ export default function StatusBadge({
         type="button"
         onClick={() => !isLocked && setOpen(!open)}
         disabled={updating || isLocked}
+        aria-haspopup="menu"
+        aria-expanded={open}
         className={`rounded-full px-2.5 py-1 text-xs font-medium transition cursor-pointer hover:ring-2 hover:ring-offset-1 ${
           STATUS_STYLES[status] ?? STATUS_STYLES.draft
         } ${updating ? "opacity-60" : ""} ${isLocked ? "cursor-default hover:ring-0" : ""}`}
@@ -81,12 +89,14 @@ export default function StatusBadge({
       </button>
       {open && (
         <div
+          role="menu"
           className="absolute z-50 mt-1 min-w-[140px] bg-white border border-slate-200 rounded-lg shadow-xl ring-1 ring-black/5 overflow-hidden anim-drop-in"
         >
           {statusOptions.map((opt) => (
             <button
               key={opt}
               type="button"
+              role="menuitem"
               onClick={() => changeStatus(opt)}
               className={`w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-slate-50 transition ${
                 opt === status ? "font-semibold bg-slate-50" : ""
@@ -105,8 +115,16 @@ export default function StatusBadge({
               />
               <span className="capitalize">{opt}</span>
               {opt === status && (
-                <svg className="w-3.5 h-3.5 ml-auto text-brand-600" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                <svg
+                  className="w-3.5 h-3.5 ml-auto text-brand-600"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               )}
             </button>

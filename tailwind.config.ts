@@ -42,6 +42,9 @@ const config: Config = {
         "2xl": ["1.375rem", { lineHeight: "1.875rem" }],
         "3xl": ["1.625rem", { lineHeight: "2.125rem" }],
       },
+      gridTemplateColumns: {
+        "13": "repeat(13, minmax(0, 1fr))",
+      },
       keyframes: {
         "fade-in": {
           "0%": { opacity: "0" },

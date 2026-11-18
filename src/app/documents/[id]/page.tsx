@@ -1,8 +1,8 @@
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabaseServer";
-import DocumentForm, { DocumentFormValue } from "@/components/DocumentForm";
+import DocumentEditView from "@/components/DocumentEditView";
+import type { DocumentFormValue } from "@/components/DocumentForm";
 import StatusBadge from "@/components/StatusBadge";
-import DocumentActions from "@/components/DocumentActions";
 import { docTypeLabel } from "@/lib/docTypes";
 import { formatDateReadable } from "@/lib/format";
 
@@ -109,7 +109,7 @@ export default async function DocumentDetailPage({
           . The invoice will not reflect further changes made here.
         </div>
       ) : null}
-      <DocumentActions
+      <DocumentEditView
         id={doc.id}
         docNumber={doc.doc_number}
         docType={doc.doc_type}
@@ -117,8 +117,8 @@ export default async function DocumentDetailPage({
         contactNumber={doc.bill_to_contact_number}
         totalAmount={Number(doc.total_amount)}
         status={doc.status}
+        initial={initial}
       />
-      <DocumentForm initial={initial} />
     </div>
   );
 }

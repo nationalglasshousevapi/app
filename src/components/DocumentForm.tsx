@@ -98,8 +98,10 @@ export function blankDocument(
 
 export default function DocumentForm({
   initial,
+  onDirtyChange,
 }: {
   initial: DocumentFormValue;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [value, setValue] = useState<DocumentFormValue>(initial);
   // Baseline for dirty tracking — updated after a successful save so the
@@ -126,10 +128,25 @@ export default function DocumentForm({
   const docNumberEditedRef = useRef(false);
   const isNewInvoice = !initial.id && !value.customer_id;
   const router = useRouter();
-  const { save: saveDraft, clear: clearDraft } =
-    useDraftPersistence<DocumentFormValue>(
-      `ngh_draft_document_${initial.doc_type}`
-    );
+  const draftKey = initial.id
+    ? `ngh_draft_document_${initial.id}`
+    : `ngh_draft_document_new_${initial.doc_type}`;
+  const {
+    save: saveDraft,
+    clear: clearDraft,
+    existing: existingDraft,
+  } = useDraftPersistence<DocumentFormValue>(draftKey);
+  const [draftRestored, setDraftRestored] = useState(false);
+  const restoredRef = useRef(false);
+
+  // Restore an interrupted new-document draft once, before autosave clobbers it.
+  useEffect(() => {
+    if (initial.id || restoredRef.current || !existingDraft) return;
+    restoredRef.current = true;
+    setValue(existingDraft.data);
+    setBaseline(existingDraft.data);
+    setDraftRestored(true);
+  }, [initial.id, existingDraft]);
 
   useEffect(() => {
     saveDraft(value);
@@ -177,7 +194,6 @@ export default function DocumentForm({
       "tax_type",
       "tax_rate",
       "discount_amount",
-      "additional_charges",
       "additional_charges",
       "remarks",
       "status",
@@ -253,6 +269,10 @@ export default function DocumentForm({
 
     return false;
   }, [value, baseline, sameAsBilling]);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   useUnsavedGuard(isDirty && !saving);
 
@@ -345,7 +365,8 @@ export default function DocumentForm({
         errors[`items.${idx}.description`] = "Description is required.";
       }
       if (!item.qty || item.qty <= 0) {
-        errors[`items.${idx}.qty`] = "Quantity must be greater than 0.";
+        errors[`items.${idx}.qty`] =
+          "Enter length and width to calculate quantity.";
       }
       if (item.rate < 0) {
         errors[`items.${idx}.rate`] = "Rate cannot be negative.";
@@ -425,6 +446,21 @@ export default function DocumentForm({
   return (
     <>
       <form onSubmit={save} className="space-y-4">
+        {draftRestored && (
+          <div
+            role="status"
+            className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-700 flex items-center justify-between"
+          >
+            <span>Restored your last draft.</span>
+            <button
+              type="button"
+              onClick={() => setDraftRestored(false)}
+              className="text-brand-500 hover:text-brand-700 shrink-0"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         {/* Step 1: Customer — always shown first */}
         <div className="card p-4 md:p-6 space-y-4">
           <div className="flex items-center gap-3">
@@ -730,6 +766,26 @@ export default function DocumentForm({
                           }
                         />
                       </div>
+                      <div>
+                        <label className="label">Ship To Contact Person</label>
+                        <input
+                          className="input"
+                          value={value.ship_to_contact_person}
+                          onChange={(e) =>
+                            patch({ ship_to_contact_person: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div>
+                        <label className="label">Ship To Contact Number</label>
+                        <input
+                          className="input"
+                          value={value.ship_to_contact_number}
+                          onChange={(e) =>
+                            patch({ ship_to_contact_number: e.target.value })
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -797,7 +853,17 @@ export default function DocumentForm({
               </div>
               <LineItemsEditor
                 items={value.items}
-                onChange={(items) => patch({ items })}
+                onChange={(items) => {
+                  patch({ items });
+                  setFieldErrors((prev) => {
+                    const next = { ...prev };
+                    Object.keys(next).forEach((k) => {
+                      if (k.startsWith("items.")) delete next[k];
+                    });
+                    return next;
+                  });
+                }}
+                fieldErrors={fieldErrors}
               />
             </div>
 
@@ -813,7 +879,7 @@ export default function DocumentForm({
                   </h2>
                 </div>
 
-                {/* Tax — auto-set 18% for taxable, 0% for none */}
+                {/* Tax — defaults to 18% for taxable types, 0% for none */}
                 <div className="space-y-2">
                   <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">
                     Tax
@@ -828,22 +894,49 @@ export default function DocumentForm({
                           .value as DocumentFormValue["tax_type"];
                         patch({
                           tax_type: t,
-                          // Auto-set rate to 18% for taxable types, 0% for none
                           tax_rate: t === "none" ? 0 : 0.18,
                         });
                       }}
                     >
-                      <option value="cgst_sgst">CGST + SGST (9% + 9%)</option>
-                      <option value="igst">IGST (18%)</option>
+                      <option value="cgst_sgst">CGST + SGST</option>
+                      <option value="igst">IGST</option>
                       <option value="none">No Tax</option>
                     </select>
+                    <p className="text-xs text-slate-400 mt-1">
+                      CGST + SGST for sales within your state; IGST for
+                      interstate sales.
+                    </p>
                   </div>
+                  {value.tax_type !== "none" && (
+                    <div>
+                      <label className="label">GST Rate (%)</label>
+                      <input
+                        className="input"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={
+                          value.tax_rate
+                            ? Number((value.tax_rate * 100).toFixed(2))
+                            : ""
+                        }
+                        onChange={(e) =>
+                          patch({
+                            tax_rate: (Number(e.target.value) || 0) / 100,
+                          })
+                        }
+                      />
+                      <p className="text-xs text-slate-400 mt-1">
+                        Standard rate is 18% (9% CGST + 9% SGST, or 18% IGST).
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Taxable charges — quick add common charges + custom */}
                 <div className="space-y-2">
                   <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">
-                    Charges
+                    Taxable Charges
                   </h3>
 
                   {/* Predefined charge quick-add buttons */}
@@ -952,7 +1045,7 @@ export default function DocumentForm({
                       + Add custom charge
                     </button>
                     <p className="text-xs text-slate-400">
-                      These are added to the taxable amount for GST calculation.
+                      Added before GST — tax applies to these.
                     </p>
                   </div>
                 </div>
@@ -960,17 +1053,14 @@ export default function DocumentForm({
                 {/* Additional charges — non-taxable one-offs */}
                 <div className="space-y-2">
                   <h3 className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">
-                    Additional Charges (non-taxable)
+                    Non-Taxable Charges
                   </h3>
                   <p className="text-xs text-slate-400">
-                    One-off charges like Polish, Bevel etc. These are added
-                    after tax calculation.
+                    One-off charges like Polish, Bevel. Added after GST — no tax
+                    applies.
                   </p>
                   <div className="space-y-2 pt-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-semibold uppercase tracking-[0.05em] text-slate-400">
-                        Other Charges
-                      </span>
+                    <div className="flex items-center justify-end">
                       <button
                         type="button"
                         onClick={() =>
@@ -1189,6 +1279,16 @@ export default function DocumentForm({
                 </div>
               </div>
             </div>
+
+            {/* Error summary */}
+            {Object.keys(fieldErrors).length > 0 && (
+              <div
+                role="alert"
+                className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+              >
+                Please fix the highlighted fields before saving.
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">

@@ -6,6 +6,20 @@ import { inr } from "@/lib/format";
 import { deriveGlassItemFields } from "@/lib/documents";
 import SearchCombobox from "@/components/SearchCombobox";
 
+type DescriptionOption = { id: string; description: string };
+
+let descriptionsPromise: Promise<DescriptionOption[]> | null = null;
+
+function loadDescriptions(): Promise<DescriptionOption[]> {
+  if (!descriptionsPromise) {
+    descriptionsPromise = fetch("/api/descriptions")
+      .then((r) => r.json())
+      .then((json) => (json.descriptions ?? []) as DescriptionOption[])
+      .catch(() => [] as DescriptionOption[]);
+  }
+  return descriptionsPromise;
+}
+
 export type LineItem = {
   description: string;
   size: string;
@@ -85,15 +99,17 @@ function DescriptionCombobox({
   id?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [items, setItems] = useState<{ id: string; description: string }[]>([]);
+  const [items, setItems] = useState<DescriptionOption[]>([]);
   const [adding, setAdding] = useState(false);
 
-  // Fetch on mount
   useEffect(() => {
-    fetch("/api/descriptions")
-      .then((r) => r.json())
-      .then((json) => setItems(json.descriptions ?? []))
-      .catch(() => {});
+    let cancelled = false;
+    loadDescriptions().then((list) => {
+      if (!cancelled) setItems(list);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const q = value.trim().toLowerCase();
@@ -174,9 +190,11 @@ function DescriptionCombobox({
 export default function LineItemsEditor({
   items,
   onChange,
+  fieldErrors,
 }: {
   items: LineItem[];
   onChange: (items: LineItem[]) => void;
+  fieldErrors?: Record<string, string>;
 }) {
   function update(idx: number, patch: Partial<LineItem>) {
     const next = items.slice();
@@ -222,6 +240,11 @@ export default function LineItemsEditor({
               value={item.description}
               onChange={(v) => update(idx, { description: v })}
             />
+            {fieldErrors?.[`items.${idx}.description`] && (
+              <p className="text-xs text-red-500 mt-1">
+                {fieldErrors[`items.${idx}.description`]}
+              </p>
+            )}
           </div>
           <button
             type="button"
@@ -289,6 +312,11 @@ export default function LineItemsEditor({
             <div className="input bg-slate-100 text-slate-500 flex items-center h-[42px] text-sm">
               {item.qty || "—"}
             </div>
+            {fieldErrors?.[`items.${idx}.qty`] && (
+              <p className="text-xs text-red-500 mt-1">
+                {fieldErrors[`items.${idx}.qty`]}
+              </p>
+            )}
           </div>
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -305,6 +333,11 @@ export default function LineItemsEditor({
               required
               onChange={(e) => update(idx, { rate: Number(e.target.value) })}
             />
+            {fieldErrors?.[`items.${idx}.rate`] && (
+              <p className="text-xs text-red-500 mt-1">
+                {fieldErrors[`items.${idx}.rate`]}
+              </p>
+            )}
           </div>
           <div>
             <label className="label">Unit</label>
@@ -363,7 +396,7 @@ export default function LineItemsEditor({
       <div className="hidden md:block overflow-x-auto">
         <div className="min-w-[640px] space-y-3">
           {/* Column headers */}
-          <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-slate-500 px-1">
+          <div className="grid grid-cols-13 gap-2 text-xs font-semibold text-slate-500 px-1">
             <div className="col-span-2">
               Description <span className="text-red-500">*</span>
             </div>
@@ -377,6 +410,7 @@ export default function LineItemsEditor({
               Rate <span className="text-red-500">*</span>
             </div>
             <div className="col-span-1">Unit</div>
+            <div className="col-span-1">HSN</div>
             <div className="col-span-1">Amount</div>
             <div className="col-span-1"></div>
           </div>
@@ -385,13 +419,18 @@ export default function LineItemsEditor({
             return (
               <div
                 key={idx}
-                className="grid grid-cols-12 gap-2 items-start rounded-xl p-4 border bg-slate-50/80 border-slate-100"
+                className="grid grid-cols-13 gap-2 items-start rounded-xl p-4 border bg-slate-50/80 border-slate-100"
               >
                 <div className="col-span-2">
                   <DescriptionCombobox
                     value={item.description}
                     onChange={(v) => update(idx, { description: v })}
                   />
+                  {fieldErrors?.[`items.${idx}.description`] && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {fieldErrors[`items.${idx}.description`]}
+                    </p>
+                  )}
                 </div>
                 <div className="col-span-1">
                   <input
@@ -447,10 +486,17 @@ export default function LineItemsEditor({
                       : "—"}
                   </span>
                 </div>
-                <div className="col-span-1 flex items-center min-h-[38px]">
-                  <span className="text-sm font-medium text-slate-700">
-                    {item.qty > 0 ? item.qty : "—"}
-                  </span>
+                <div className="col-span-1">
+                  <div className="flex items-center min-h-[38px]">
+                    <span className="text-sm font-medium text-slate-700">
+                      {item.qty > 0 ? item.qty : "—"}
+                    </span>
+                  </div>
+                  {fieldErrors?.[`items.${idx}.qty`] && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {fieldErrors[`items.${idx}.qty`]}
+                    </p>
+                  )}
                 </div>
                 <div className="col-span-1">
                   <input
@@ -464,6 +510,11 @@ export default function LineItemsEditor({
                       update(idx, { rate: Number(e.target.value) })
                     }
                   />
+                  {fieldErrors?.[`items.${idx}.rate`] && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {fieldErrors[`items.${idx}.rate`]}
+                    </p>
+                  )}
                 </div>
                 <div className="col-span-1">
                   <select
@@ -477,6 +528,14 @@ export default function LineItemsEditor({
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="col-span-1">
+                  <input
+                    className="input"
+                    placeholder="7005"
+                    value={item.hsn_code}
+                    onChange={(e) => update(idx, { hsn_code: e.target.value })}
+                  />
                 </div>
                 <div className="col-span-1 text-sm font-semibold text-slate-700 px-1 flex items-center min-h-[38px]">
                   {inr((item.qty || 0) * (item.rate || 0), 2)}

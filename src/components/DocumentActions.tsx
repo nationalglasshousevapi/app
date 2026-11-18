@@ -156,6 +156,7 @@ export default function DocumentActions({
   contactNumber,
   totalAmount,
   status,
+  dirty = false,
   compact = false,
 }: {
   id: string;
@@ -165,6 +166,7 @@ export default function DocumentActions({
   contactNumber?: string | null;
   totalAmount: number;
   status?: string;
+  dirty?: boolean;
   compact?: boolean;
 }) {
   const router = useRouter();
@@ -177,6 +179,10 @@ export default function DocumentActions({
   const [copiedLink, setCopiedLink] = useState(false);
 
   const website = publicWebsiteUrl();
+  const staleClass = dirty
+    ? "opacity-50 pointer-events-none cursor-not-allowed"
+    : "";
+  const staleTitle = dirty ? "Save changes first" : undefined;
   const canConvert =
     canConvertDocument(docType) &&
     status !== "converted" &&
@@ -324,16 +330,24 @@ export default function DocumentActions({
           <a
             href={`/api/documents/${id}/pdf`}
             download={`${docNumber}.pdf`}
-            title="Download PDF"
-            className={btn("", "", "text-red-600 hover:bg-red-50")}
+            title={staleTitle ?? "Download PDF"}
+            className={btn(
+              "",
+              "",
+              `text-red-600 hover:bg-red-50 ${staleClass}`
+            )}
           >
             <Icon type="pdf" />
           </a>
           <button
             onClick={sendEmail}
-            disabled={emailing}
-            title="Email to customer"
-            className={btn("", "", "text-blue-600 hover:bg-blue-50")}
+            disabled={emailing || dirty}
+            title={staleTitle ?? "Email to customer"}
+            className={btn(
+              "",
+              "",
+              `text-blue-600 hover:bg-blue-50 ${dirty ? "opacity-50 cursor-not-allowed" : ""}`
+            )}
           >
             {emailing ? (
               <span className="text-xs">…</span>
@@ -343,20 +357,26 @@ export default function DocumentActions({
           </button>
           <button
             onClick={shareWhatsApp}
-            title="Share on WhatsApp"
-            className={btn("", "", "text-emerald-600 hover:bg-emerald-50")}
+            disabled={dirty}
+            title={staleTitle ?? "Share on WhatsApp"}
+            className={btn(
+              "",
+              "",
+              `text-emerald-600 hover:bg-emerald-50 ${dirty ? "opacity-50 cursor-not-allowed" : ""}`
+            )}
           >
             <Icon type="whatsapp" />
           </button>
           <button
             onClick={copyShareLink}
-            title={copiedLink ? "Copied" : "Copy share link"}
+            disabled={dirty}
+            title={staleTitle ?? (copiedLink ? "Copied" : "Copy share link")}
             className={btn(
               "",
               "",
               copiedLink
                 ? "text-emerald-600 hover:bg-emerald-50"
-                : "text-slate-500 hover:bg-slate-100"
+                : `text-slate-500 hover:bg-slate-100 ${dirty ? "opacity-50 cursor-not-allowed" : ""}`
             )}
           >
             {copiedLink ? (
@@ -431,6 +451,12 @@ export default function DocumentActions({
 
   return (
     <>
+      {dirty && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-700">
+          Save your changes first — sending now would use the last saved
+          version.
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         <Link
           href={`/documents/${id}`}
@@ -443,28 +469,36 @@ export default function DocumentActions({
           <a
             href={`/api/documents/${id}/pdf`}
             target="_blank"
-            title="Open PDF"
-            className={btn("pdf", "PDF", "btn-secondary flex-1 text-sm")}
+            title={staleTitle ?? "Open PDF"}
+            className={btn(
+              "pdf",
+              "PDF",
+              `btn-secondary flex-1 text-sm ${staleClass}`
+            )}
           >
             <Icon type="pdf" className="mr-1" /> PDF
           </a>
           <a
             href={`/api/documents/${id}/pdf`}
             download={`${docNumber}.pdf`}
-            title="Download PDF"
-            className={btn("pdf", "", "btn-secondary flex-1 text-sm")}
+            title={staleTitle ?? "Download PDF"}
+            className={btn(
+              "pdf",
+              "",
+              `btn-secondary flex-1 text-sm ${staleClass}`
+            )}
           >
             <Icon type="pdf" />
           </a>
         </div>
         <button
           onClick={sendEmail}
-          disabled={emailing}
-          title="Email to customer"
+          disabled={emailing || dirty}
+          title={staleTitle ?? "Email to customer"}
           className={btn(
             "email",
             "Email",
-            "btn-secondary flex-1 text-sm text-blue-600 border-blue-200"
+            `btn-secondary flex-1 text-sm text-blue-600 border-blue-200 ${dirty ? "opacity-50 cursor-not-allowed" : ""}`
           )}
         >
           {emailing ? (
@@ -477,22 +511,24 @@ export default function DocumentActions({
         </button>
         <button
           onClick={shareWhatsApp}
-          title="Share on WhatsApp"
+          disabled={dirty}
+          title={staleTitle ?? "Share on WhatsApp"}
           className={btn(
             "whatsapp",
             "WhatsApp",
-            "btn-secondary flex-1 text-sm text-emerald-700 border-emerald-200"
+            `btn-secondary flex-1 text-sm text-emerald-700 border-emerald-200 ${dirty ? "opacity-50 cursor-not-allowed" : ""}`
           )}
         >
           <Icon type="whatsapp" className="mr-1" /> WhatsApp
         </button>
         <button
           onClick={copyShareLink}
-          title="Copy share link"
+          disabled={dirty}
+          title={staleTitle ?? "Copy share link"}
           className={btn(
             "link",
             copiedLink ? "Copied" : "Copy link",
-            `btn-secondary flex-1 text-sm ${copiedLink ? "text-emerald-700 border-emerald-200" : ""}`
+            `btn-secondary flex-1 text-sm ${copiedLink ? "text-emerald-700 border-emerald-200" : ""} ${dirty ? "opacity-50 cursor-not-allowed" : ""}`
           )}
         >
           {copiedLink ? (
@@ -507,13 +543,13 @@ export default function DocumentActions({
           onClick={duplicate}
           disabled={duplicating}
           title="Duplicate"
-          className={btn("copy", "Copy", "btn-secondary flex-1 text-sm")}
+          className={btn("copy", "Duplicate", "btn-secondary flex-1 text-sm")}
         >
           {duplicating ? (
             <span className="text-xs">…</span>
           ) : (
             <>
-              <Icon type="copy" className="mr-1" /> Copy
+              <Icon type="copy" className="mr-1" /> Duplicate
             </>
           )}
         </button>
