@@ -142,13 +142,22 @@ export default function DocumentForm({
   // Restore an interrupted new-document draft once, before autosave clobbers it.
   useEffect(() => {
     if (initial.id || restoredRef.current || !existingDraft) return;
+    // A draft that already has an id is a saved document, not a draft. Restoring
+    // it would make every "new" document overwrite that same document.
+    if (existingDraft.data.id) {
+      clearDraft();
+      return;
+    }
     restoredRef.current = true;
     setValue(existingDraft.data);
     setBaseline(existingDraft.data);
     setDraftRestored(true);
-  }, [initial.id, existingDraft]);
+  }, [initial.id, existingDraft, clearDraft]);
 
   useEffect(() => {
+    // Never persist a saved document as the new-document draft: it carries an id
+    // and would be restored into the next new document, overwriting it.
+    if (value.id) return;
     saveDraft(value);
   }, [value, saveDraft]);
 
