@@ -43,13 +43,21 @@ export function parseItems(rawItems: unknown[]): ParsedItem[] {
 }
 
 export function totalGlassPieces(
-  items: Array<{ item_type?: "glass" | "charge"; nos?: number | null }>
+  items: Array<{
+    item_type?: "glass" | "charge";
+    nos?: number | null;
+    actual_length?: number | null;
+    actual_width?: number | null;
+  }>
 ): number {
-  return items.reduce(
-    (sum, it) =>
-      it.item_type !== "charge" ? sum + (Number(it.nos) || 0) : sum,
-    0
-  );
+  return items.reduce((sum, it) => {
+    if (it.item_type === "charge") return sum;
+    // A real glass piece is cut to size; service rows (hole, fabrication,
+    // modification) carry no dimensions and must not count as pieces.
+    const hasSize =
+      (Number(it.actual_length) || 0) > 0 && (Number(it.actual_width) || 0) > 0;
+    return hasSize ? sum + (Number(it.nos) || 0) : sum;
+  }, 0);
 }
 
 export function roundUpInches(inches: number): number {

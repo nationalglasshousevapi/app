@@ -119,18 +119,36 @@ describe("documents lib", () => {
   });
 
   describe("totalGlassPieces", () => {
-    it("sums nos across glass items and ignores charges", () => {
+    it("sums nos across sized glass items and ignores charges", () => {
       expect(
         totalGlassPieces([
-          { item_type: "glass", nos: 2 },
-          { item_type: "glass", nos: 2 },
+          { item_type: "glass", nos: 2, actual_length: 24, actual_width: 12 },
+          { item_type: "glass", nos: 2, actual_length: 24, actual_width: 12 },
           { item_type: "charge", nos: 9 },
         ])
       ).toBe(4);
     });
 
+    it("ignores service rows added without dimensions", () => {
+      expect(
+        totalGlassPieces([
+          { item_type: "glass", nos: 1, actual_length: 36, actual_width: 84 },
+          { item_type: "glass", nos: 1 },
+        ])
+      ).toBe(1);
+    });
+
     it("treats missing nos as zero", () => {
-      expect(totalGlassPieces([{ item_type: "glass", nos: null }])).toBe(0);
+      expect(
+        totalGlassPieces([
+          {
+            item_type: "glass",
+            nos: null,
+            actual_length: 24,
+            actual_width: 12,
+          },
+        ])
+      ).toBe(0);
     });
   });
 

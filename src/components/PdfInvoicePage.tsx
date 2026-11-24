@@ -100,6 +100,15 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eef2f4",
   },
   rowAlt: { backgroundColor: "#f8fafb" },
+  tableFoot: {
+    flexDirection: "row",
+    paddingVertical: 5,
+    paddingHorizontal: 6,
+    borderTopWidth: 1,
+    borderTopColor: DIVIDER,
+    backgroundColor: LIGHT_BG,
+  },
+  footCell: { fontSize: 8, fontFamily: "Helvetica-Bold", color: ACCENT },
   cell: { fontSize: 8 },
   // Table layout (LxW dimensions for all document types)
   invDesc: { width: "18%" },
@@ -417,6 +426,7 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
             const aw = Number(item.actual_width || 0);
             const cl = Number(item.calculated_length || 0);
             const cw = Number(item.calculated_width || 0);
+            const isGlass = !isCharge && al > 0 && aw > 0;
             return (
               <View
                 key={`r-${i}`}
@@ -426,13 +436,13 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
                   {item.description}
                 </Text>
                 <Text style={[styles.cell, styles.invActualLw]}>
-                  {isCharge ? "—" : al > 0 && aw > 0 ? `${al}×${aw}` : "—"}
+                  {isGlass ? `${al}×${aw}` : "—"}
                 </Text>
                 <Text style={[styles.cell, styles.invNos]}>
-                  {isCharge ? "—" : item.nos || "—"}
+                  {isGlass ? item.nos || "—" : "—"}
                 </Text>
                 <Text style={[styles.cell, styles.invCalcLw]}>
-                  {isCharge ? "—" : cl > 0 && cw > 0 ? `${cl}×${cw}` : "—"}
+                  {isGlass ? (cl > 0 && cw > 0 ? `${cl}×${cw}` : "—") : "—"}
                 </Text>
                 <Text style={[styles.cell, styles.invQty]}>
                   {isCharge ? 1 : item.qty}
@@ -449,6 +459,22 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
               </View>
             );
           })}
+          {totalPieces > 0 && (
+            <View style={styles.tableFoot}>
+              <Text style={[styles.footCell, styles.invDesc]}>
+                Total glass pieces
+              </Text>
+              <Text style={[styles.footCell, styles.invActualLw]} />
+              <Text style={[styles.footCell, styles.invNos]}>
+                {totalPieces}
+              </Text>
+              <Text style={[styles.footCell, styles.invCalcLw]} />
+              <Text style={[styles.footCell, styles.invQty]} />
+              <Text style={[styles.footCell, styles.invRate]} />
+              <Text style={[styles.footCell, styles.invUnit]} />
+              <Text style={[styles.footCell, styles.invAmount]} />
+            </View>
+          )}
         </>
         <View style={styles.spacer} />
       </View>
@@ -508,14 +534,6 @@ export default function PdfInvoicePage(props: PdfInvoicePageProps) {
                 <Text style={styles.totValue}>{money(charge.amount)}</Text>
               </View>
             ))}
-          {totalPieces > 0 && (
-            <View style={styles.totLine}>
-              <Text style={styles.totLabel}>Total glass pieces</Text>
-              <Text style={[styles.totValue, { fontFamily: "Helvetica-Bold" }]}>
-                {totalPieces}
-              </Text>
-            </View>
-          )}
           {props.roundOff !== 0 ? (
             <View style={styles.totLine}>
               <Text style={styles.totLabel}>Round Off</Text>
